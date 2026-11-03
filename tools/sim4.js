@@ -1,0 +1,10 @@
+const E=require('../src/engine.js');const data=JSON.parse(require('fs').readFileSync(__dirname+'/../data/game_data.json','utf8'));E.setData(data);
+function base(s,pct){const me=s.f[0];for(let k=0;k<20&&s.ap>0&&!s.won;k++){let best=-1,bn=1e9;const seen={};E.dongsOf(s,0).forEach(i=>data.d[i].a.forEach(t=>{if(seen[t]||s.owner[t]===0)return;seen[t]=1;const p=E.preview(s,t,1);if(p.reason)return;const n=E.needFor(s,t,pct);if(n<bn&&n<=me.troops){bn=n;best=t}}));if(best<0)break;E.attack(s,best,bn)}}
+function snipe(s){const me=s.f[0];let tries=0;for(const f of s.f){if(!f.ai||!f.alive||s.ap<1)continue;const t=f.cap;const p=E.preview(s,t,1);if(p.reason)continue;const n=E.needFor(s,t,.8);if(n<=me.troops){const r=E.attack(s,t,n);tries++;if(s.won)return}}}
+function gu(s){if(s.rank<1)return;const gs={};E.dongsOf(s,0).forEach(i=>data.d[i].a.forEach(j=>{if(s.owner[j]!==0)gs[data.d[j].g]=1}));for(let g of Object.keys(gs)){g=+g;while(s.ap>=E.guCost(s)&&!s.won){const p=E.guAttackPreview(s,g);if(p.can<1)break;if(E.guAttack(s,g).err)break}}}
+const bots={'일반':s=>{if(s.f[0].money>0)E.recruit(s,s.f[0].money);gu(s);base(s,.8)},'본거지 저격':s=>{if(s.f[0].money>0)E.recruit(s,s.f[0].money);snipe(s);gu(s);base(s,.8)}};
+const med=a=>{a=a.slice().sort((x,y)=>x-y);return a.length?a[a.length>>1]:'-'};
+const starts=['서교동','소공동','진관동','상계8동'];const N=+process.argv[2]||10;
+for(const [nm,bot] of Object.entries(bots)){console.log('== '+nm);for(const st0 of starts){const st=data.d.findIndex(d=>d.n===st0);let w=[],dead=0,gap=[],dec=[],topAI=[],capT=[];for(let i=0;i<N;i++){const s=E.create(data,st,7000+i*53);let decided=null,peak=0;while(s.month<110&&!s.won&&!s.over){bot(s);if(s.won||s.over)break;E.endTurn(s);const fl=E.factionList(s).filter(f=>f.id),top=fl.length?fl.reduce((a,b)=>a.pop>b.pop?a:b).pop:0,me=E.popShare(s,0);peak=Math.max(peak,fl[0]?fl[0].n:0);if(decided===null&&me>=.3&&me>=top*2.5)decided=s.month;}
+ if(s.won){w.push(s.month);if(decided!==null){gap.push(s.month-decided);dec.push(decided)}}if(s.over)dead++;topAI.push(peak)}
+ console.log(st0.padEnd(6),'승',w.length+'/'+N,'패',dead,'엔딩',med(w),'사실상결정',med(dec),'간격',med(gap),'AI최대',med(topAI))}}
