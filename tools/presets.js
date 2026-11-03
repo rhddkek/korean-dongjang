@@ -17,7 +17,7 @@
       if (easy.length < 12) easy = land.filter(function (i) { return gp[D[i].g] >= gmax * 0.3; });
     }
     // 도·전국처럼 칸이 넓은 지도는 '작은 동' 기준도 넓힘 (서울·광역시는 8㎢ 그대로)
-    var kms = D.map(function (d) { return d.km; }).sort(function (a, b) { return a - b; }), KM = Math.max(8, kms[Math.floor(kms.length * 0.6)]);
+    var kms = D.map(function (d) { return d.km; }).sort(function (a, b) { return a - b; }), KM = E.C.KIND && E.C.KIND !== 'metro' ? Math.max(8, kms[Math.floor(kms.length * 0.6)]) : 8;
     // 처음이면 추천: 역이 있고 고르게 강한 동
     var rec = easy.filter(function (i) { return D[i].sub > 0 && D[i].type !== 'office' && D[i].km < KM; });
     if (!rec.length) rec = easy.filter(function (i) { return D[i].type !== 'office' && D[i].km < KM; });
