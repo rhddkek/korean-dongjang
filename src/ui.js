@@ -157,6 +157,12 @@
     if (sx > r.x + m && sx < r.x + r.w - m && sy > r.y + m && sy < r.y + r.h - m) return;
     tweenTo({ s: cam.s, x: r.x + r.w / 2 - d.x * cam.s, y: r.y + r.h / 2 - d.y * cam.s });
   }
+  // 그 동으로 지도를 옮기고 정보를 연다
+  function goDong(i) {
+    if (i === undefined || i === null || !D[i]) return;
+    select(i);
+    requestAnimationFrame(function () { var r = viewRect(), ns = Math.max(cam.s, fitS * 3.2); tweenTo({ s: ns, x: r.x + r.w / 2 - D[i].x * ns, y: r.y + r.h / 2 - D[i].y * ns }); });
+  }
   function clampCam() {
     var r = viewRect(), s = cam.s;
     cam.x = Math.min(r.x + r.w - 40, Math.max(r.x + 40 - DATA.w * s, cam.x));
@@ -265,7 +271,7 @@
     }
     if (S && !lens && S.rivalPlan && S.owner[S.rivalPlan.t] === 0) {
       var pt = S.rivalPlan.t, blink = 0.45 + 0.35 * Math.sin(performance.now() / 250);
-      c.strokeStyle = 'rgba(212,50,31,' + blink + ')'; c.lineWidth = 5 * px; c.stroke(dongPath[pt]); clearTimeout(blinkTimer); blinkTimer = setTimeout(dirty, 130);
+      c.strokeStyle = 'rgba(234,122,30,' + blink + ')'; c.lineWidth = 5 * px; c.stroke(dongPath[pt]); clearTimeout(blinkTimer); blinkTimer = setTimeout(dirty, 130);
     }
     Object.keys(flash).forEach(function (k) {
       c.strokeStyle = flash[k] === 1 ? '#fff' : '#17231C'; c.lineWidth = 4 * px; c.stroke(dongPath[k]);
@@ -295,6 +301,43 @@
       }
     }
     drawLabels(c, cur);
+    drawMarks(c);
+  }
+  function marksNow() {
+    var out = [];
+    if (!S) return out;
+    if (S.marks && S.marks.m === S.month) S.marks.list.forEach(function (x) { out.push(x); });
+    if (S.rivalPlan && S.owner[S.rivalPlan.t] === 0) out.push({ t: S.rivalPlan.t, k: 'threat' });
+    return out;
+  }
+  function drawMarks(c) {
+    if (!S || lens) return;
+    var ms = marksNow(); if (!ms.length) return;
+    c.setTransform(DPR, 0, 0, DPR, 0, 0);
+    c.font = '700 12px "IBM Plex Sans KR","Apple SD Gothic Neo",sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle';
+    var STY = { lost: ['#17231C', '#fff', '함락', 'flag'], held: ['#1F6B52', '#fff', '방어 성공', 'shield'], threat: ['#C2410C', '#fff', '위협', 'warn'] };
+    ms.forEach(function (m) {
+      var d = D[m.t], st = STY[m.k]; if (!d || !st) return;
+      // 테두리 (월드 좌표)
+      c.save(); c.setTransform(DPR * cam.s, 0, 0, DPR * cam.s, DPR * cam.x, DPR * cam.y);
+      var px = 1 / cam.s;
+      if (m.k === 'threat') { c.setLineDash([6 * px, 4 * px]); c.strokeStyle = '#EA7A1E'; c.lineWidth = 3.4 * px; c.stroke(dongPath[m.t]); c.setLineDash([]); }
+      else { c.strokeStyle = '#fff'; c.lineWidth = 6.5 * px; c.stroke(dongPath[m.t]); c.strokeStyle = st[0]; c.lineWidth = 3.6 * px; c.stroke(dongPath[m.t]); }
+      c.restore();
+      // 아이콘 + 글자 꼬리표 (화면 좌표)
+      var x = d.x * cam.s + cam.x, y = d.y * cam.s + cam.y - 20;
+      var w = c.measureText(st[2]).width + 26, h = 20;
+      c.fillStyle = st[0]; c.strokeStyle = '#fff'; c.lineWidth = 1.5;
+      c.beginPath(); if (c.roundRect) c.roundRect(x - w / 2, y - h / 2, w, h, 5); else c.rect(x - w / 2, y - h / 2, w, h); c.fill(); c.stroke();
+      var ix = x - w / 2 + 11, iy = y;
+      c.fillStyle = '#fff'; c.beginPath();
+      if (st[3] === 'flag') { c.rect(ix - 4, iy - 6, 1.6, 12); c.moveTo(ix - 2.4, iy - 6); c.lineTo(ix + 5, iy - 3.5); c.lineTo(ix - 2.4, iy - 1); c.closePath(); }
+      else if (st[3] === 'shield') { c.moveTo(ix, iy - 6); c.lineTo(ix + 5, iy - 4); c.lineTo(ix + 4, iy + 2); c.lineTo(ix, iy + 6); c.lineTo(ix - 4, iy + 2); c.lineTo(ix - 5, iy - 4); c.closePath(); }
+      else { c.moveTo(ix, iy - 6); c.lineTo(ix + 6, iy + 5); c.lineTo(ix - 6, iy + 5); c.closePath(); }
+      c.fill();
+      if (st[3] === 'warn') { c.fillStyle = st[0]; c.fillRect(ix - 0.8, iy - 2.5, 1.6, 4); c.fillRect(ix - 0.8, iy + 2.6, 1.6, 1.4); }
+      c.fillStyle = st[1]; c.fillText(st[2], ix + 9, y + 0.5);
+    });
   }
   var labelW = {}, wheelUntil = 0, comboCache = {};
   function isFast() { return !!tween || (gest && gest.moved > 6) || performance.now() < wheelUntil; }
@@ -1131,8 +1174,9 @@
   }
   function logSheet(sh) {
     var html = '<div class="head"><div><h2>지역 소식</h2></div><button class="x" type="button" aria-label="닫기">×</button></div><ul class="log">';
-    html += S.log.map(function (l) { return '<li class="' + (l.k === 'n' ? '' : l.k) + '"><small class="num">' + dateOf(l.m) + '</small>' + esc(l.t) + '</li>'; }).join('');
+    html += S.log.map(function (l) { var go = l.at !== undefined && D[l.at]; return '<li class="' + (l.k === 'n' ? '' : l.k) + (go ? ' go' : '') + '"' + (go ? ' data-at="' + l.at + '" role="button" tabindex="0"' : '') + '><small class="num">' + dateOf(l.m) + '</small>' + esc(l.t) + (go ? ' <span class="goto">' + esc(D[l.at].n) + ' 보기 ›</span>' : '') + '</li>'; }).join('');
     sh.innerHTML = html + '</ul>';
+    Array.prototype.forEach.call(sh.querySelectorAll('li[data-at]'), function (li) { li.addEventListener('click', function () { goDong(+li.dataset.at); }); });
   }
   function menuSheet(sh) {
     var html = '<div class="head"><div><h2>메뉴</h2></div><button class="x" type="button" aria-label="닫기">×</button></div>';
@@ -1247,27 +1291,36 @@
     sfx('page');
     backup();
     var before = S.owner.slice();
+    var nBefore = before.filter(function (o) { return o === 0; }).length, capBefore = S.f[0].cap;
     var ev = E.endTurn(S);
-    var lost = 0; flash = {};
+    var lost = 0, lostList = []; flash = {};
     before.forEach(function (o, i) {
-      if (o === 0 && S.owner[i] !== 0) { flash[i] = 2; lost++; }
+      if (o === 0 && S.owner[i] !== 0) { flash[i] = 2; lost++; lostList.push(i); }
       if (o !== 0 && S.owner[i] === 0) flash[i] = 1;
     });
+    var battles = (S.battles || []).slice(), held = battles.filter(function (b) { return b.held && S.owner[b.t] === 0; });
+    S.marks = { m: S.month, list: lostList.map(function (i) { return { t: i, k: 'lost' }; }).concat(held.map(function (b) { return { t: b.t, k: 'held' }; })) };
     clearTimeout(flashTimer);
     flashTimer = setTimeout(function () { flash = {}; dirty(); }, 1500);
     var bad = ev.filter(function (l) { return l.k === 'bad'; }), riv = ev.filter(function (l) { return l.k === 'riv'; }), good = ev.filter(function (l) { return l.k === 'good' || l.k === 'rank'; });
     var hints = { 1: '출동 인원이 돌아왔습니다. 우리 동을 누르면 개발, 위쪽 숫자판을 누르면 인원 모집입니다.', 2: '빨간 점선은 지하철로 기습할 수 있는 동입니다.', 3: '한 구의 동을 절반 차지하면 구청장입니다.' };
     var plan = S.rivalPlan ? ev.filter(function (l) { return l.k === 'riv' && l.t.indexOf('모이고') >= 0; }) : [];
     var hint = nextHint();
-    if (plan.length) { setNews(plan[0].t + ' 그 동을 누르면 막는 방법이 나옵니다.', true); setTimeout(function () { sfx('warn'); }, 350); }
+    var nb = lostList.length + held.length, capHit = capBefore !== S.f[0].cap;
+    if (lostList.length) {
+      var lb = battles.filter(function (b) { return !b.held && b.t === lostList[0]; })[0];
+      setNews((capHit ? '본거지 ' : '') + E.J(D[lostList[0]].n, '을', '를') + ' ' + (lb ? S.f[lb.f].name + '에게 ' : '') + '빼앗겼습니다' + (lostList.length > 1 ? ' 외 ' + (lostList.length - 1) + '곳' : '') + '. 전투 ' + nb + '건' + (plan.length ? ' · 예고: ' + D[S.rivalPlan.t].n : ''), true);
+    } else if (plan.length && S.rivalPlan.t === S.f[0].cap) { setNews('본거지 위기! ' + plan[0].t + (held.length ? ' (이번 달 방어 성공 ' + held.length + '건)' : ''), true); setTimeout(function () { sfx('warn'); }, 350); }
+    else if (held.length) { setNews(D[held[0].t].n + ' 방어 성공 (' + S.f[held[0].f].name + ')' + (held.length > 1 ? ' 외 ' + (held.length - 1) + '곳' : '') + '.' + (plan.length ? ' 예고: ' + D[S.rivalPlan.t].n : hint ? ' ' + hint : ''), !!plan.length); if (plan.length) setTimeout(function () { sfx('warn'); }, 350); }
+    else if (plan.length) { setNews(plan[0].t + ' 그 동을 누르면 막는 방법이 나옵니다.', true); setTimeout(function () { sfx('warn'); }, 350); }
     else if (bad.length) setNews(bad[0].t + (ev.length > 1 ? ' 외 ' + (ev.length - 1) + '건' : ''), true);
     else if (hint) setNews(hint + (good.length ? ' / ' + good[0].t : ''));
     else if (riv.length) setNews(riv[0].t);
     else if (good.length) setNews(good[0].t + (ev.length > 1 ? ' 외 ' + (ev.length - 1) + '건' : ''));
     else if (ev.length) setNews(ev[0].t + (ev.length > 1 ? ' 외 ' + (ev.length - 1) + '건' : ''));
     else setNews(hints[S.month] || (dateOf(S.month) + '. 조용한 달이었습니다.'));
-    if (!bad.length && !riv.length && !good.length && hints[S.month]) setNews(hints[S.month]);
-    if (!S.seenFoe && !bad.length && !plan.length) {
+    if (!bad.length && !riv.length && !good.length && !nb && hints[S.month]) setNews(hints[S.month]);
+    if (!S.seenFoe && !bad.length && !plan.length && !nb) {
       var contact = E.dongsOf(S, 0).some(function (i) { return D[i].a.some(function (j) { return S.owner[j] > 0; }); });
       if (contact) { S.seenFoe = 1; setNews('다른 세력과 맞닿았습니다. 그 동을 누르면 협정도 제안할 수 있습니다.'); }
     }
@@ -1275,7 +1328,26 @@
     errMsg = '';
     save();
     sync();
+    // 잃은 동이 있으면(후반엔 본거지가 아니고 한 곳뿐이면 소식 줄로만) 결과 카드 하나로 묶어 보여 줌
+    var big = lostList.length ? (S.rank < 2 || lostList.length > 1 || capHit) : (held.length && S.rank === 0);
+    if (big && !S.over && $('over').hidden) battleCard(lostList, held, battles, nBefore, capHit);
   }));
+  function battleCard(lostList, held, battles, nBefore, capHit) {
+    var rows = [];
+    lostList.forEach(function (i) {
+      var b = battles.filter(function (x) { return x.t === i && !x.held; })[0];
+      rows.push({ i: i, h: '<b class="bad">' + esc(D[i].n) + ' 함락</b>', s: b ? esc(S.f[b.f].name) + ' · 우리 측 ' + people(b.mine) + ' 귀가' : '주민 독립 선언' });
+    });
+    held.forEach(function (b) { rows.push({ i: b.t, h: '<b class="good">' + esc(D[b.t].n) + ' 방어 성공</b>', s: esc(S.f[b.f].name) + ' · 우리 측 ' + people(b.mine) + ' / 상대 ' + people(b.theirs) + ' 귀가' }); });
+    var more = rows.length > 6 ? rows.length - 6 : 0; rows = rows.slice(0, 6);
+    var nNow = E.dongsOf(S, 0).length;
+    var win = !lostList.length;
+    var head = win ? (held.length > 1 ? '공격 ' + held.length + '건을 모두 막았습니다' : D[held[0].t].n + ' 방어 성공!') : capHit ? '본거지를 빼앗겼습니다' : lostList.length > 1 ? '동 ' + lostList.length + '곳을 빼앗겼습니다' : GU[D[lostList[0]].g].n + ' ' + E.J(D[lostList[0]].n, '을', '를') + ' 빼앗겼습니다';
+    showCard('<div class="seal' + (win ? '' : ' lose') + '">' + (win ? '방어' : '함락') + '</div><h2>' + esc(head) + '</h2><div class="rows" style="text-align:left;margin-top:8px">' + rows.map(function (r) { return '<div class="row bt"><span>' + r.h + '<br><small>' + r.s + '</small></span><button class="btn" type="button" data-go="' + r.i + '">보기</button></div>'; }).join('') + (more ? '<div class="row"><span>외 ' + more + '곳</span><span></span></div>' : '') + '<div class="row"><span>우리 동</span><span class="num">' + nBefore + '개 → ' + nNow + '개</span></div>' + (capHit ? '<div class="row"><span>새 본거지</span><span>' + esc(D[S.f[0].cap].n) + '</span></div>' : '') + '</div><p class="why">지도에 이번 달 동안 함락·방어 표시가 남습니다. 소식을 눌러도 그 동으로 갑니다.</p><div class="acts"><button class="btn' + (win ? '' : ' red') + '" id="cardOk" type="button">확인</button></div>');
+    sfx(win ? 'stamp' : 'fail');
+    bind('cardOk', function () { hideCard(); sync(); });
+    Array.prototype.forEach.call($('card').querySelectorAll('[data-go]'), function (b) { b.addEventListener('click', function () { hideCard(); goDong(+b.dataset.go); sync(); }); });
+  }
   $('govBar').addEventListener('click', function () { $('sheet').scrollTop = 0; sel = null; errMsg = ''; sheetMode = sheetMode === 'gov' ? 'none' : 'gov'; renderSheet(); dirty(); });
   $('offerBar').addEventListener('click', function () { $('sheet').scrollTop = 0; sel = null; errMsg = ''; sheetMode = sheetMode === 'offer' ? 'none' : 'offer'; renderSheet(); dirty(); });
   $('evBar').addEventListener('click', function () { $('sheet').scrollTop = 0; sel = null; sheetMode = sheetMode === 'ev' ? 'none' : 'ev'; renderSheet(); dirty(); });

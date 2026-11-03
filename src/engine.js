@@ -227,8 +227,9 @@ var Engine = (function () {
     s.owner[cap] = id;
     return id;
   }
-  function pushLog(s, t, kind) {
+  function pushLog(s, t, kind, at) {
     var e = { m: s.month, t: t, k: kind || 'n' };
+    if (at !== undefined) e.at = at;   // 누르면 이동할 동
     s.log.unshift(e);
     if (s.log.length > 80) s.log.length = 80;
     s.last.push(e);
@@ -502,6 +503,10 @@ var Engine = (function () {
       }
     }
     att.troops = Math.max(0, att.troops);
+    if (o === 0 && fid > 0) {
+      s.battles = s.battles || [];
+      s.battles.push({ t: t, f: fid, held: !win, mine: Math.round(win ? def.share * 0.55 : Math.min(def.share, a * 0.3)), theirs: res.lost, cap: !!res.movedCap || s.f[0].cap === t, fac: res.facNote || '' });
+    }
     if (o >= 0 && s.f[o].alive && fid === 0) { s.f[o].grudge = s.month + 6; s.f[o].grudgeWhy = 'atk'; }
     return res;
   }
@@ -912,7 +917,7 @@ var Engine = (function () {
     return best;
   }
   function planLog(s, f, t, why, cons, est) {
-    pushLog(s, f.name + ' 회원들이 ' + D.d[t].n + (why ? '(' + why + ')' : '') + ' 앞에 모이고 있습니다. 약 ' + Math.round(est) + '명, 다음 달 공격 가능성 높음.' + (cons ? ' ' + cons + '.' : ''), 'riv');
+    pushLog(s, f.name + ' 회원들이 ' + D.d[t].n + (why ? '(' + why + ')' : '') + ' 앞에 모이고 있습니다. 약 ' + Math.round(est) + '명, 다음 달 공격 가능성 높음.' + (cons ? ' ' + cons + '.' : ''), 'riv', t);
   }
   function tickRivalPlan(s) {
     s.rivalPlan = null;
@@ -1344,8 +1349,8 @@ var Engine = (function () {
       if (pr) {
         var pres = resolve(s, f.id, pt, pn, pr);
         tries--;
-        if (pres.win) { s.stat.lost++; f.tookMine = (f.tookMine || 0) + 1; pushLog(s, f.name + '의 작전. ' + J(D.d[pt].n, '을', '를') + ' 빼앗겼습니다.', 'bad'); if (pres.movedCap !== undefined) pushLog(s, '본거지를 ' + ro(D.d[pres.movedCap].n) + ' 옮겼습니다.', 'bad'); }
-        else { f.lostAt = s.month; pushLog(s, J(D.d[pt].n, '이', '가') + ' ' + f.name + '의 작전을 막아냈습니다.', 'good'); if (pres.facNote) pushLog(s, pres.facNote, 'good'); }
+        if (pres.win) { s.stat.lost++; f.tookMine = (f.tookMine || 0) + 1; pushLog(s, f.name + '의 작전. ' + J(D.d[pt].n, '을', '를') + ' 빼앗겼습니다.', 'bad', pt); if (pres.movedCap !== undefined) pushLog(s, '본거지를 ' + ro(D.d[pres.movedCap].n) + ' 옮겼습니다.', 'bad'); }
+        else { f.lostAt = s.month; pushLog(s, J(D.d[pt].n, '이', '가') + ' ' + f.name + '의 작전을 막아냈습니다.', 'good', pt); if (pres.facNote) pushLog(s, pres.facNote, 'good'); }
       }
       s.rivalPlan = null;
     }
@@ -1387,10 +1392,10 @@ var Engine = (function () {
         if (res.win) {
           s.stat.lost++;
           f.tookMine = (f.tookMine || 0) + 1;
-          pushLog(s, f.name + '에게 ' + J(D.d[bestT].n, '을', '를') + ' 빼앗겼습니다.', 'bad');
+          pushLog(s, f.name + '에게 ' + J(D.d[bestT].n, '을', '를') + ' 빼앗겼습니다.', 'bad', bestT);
           if (f.id === s.rival && rnd(s) < 0.25) pushLog(s, f.name + ': ' + D.d[bestT].n + ' 잘 받았습니다. 답례 떡은 안 돌립니다.', 'riv');
           if (res.movedCap !== undefined) pushLog(s, '본거지를 ' + ro(D.d[res.movedCap].n) + ' 옮겼습니다. 인원 일부가 흩어졌습니다.', 'bad');
-        } else { f.lostAt = s.month; pushLog(s, J(D.d[bestT].n, '이', '가') + ' ' + f.name + '의 공격을 막아냈습니다.', 'good'); if (res.facNote) pushLog(s, res.facNote, 'good'); }
+        } else { f.lostAt = s.month; pushLog(s, J(D.d[bestT].n, '이', '가') + ' ' + f.name + '의 공격을 막아냈습니다.', 'good', bestT); if (res.facNote) pushLog(s, res.facNote, 'good'); }
       } else if (res.collapse) {
         pushLog(s, J(f.name, '이', '가') + ' ' + J(res.collapse.name, '을', '를') + ' 무너뜨렸습니다.');
       }
@@ -1399,6 +1404,7 @@ var Engine = (function () {
   function endTurn(s) {
     if (s.over) return s.last;
     s.last = [];
+    s.battles = [];
     s.month++;
     var me = s.f[0];
     var e = economy(s, 0);
@@ -1432,7 +1438,7 @@ var Engine = (function () {
     dongsOf(s, 0).forEach(function (i) {
       if (s.min[i] < 40 && s.f[0].cap !== i && !(s.stable && s.stable[D.d[i].g] > s.month) && lv(s, i, 3) < 5 && !nbLv(s, i, 3, 5) && rnd(s) < (s.min[i] < 25 ? 0.12 : 0.06)) {
         s.owner[i] = -1; s.min[i] = 60;
-        pushLog(s, '민심이 낮았던 ' + D.d[i].n + ' 주민들이 독립을 선언했습니다.', 'bad');
+        pushLog(s, '민심이 낮았던 ' + D.d[i].n + ' 주민들이 독립을 선언했습니다.', 'bad', i);
       }
     });
     var order = s.f.filter(function (f) { return f.ai && f.alive; });

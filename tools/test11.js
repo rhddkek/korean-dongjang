@@ -49,6 +49,7 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
     let f = null, t = -1; for (const ff of S.f) { if (!ff.ai || !ff.alive) continue; for (const i of E.dongsOf(S, ff.id)) { const j = D[i].a.find(x => S.owner[x] === 0 && x !== S.f[0].cap); if (j !== undefined) { f = ff; t = j; break; } } if (f) break; }
     if (!f) return null;
     S.rival = f.id; S.f[0].pact = {}; f.lostAt = -9; f.grudge = 0; S.f[0].troops = 0; S.f[0].away = 0;
+    S.min[t] = 800; S.f[0].troops = 800; // 방어가 너무 얇으면 AI 월 동원만으로 넘어가서 시험이 흔들림
     const r = E.route(S, f.id, t); const def = E.defense(S, t).total;
     // 예고 인원은 방어를 넘지만, 스카우트로 빠진 뒤 남은 인원으로는 못 넘게
     const need = def * 1.2 / (1 + r.mult);
