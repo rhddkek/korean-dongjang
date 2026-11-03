@@ -10,7 +10,7 @@ var Engine = (function () {
     SHARE_CAP: 5,
     TRACKS: ['상권', '교통', '주거', '치안'],
     GROUPS: ['번영회', '부녀회', '상인회', '조기축구회', '통장협의회', '노인회', '청년회', '산악회', '입주자대표회의', '배드민턴클럽', '학부모회', '방범대', '반상회', '테니스동호회', '자율방재단'],
-    RANKS: ['동장', '구청장', '권역장', '서울시장'],
+    RANKS: ['동장', '구청장', '권역장', '서울시장'], GRP: '구', UNIT: '동', KIND: 'metro', RAIL: '지하철', RAID_KM: 4,
     GU_LIMIT: [0, 3, 5, 5], GU_COST: [2, 2, 3, 3]   // 직급별 구 작전 한 번의 최대 동 수
   };
   // 통계로 자동 분류한 동네 유형. 실제 동네에 대한 평가가 아니라 게임용 각색.
@@ -69,7 +69,7 @@ var Engine = (function () {
     other: { n: '반상회 소집', t: '동네 전체 민심을 한 번에 올립니다', how: '세력 화면에서 소집. 우리 동 전체 민심 +20, 비용은 한 달 세수. 8개월에 한 번.' }
   };
   var PROJECTS = {
-    unity: { n: '구민 화합 사업', t: '한 구의 우리 동 민심을 100으로 올리고 6개월간 독립을 막습니다' },
+    unity: { n: '주민 화합 사업', t: '한 구의 우리 동 민심을 100으로 올리고 6개월간 독립을 막습니다' },
     express: { n: '광역 급행 사업', t: '역이 있는 우리 동의 기습 거리를 영구히 5.5km로 늘립니다 (한 판에 한 번)' }
   };
   var RIVAL_LINES = ['우리 구에서는 아직도 동장님이라고 부릅니다.', '결재 서류 그만 올리시고 회의나 나오시죠.', '동네 일은 단톡방에서 정하는 겁니다.', '다음 달 정기 모임 안건은 당신네 동입니다.', '주차 문제부터 해결하고 오시죠.', '회비도 안 내면서 무슨 서울시장입니까.', '우리 회장님 인맥이면 구청 앞 민원은 금방입니다.'];
@@ -124,10 +124,15 @@ var Engine = (function () {
   ];
   // ---- 도시 설정: 서울이 기본, 광역시는 setCity로 바꿈 ----
   var CITY = { id: 'seoul', name: '서울', water: '한강', r2: 4 };
-  function waterShuttle(w) { return w === '한강' ? '한강 셔틀버스' : w === '바다' ? '연안 셔틀버스' : w ? w + ' 셔틀버스' : '도심 셔틀버스'; }
+  function waterShuttle(w) { return w === '한강' ? '한강 셔틀버스' : w && w.indexOf('바다') >= 0 ? '연안 셔틀버스' : w ? w + ' 셔틀버스' : '도심 셔틀버스'; }
+  // 모드: 광역시(기본) / 도(prov) / 통합(combo) / 전국(nation). 직급·묶음 이름이 바뀜
   function setCity(c) {
     CITY = c;
-    C.RANKS = ['동장', '구청장', c.id === 'seoul' ? '권역장' : '부시장', c.name + '시장'];
+    var m = c.mode || {};
+    C.KIND = m.kind || 'metro';
+    C.RANKS = m.kind ? [m.kind === 'nation' ? '시장·군수·구청장' : '읍면동장', m.r1, m.r2, m.final] : ['동장', '구청장', c.id === 'seoul' ? '권역장' : '부시장', c.name + '시장'];
+    C.GRP = m.grp || '구'; C.UNIT = m.unit || '동';
+    C.RAIL = m.rail || '지하철'; C.RAID_KM = m.raid || 4;
     C.R2 = c.r2;
     TYPES.river.e = '여기서 ' + J(c.water || '강', '을', '를') + ' 건널 때 불이익이 절반';
     TYPES.river.t = c.water === '바다' ? '다리 하나면 섬과 뭍이 이어집니다' : '다리만 건너면 강 건너';
@@ -146,9 +151,10 @@ var Engine = (function () {
       d.base = 30 + d.P * 1.5 + d.I * 0.7 + Math.min(d.km * 5, 40);
       d.tax = 3 + d.E * 0.28 + d.I * 0.05 + d.L * 0.06;
       d.draft = 4 + d.P * 0.18;
-      d.type = d.work >= 30000 || (d.work > d.pop * 2 && d.work >= 8000) ? 'office' : d.sub >= 3 ? 'station' : (d.P >= 82 && d.work < d.pop * 0.5) ? 'town' : d.fac >= 230 ? 'busy' : d.r.length > 0 ? 'river' : d.km >= 3.5 ? 'wide' : d.L >= 55 ? 'life' : 'home';
+      d.type = d.ty || (d.work >= 30000 || (d.work > d.pop * 2 && d.work >= 8000) ? 'office' : d.sub >= 3 ? 'station' : (d.P >= 82 && d.work < d.pop * 0.5) ? 'town' : d.fac >= 230 ? 'busy' : d.r.length > 0 ? 'river' : d.km >= 3.5 ? 'wide' : d.L >= 55 ? 'life' : 'home');
     });
-    // 지하철 기습: 역이 있는 동끼리 4km 이내
+    // 지하철 기습: 역이 있는 동끼리 4km 이내 (전국 모드는 KTX 역끼리 더 멀리)
+    var R0 = C.RAID_KM * 100, R7 = R0 * 1.375, R6 = R0 * 1.5;
     SUBWAY = data.d.map(function () { return []; }); SUBWAY6 = data.d.map(function () { return []; }); SUBWAY7 = data.d.map(function () { return []; });
     var subs = [];
     data.d.forEach(function (d, i) { if (d.sub > 0) subs.push(i); });
@@ -156,9 +162,9 @@ var Engine = (function () {
       subs.forEach(function (j) {
         if (i === j || data.d[i].a.indexOf(j) >= 0) return;
         var dx = data.d[i].x - data.d[j].x, dy = data.d[i].y - data.d[j].y, q = dx * dx + dy * dy;
-        if (q <= 400 * 400) SUBWAY[i].push(j);
-        if (q <= 550 * 550) SUBWAY7[i].push(j);
-        if (q <= 600 * 600) SUBWAY6[i].push(j);
+        if (q <= R0 * R0) SUBWAY[i].push(j);
+        if (q <= R7 * R7) SUBWAY7[i].push(j);
+        if (q <= R6 * R6) SUBWAY6[i].push(j);
       });
     });
   }
@@ -179,9 +185,20 @@ var Engine = (function () {
   function J(w, a, b) { return w + (bat(w) ? a : b); }
   function ro(w) { var b = bat(w); return w + (b && b !== 8 ? '으로' : '로'); }
   function stem(name) {
-    var m = name.match(/^([가-힣]+?)(제?\d.*)?동$/);
-    return m ? m[1] : name.replace(/동$/, '');
+    var n = name.replace(/^\S+ /, '');   // '서울 강남구' → '강남구'
+    var m = n.match(/^([가-힣]+?)(제?\d.*)?동$/);
+    if (m) return m[1];
+    var k = n.replace(/(읍|면|시|군|구)$/, '');
+    return k.length >= 2 ? k : n;
   }
+  // 칸·묶음 이름에 붙는 직함: 소공동 동장 / 애월읍 읍장 / 포항시장 / 양평군수 / 서울 강남구청장 / 경기도지사
+  function headOf(n) {
+    if (n === '세종') return '세종시장';
+    var l = n.charAt(n.length - 1);
+    if (l === '동' || l === '읍' || l === '면' || l === '가' || l === '리') return n + ' ' + (l === '읍' ? '읍장' : l === '면' ? '면장' : '동장');
+    return n + (l === '구' ? '청장' : l === '군' ? '수' : l === '도' ? '지사' : '장');
+  }
+  function officeOf(n) { var h = headOf(n); return stem(n) + ' ' + (/읍장$/.test(h) ? '읍장실' : /면장$/.test(h) ? '면장실' : /동장$/.test(h) ? '동장실' : /청장$/.test(h) ? '구청' : /군수$/.test(h) ? '군청' : '시청'); }
 
   function create(data, start, seed) {
     if (D !== data) setData(data);
@@ -195,7 +212,7 @@ var Engine = (function () {
       ev: null, evUsed: [], nextEv: 4 + Math.floor((seed >>> 3) % 3), rival: -1, rivalAt: 0,
       weakAt: -9, gov: { open: null, sites: {}, nextAt: 6, idx: 0 }, abil: abilityOf(data.d[start].type), scoutAt: {}, vote: null, express: -99, rallyAt: -99, stable: {}, exprProj: false, rivalPlan: null, awayLate: 0
     };
-    var me = { id: 0, name: stem(data.d[start].n) + ' 동장실', cap: start, money: Math.max(60, Math.round(30 + data.d[start].E * 2)), troops: Math.max(230, Math.round(130 + data.d[start].P * 1.9)), away: 0, ai: false, alive: true, c: 0, pact: {}, grudge: 0 };
+    var me = { id: 0, name: officeOf(data.d[start].n), cap: start, money: Math.max(60, Math.round(30 + data.d[start].E * 2)), troops: Math.max(230, Math.round(130 + data.d[start].P * 1.9)), away: 0, ai: false, alive: true, c: 0, pact: {}, grudge: 0 };
     s.f.push(me);
     s.owner[start] = 0;
     var ban = {}; ban[start] = 1; data.d[start].a.forEach(function (j) { ban[j] = 1; });
@@ -205,7 +222,7 @@ var Engine = (function () {
       c.sort(function (a, b) { return (data.d[b].P + data.d[b].E) - (data.d[a].P + data.d[a].E); });
       c = c.slice(0, Math.max(1, Math.ceil(c.length * 0.6)));
       // 광역시: 도시 전체 세력 수를 동 15개당 하나(최소 8개)로 맞추고 구 크기대로 나눔
-      var k = CITY.id === 'seoul' ? 1 : Math.max(1, Math.round(Math.max(8, data.d.length / 15) * list.length / data.d.length));
+      var k = CITY.id === 'seoul' ? 1 : Math.max(C.KIND === 'nation' ? 0 : 1, Math.round(Math.max(8, data.d.length / 15) * list.length / data.d.length));
       for (var q = 0; q < k && c.length; q++) {
         var w = pick(s, c);
         if (w === undefined) return;
@@ -214,7 +231,7 @@ var Engine = (function () {
       }
     });
     s.ap = maxAP(s);
-    pushLog(s, data.d[start].n + ' 동장에 취임했습니다. 옆 동네가 눈에 들어옵니다.');
+    pushLog(s, J(headOf(data.d[start].n), '에', '에') + ' 취임했습니다. 옆 동네가 눈에 들어옵니다.');
     return s;
   }
   function abilityOf(type) { return ABIL[type] ? type : 'other'; }
@@ -386,7 +403,9 @@ var Engine = (function () {
     out.items.sort(function (a, b) { return b.v - a.v; });
     return out;
   }
-  function upkeep(n) { return n <= 1 ? 0 : 1.6 * Math.pow(n, 1.3) + (n > 30 ? 0.5 * Math.pow(n - 30, 1.45) : 0); }
+  // 관리비: 동이 늘수록 가파르게. 서울(427동)보다 큰 지도는 그만큼 완만하게 늘림 (넓은 도 지도에서도 60%까지 갈 수 있게)
+  function upkeep0(n) { return n <= 1 ? 0 : 1.6 * Math.pow(n, 1.3) + (n > 30 ? 0.5 * Math.pow(n - 30, 1.45) : 0); }
+  function upkeep(n) { var k = D ? Math.max(1, D.d.length / 427) : 1; return k === 1 ? upkeep0(n) : upkeep0(n / k) * k; }
   function drafted(n) { return n <= 15 ? 1 : Math.pow(15 / n, 0.3); }
   function economy(s, fid) {
     var list = dongsOf(s, fid), fm = fullMapOf(s, fid, list), tax = 0, draft = 0;
@@ -722,7 +741,7 @@ var Engine = (function () {
     return { count: t.length, limit: lim, n: c, need: sum, can: can, names: names, left: s.f[0].troops - sum, lack: (t[0] ? t[0].need : 0), ap: can <= 1 ? 1 : C.GU_COST[s.rank] };
   }
   function guAttack(s, g, reserve) {
-    if (s.rank < 1) return { err: '구청장부터 쓸 수 있습니다.' };
+    if (s.rank < 1) return { err: C.RANKS[1] + '부터 쓸 수 있습니다.' };
     var pv = guAttackPreview(s, g, reserve), apCost = pv.ap;
     if (s.ap < apCost) return { err: '결재 ' + apCost + '건이 필요합니다.' };
     var lim = Math.max(1, pv.can), won = 0, fail = 0, home = 0, back = 0, collapsed = [], keep = s.f[0].troops * (reserve || 0);
@@ -749,7 +768,7 @@ var Engine = (function () {
     return { n: can, cost: sum, count: t.length, names: names };
   }
   function guPersuade(s, g) {
-    if (s.rank < 1) return { err: '구청장부터 쓸 수 있습니다.' };
+    if (s.rank < 1) return { err: C.RANKS[1] + '부터 쓸 수 있습니다.' };
     if (s.ap < 1) return { err: '이번 달 결재를 다 썼습니다.' };
     var t = guTargets(s, g, true).sort(function (a, b) { return a.cost - b.cost; }).slice(0, guLimit(s)), n = 0, sum = 0;
     t.forEach(function (x) { if (s.f[0].money >= x.cost) { s.f[0].money -= x.cost; sum += x.cost; s.owner[x.i] = 0; s.min[x.i] = 75; joinSoft(s, x.i); n++; } });
@@ -765,7 +784,7 @@ var Engine = (function () {
     return { n: n, cost: sum };
   }
   function guDevelop(s, g, t) {
-    if (s.rank < 1) return { err: '구청장부터 쓸 수 있습니다.' };
+    if (s.rank < 1) return { err: C.RANKS[1] + '부터 쓸 수 있습니다.' };
     var p = guDevelopPreview(s, g, t);
     if (!p.n) return { err: '올릴 수 있는 동이 없거나 예산이 모자랍니다.' };
     var left = s.f[0].money;
@@ -858,7 +877,7 @@ var Engine = (function () {
   // ---- 대형 사업 ----
   function unityInfo(s, g) {
     var mine = GUDONGS[g].filter(function (i) { return s.owner[i] === 0; });
-    if (!mine.length) return { ok: false, why: '이 구에 우리 동이 없습니다.' };
+    if (!mine.length) return { ok: false, why: '이 ' + C.GRP + '에 우리 ' + C.UNIT + '이 없습니다.' };
     if (s.stable[g] > s.month) return { ok: false, why: '이미 진행 중입니다. ' + (s.stable[g] - s.month) + '달 남음.' };
     var cost = 60 + mine.length * 25;
     return { ok: s.f[0].money >= cost, cost: cost, n: mine.length, why: s.f[0].money < cost ? '예산이 ' + Math.ceil(cost - s.f[0].money) + '억 모자랍니다.' : '' };
@@ -868,7 +887,7 @@ var Engine = (function () {
     if (!i.ok) return { err: i.why };
     s.f[0].money -= i.cost; s.stable[g] = s.month + 6; s.stat.proj = (s.stat.proj || 0) + 1;
     GUDONGS[g].forEach(function (j) { if (s.owner[j] === 0) s.min[j] = 100; });
-    pushLog(s, D.gu[g].n + ' 구민 화합 사업. 민심이 가득 찼고 6개월간 독립 걱정이 없습니다.', 'good');
+    pushLog(s, D.gu[g].n + ' 주민 화합 사업. 민심이 가득 찼고 6개월간 독립 걱정이 없습니다.', 'good');
     return { ok: true };
   }
   function exprProjInfo(s) {
@@ -1271,8 +1290,8 @@ var Engine = (function () {
       if (r === 1) s.stat.r1 = s.month;
       if (r === 2) { s.stat.r2 = s.month; if (s.stat.r1 === undefined) s.stat.r1 = s.month; }
       var extra = maxAP(s) - s.ap;
-      pushLog(s, C.RANKS[r] + '에 올랐습니다.', 'rank');
-      if (s.rival >= 0 && s.f[s.rival].alive) pushLog(s, s.f[s.rival].name + ': ' + (r === 1 ? '벌써 구청장이라고요? 우리 회장님이 가만 안 있습니다.' : C.RANKS[2] + '이요? 우리 단톡방에서는 아직 동장님입니다.'), 'riv');
+      pushLog(s, (r === 3 ? C.RANKS[3] : r === 1 && C.KIND !== 'metro' ? C.RANKS[1] : C.RANKS[r]) + '에 올랐습니다.', 'rank');
+      if (s.rival >= 0 && s.f[s.rival].alive) pushLog(s, s.f[s.rival].name + ': ' + (r === 1 ? '벌써 ' + J(C.RANKS[1], '이라고요', '라고요') + '? 우리 회장님이 가만 안 있습니다.' : J(C.RANKS[2], '이요', '요') + '? 우리 단톡방에서는 아직 동장님입니다.'), 'riv');
     }
     s.stat.biggest = Math.max(s.stat.biggest, dongsOf(s, 0).length);
     if (!s.won && popShare(s, 0) >= C.WIN_POP) {
@@ -1487,7 +1506,7 @@ var Engine = (function () {
   }
 
   return {
-    C: C, setData: setData, setCity: setCity, city: function () { return CITY; }, create: create, preview: preview, needFor: needFor, attack: attack, develop: develop, devCost: devCost,
+    C: C, setData: setData, setCity: setCity, city: function () { return CITY; }, headOf: headOf, stem: stem, create: create, preview: preview, needFor: needFor, attack: attack, develop: develop, devCost: devCost,
     recruit: recruit, persuade: persuade, persuadeCost: persuadeCost, pact: pact, pactCost: pactCost, pactCheck: pactCheck, breakPact: breakPact,
     merge: merge, mergeCost: mergeCost, mergeCheck: mergeCheck, endTurn: endTurn, economy: economy, defense: defense, route: route,
     dongsOf: dongsOf, guHeld: guHeld, popShare: popShare, rankNow: rankNow, maxAP: maxAP, factionList: factionList, lv: lv, taxOf: taxOf, draftOf: draftOf, drafted: drafted,

@@ -184,7 +184,7 @@ details.diplo .acts{margin-top:2px}
 #q{width:100%;height:44px;border:1px solid var(--ink);border-radius:3px;background:#fff;padding:0 12px;font-size:16px}
 #results{display:grid;margin-top:4px}
 #results button{background:none;border:0;border-bottom:1px solid #E6E9E0;text-align:left;padding:9px 2px;font-size:14.5px}
-#cities{display:flex;gap:5px;margin-bottom:10px}#cities .city{flex:1 1 0;min-width:0;min-height:38px;padding:0 4px;white-space:nowrap;font-size:15px}#cities .city.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+#cities{display:grid;gap:4px;margin-bottom:10px}.cityRow{display:flex;gap:4px;align-items:center}.cityRow small{flex:none;width:28px;font-size:11.5px;color:var(--mute);line-height:1.1}#cities .city{flex:1 1 0;min-width:0;min-height:36px;padding:0 2px;white-space:nowrap;font-size:14px;overflow:hidden;text-overflow:clip}#cities .city.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 #presets{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:6px;margin-top:8px;overflow-x:auto;padding-bottom:2px}
 #presets button{background:var(--sheet);border:1px solid var(--line);border-radius:3px;text-align:left;padding:6px 8px;min-height:44px;line-height:1.25;font-size:13.5px}
 #presets button small{display:block;color:var(--mute);font-size:12px}
@@ -261,6 +261,44 @@ details.diplo .acts{margin-top:2px}
 <script type="application/json" id="data-gwangju">/*DATA_gwangju*/</script>
 <script type="application/json" id="data-daejeon">/*DATA_daejeon*/</script>
 <script type="application/json" id="data-ulsan">/*DATA_ulsan*/</script>
+<script type="text/plain" id="data-gyeonggi" data-z="1">/*DATA_gyeonggi*/</script>
+<script type="text/plain" id="data-gangwon" data-z="1">/*DATA_gangwon*/</script>
+<script type="text/plain" id="data-chungbuk" data-z="1">/*DATA_chungbuk*/</script>
+<script type="text/plain" id="data-chungnam" data-z="1">/*DATA_chungnam*/</script>
+<script type="text/plain" id="data-jeonbuk" data-z="1">/*DATA_jeonbuk*/</script>
+<script type="text/plain" id="data-gyeongbuk" data-z="1">/*DATA_gyeongbuk*/</script>
+<script type="text/plain" id="data-gyeongnam" data-z="1">/*DATA_gyeongnam*/</script>
+<script type="text/plain" id="data-jeju" data-z="1">/*DATA_jeju*/</script>
+<script type="text/plain" id="data-daegyeong" data-z="1">/*DATA_daegyeong*/</script>
+<script type="text/plain" id="data-gyeongsang" data-z="1">/*DATA_gyeongsang*/</script>
+<script type="text/plain" id="data-jeonnam" data-z="1">/*DATA_jeonnam*/</script>
+<script type="text/plain" id="data-jeolla" data-z="1">/*DATA_jeolla*/</script>
+<script type="text/plain" id="data-korea" data-z="1">/*DATA_korea*/</script>
 <script>/*PRESETS*/</script>
 <script>/*ENGINE*/</script>
-<script>/*UI*/</script>
+<script>window.__runUI = function () {
+/*UI*/
+};</script>
+<script>
+// 도·통합·전국 지도 데이터는 gzip+base64로 줄여 넣었다가, 고른 지역만 브라우저 기본 기능으로 풀어서 씀
+(function () {
+  function pick() {
+    var m = /city=(\w+)/.exec(location.hash || '');
+    if (m && document.getElementById('data-' + m[1])) return m[1];
+    try { var c = localStorage.getItem('dongjang-city'); if (c && document.getElementById('data-' + c)) return c; } catch (e) {}
+    return 'seoul';
+  }
+  function run() { window.__runUI(); }
+  var el = document.getElementById('data-' + pick());
+  if (!el || !el.getAttribute('data-z')) { run(); return; }
+  if (!window.DecompressionStream || !window.Response) {
+    try { localStorage.setItem('dongjang-city', 'seoul'); history.replaceState(null, '', '#city=seoul'); } catch (e) {}
+    window.__oldBrowser = 1; run(); return;
+  }
+  var b = atob(el.textContent.trim()), u = new Uint8Array(b.length);
+  for (var i = 0; i < b.length; i++) u[i] = b.charCodeAt(i);
+  new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('gzip'))).text().then(function (t) {
+    el.textContent = t; el.removeAttribute('data-z'); run();
+  }, function () { try { localStorage.setItem('dongjang-city', 'seoul'); } catch (e) {} location.hash = 'city=seoul'; location.reload(); });
+})();
+</script>

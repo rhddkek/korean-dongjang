@@ -12,7 +12,7 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   const newGame = async () => { await dismiss(); await p.tap('#menuBtn'); await p.waitForTimeout(150); await p.tap('#newGame'); await p.waitForTimeout(100); await p.tap('#newGame').catch(() => {}); await p.waitForTimeout(300); };
   await p.goto('http://localhost:8131', { waitUntil: 'load' }); await p.waitForTimeout(400);
   ok(/서울 427개 동/.test(await p.textContent('#brand')), '기본은 서울');
-  ok((await p.$$('#cities .city')).length === 7, '도시 칩 7개');
+  ok((await p.$$('#cities .city')).length === 20, '도시 칩 20개');
   for (const [id, nm] of [['busan', '부산'], ['daegu', '대구'], ['incheon', '인천'], ['gwangju', '광주'], ['daejeon', '대전'], ['ulsan', '울산']]) {
     await p.tap('#cities .city[data-c="' + id + '"]'); await p.waitForLoadState('load'); await p.waitForTimeout(600);
     const br = await p.textContent('#brand'); ok(br.includes(nm + '시장'), nm + ' 시작 화면: ' + br.trim().slice(0, 70));
