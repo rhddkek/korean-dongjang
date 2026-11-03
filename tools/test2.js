@@ -31,14 +31,14 @@ const ok=(c,m)=>console.log((c?'PASS ':'FAIL ')+m);
  await G(()=>{__game.S.month=0;__game.S.ap=5});
  const fd=await G(()=>{const g=__game,S=g.S,D=g.D;let t=-1;for(const i of g.E.dongsOf(S,0))for(const j of D[i].a)if(S.owner[j]>0){t=j}if(t<0){for(let j=0;j<D.length;j++)if(S.owner[j]>0){const nb=D[j].a[0];S.owner[nb]=0;t=j;break}}return{t,f:S.owner[t],name:S.f[S.owner[t]].name}});
  await G(i=>__game.select(i),fd.t);await p.waitForTimeout(150);await p.screenshot({path:OUT+'/30_faction.png'});
- await p.waitForTimeout(350);await p.tap('#pact');await p.waitForTimeout(350);
+ await p.waitForTimeout(350);await p.evaluate(()=>{const d=document.getElementById('diplo');if(d)d.open=true});await p.tap('#pact');await p.waitForTimeout(350);
  ok(await G(f=>__game.S.f[0].pact[f]>__game.S.month,fd.f),'불가침 협정 체결');
  ok(await G(i=>__game.E.preview(__game.S,i,10).reason.includes('협정'),fd.t),'협정 중 공격 차단');
  await G(i=>__game.select(i),fd.t);await p.waitForTimeout(100);
  await p.tap('#bp');await p.waitForTimeout(100);
  ok(await G(f=>!__game.S.f[0].pact[f],fd.f),'협정 파기');
  await G(()=>{__game.S.f[0].money=99999;__game.S.f[0].troops=99999;__game.S.ap=3;Object.values(__game.S.f).forEach(f=>{if(f.id)f.grudge=0})});
- await G(i=>__game.select(i),fd.t);await p.waitForTimeout(100);await p.waitForTimeout(350);await p.tap('#merge');await p.waitForTimeout(350);
+ await G(i=>__game.select(i),fd.t);await p.waitForTimeout(100);await p.waitForTimeout(350);await p.evaluate(()=>{const d=document.getElementById('diplo');if(d)d.open=true});await p.tap('#merge');await p.waitForTimeout(350);
  ok(await G(f=>!__game.S.f[f].alive,fd.f),'세력 통합');
  // 본거지 함락 → 붕괴
  const c=await G(()=>{const g=__game,S=g.S;const f=S.f.find(x=>x.ai&&x.alive&&g.E.dongsOf(S,x.id).length>=1);const cap=f.cap;S.owner[g.D[cap].a[0]]=0;S.ap=3;S.f[0].troops=99999;const r=g.E.attack(S,cap,50000);return{win:r.win,col:r.collapse,alive:f.alive,own:S.owner[cap]}});

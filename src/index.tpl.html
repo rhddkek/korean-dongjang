@@ -151,6 +151,25 @@ button{cursor:pointer;touch-action:manipulation}
 .prose li{margin-bottom:4px}
 .prose ul{padding-left:18px;margin:6px 0}
 .src{font-size:13px;line-height:1.6;color:var(--mute)}
+details.more{margin-top:10px;border-top:1px dashed var(--line);padding-top:2px}
+details.more>summary{cursor:pointer;font-size:13.5px;font-weight:500;min-height:40px;display:flex;align-items:center;gap:4px;list-style:none}
+details.more>summary::-webkit-details-marker{display:none}
+details.more>summary::after{content:'▾';margin-left:auto;color:var(--mute)}
+details.more[open]>summary::after{content:'▴'}
+details.more>summary em{font-style:normal;color:var(--good);font-size:12.5px;margin-left:4px}
+details.diplo .acts{margin-top:2px}
+.dev .dmore{grid-column:1 / -1;background:#F3F5EF;border-radius:3px;padding:6px 8px;margin-top:4px}
+.dev .dmore p{font-size:12.5px;line-height:1.55}
+.dev h4[data-dk]{cursor:pointer}
+.dtog{font-size:13px;font-weight:400;color:var(--mute);margin-left:6px}
+.dev p b{color:var(--ink);font-weight:700}
+.dev p b.spNext{color:var(--good)}
+.btn small{display:block;font-size:12px;font-weight:400;margin-top:2px;opacity:.9}
+.btn.red small{font-size:12.5px}
+.keep{color:var(--ink);font-weight:700}
+.lock{display:inline-block;font-size:11.5px;font-weight:500;border:1px solid #B9C0B6;border-radius:2px;padding:0 4px;margin-right:2px;color:var(--mute)}
+#pin{flex:none;background:var(--stamp);color:#fff;border:0;border-radius:3px;padding:0 10px;font-weight:700;font-size:13.5px;white-space:nowrap;min-height:44px;max-width:38%;overflow:hidden;text-overflow:ellipsis}
+
 .src a{color:#1B5E8C}
 
 /* 시작 화면 */
@@ -211,7 +230,7 @@ button{cursor:pointer;touch-action:manipulation}
   <header id="hud" hidden>
     <div id="hudTop"><div id="who"></div><div id="when" class="num"></div><button id="menuBtn" type="button">메뉴</button></div>
     <button id="cells" type="button" aria-label="우리 세력 현황 열기">
-      <div class="cell"><small>예산</small><b id="cMoney" class="num"></b><i id="cMoneyD" class="num"></i></div>
+      <div class="cell"><small>예산·순수입</small><b id="cMoney" class="num"></b><i id="cMoneyD" class="num"></i></div>
       <div class="cell"><small>대기 인원</small><b id="cTroops" class="num"></b><i id="cTroopsD" class="num"></i></div>
       <div class="cell"><small>남은 결재</small><b id="cAp" class="num"></b><i id="cApD">이번 달</i></div>
       <div class="cell"><small>우리 동</small><b id="cN" class="num"></b><i id="cPop" class="num"></i></div>
@@ -223,6 +242,7 @@ button{cursor:pointer;touch-action:manipulation}
     <button id="offerBar" type="button" hidden></button>
     <button id="evBar" type="button" hidden></button>
     <div id="dock">
+      <button id="pin" type="button" hidden></button>
       <button id="news" type="button" aria-label="지역 소식 열기"></button>
       <button id="lens" type="button"></button>
       <button id="next" type="button">다음 달</button>

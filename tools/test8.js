@@ -12,8 +12,8 @@ const ok=(c,m)=>console.log((c?'PASS ':'FAIL ')+m);
  // 우리 동 몇 개 확보한 상태로 만듦
  await G(()=>{const g=__game,S=g.S,cap=S.f[0].cap;g.D[cap].a.forEach(j=>{S.owner[j]=0});S.month=12;S.f[0].money=5000;S.f[0].troops=3000;S.ap=5;g.select(cap)});await p.waitForTimeout(400);
  const sheet=await p.textContent('#sheet');
- ok(/5단계 상권 특구 예정 · 남은 투자 .*옆 우리 동 \d+곳 세수 \+\d+억\/월/.test(sheet),'상권 5단계 예정 효과 표시');
- ok(/3단계 자치경찰대 예정.*방어 합계/.test(sheet),'치안 3단계 예정 효과 표시');
+ ok(/5단계 상권 특구까지 남은 투자 .*옆 우리 동 \d+곳 세수 \+\d+억\/월/.test(sheet),'상권 5단계 예정 효과 표시');
+ ok(/3단계 자치경찰대까지.*방어 합계/.test(sheet),'치안 3단계 예정 효과 표시');
  await p.screenshot({path:OUT+'/a1_preview.png',fullPage:false});
  const pv=await G(()=>{const g=__game,S=g.S,cap=S.f[0].cap;return g.E.spPreview(S,cap,0)});ok(pv&&pv.val>0&&pv.cost>0,'spPreview 상권 '+JSON.stringify(pv));
  await p.tap('.x');

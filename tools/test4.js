@@ -11,7 +11,7 @@ const ok=(c,m)=>console.log((c?'PASS ':'FAIL ')+m);
  await start('소공동');await p.screenshot({path:OUT+'/70_office_start.png'});
  ok(await G(()=>__game.S.abil==='office'),'소공동 = 오피스 능력');
  await G(()=>{const g=__game,S=g.S;const D=g.D;for(let j=0;j<D.length;j++)if(S.owner[j]>0){S.owner[D[j].a[0]]=0;S.f[0].money=5000;g.select(j);return}});await p.waitForTimeout(400);await p.screenshot({path:OUT+'/71_scout.png'});
- const t0=await G(()=>__game.S.f[0].troops);await p.tap('#scout');await p.waitForTimeout(150);ok(await G(t=>__game.S.f[0].troops>t,t0),'스카우트 제안 실행: '+await p.textContent('#news'));
+ const t0=await G(()=>__game.S.f[0].troops);await p.evaluate(()=>{const d=document.getElementById('diplo');if(d)d.open=true});await p.tap('#scout');await p.waitForTimeout(150);ok(await G(t=>__game.S.f[0].troops>t,t0),'스카우트 제안 실행: '+await p.textContent('#news'));
  // 대단지: 주민투표
  await G(()=>localStorage.clear());await start('진관동');ok(await G(()=>__game.S.abil==='town'),'진관동 = 대단지 능력');
  const vt=await G(()=>{const g=__game,S=g.S;for(const j of g.D[S.f[0].cap].a)if(S.owner[j]===-1){g.select(j);return j}});await p.waitForTimeout(400);await p.screenshot({path:OUT+'/72_vote.png'});

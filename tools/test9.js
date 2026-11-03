@@ -44,7 +44,7 @@ const ok=(c,m)=>console.log((c?'PASS ':'FAIL ')+m);
  await dismiss();await G(()=>{const g=__game,S=g.S;S.gov.open={k:'agency',until:S.month+3};g.sync&&g.sync()});await p.waitForTimeout(150);
  if(await p.isVisible('#govBar')){await p.tap('#govBar');await p.waitForTimeout(300);st=await p.textContent('#sheet');ok(/준비까지 총비용/.test(st)&&/완공 후 순이익/.test(st)&&/달이면 회수/.test(st),'공모 화면 총비용·완공·순이익');await p.screenshot({path:OUT+'/b4_gov.png'});await p.tap('.x')}else ok(false,'공모 막대');
  // 정부 사업 세수 합산 표시
- const gt=await G(()=>{const g=__game,S=g.S,cap=S.f[0].cap;S.gov.sites[cap]={k:'agency',start:0,done:0,pact:false,paid:0};g.select(cap);return true});await p.waitForTimeout(350);st=await p.textContent('#sheet');ok(/정부 사업 \+[\d.]+억 포함/.test(st),'동 세수에 정부 사업 합산');await p.tap('.x');
+ const gt=await G(()=>{const g=__game,S=g.S,cap=S.f[0].cap;S.gov.sites[cap]={k:'agency',start:0,done:0,pact:false,paid:0};g.select(cap);return true});await p.waitForTimeout(350);st=await p.textContent('#sheet');ok(/기본 [\d,.]+억 \+ 정부 사업 [\d,.]+억/.test(st),'동 세수에 정부 사업 합산');await p.tap('.x');
  // 스카우트 사유
  const sc=await G(()=>{const g=__game,S=g.S,E=g.E;const f=S.f.find(f=>f.ai&&f.alive);f.grudge=S.month+3;f.grudgeWhy='scout';return E.pactCheck(S,f.id).why});ok(/회원을 빼 가서/.test(sc),'스카우트 후 협정 거절 사유: '+sc);
  // 민원 효과 없음 안내

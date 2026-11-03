@@ -28,12 +28,17 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   const st = await G(s => ({ lost: __game.S.owner[s.my] !== 0, over: !document.getElementById('over').hidden, card: document.getElementById('card').textContent, news: document.getElementById('news').textContent }), set);
   ok(st.lost, '명동 함락 재현 (' + set.f + ')');
   ok(st.over && /명동/.test(st.card) && /빼앗겼습니다/.test(st.card) && /→/.test(st.card), '전투 결과 카드: ' + st.card.replace(/\s+/g, ' ').slice(0, 120));
-  ok(/명동/.test(st.news) && /빼앗겼습니다/.test(st.news), '소식 줄이 함락을 먼저: ' + st.news.slice(0, 80));
+  ok(/명동 함락/.test(st.news), '소식 줄이 함락을 먼저: ' + st.news.slice(0, 80));
   await p.screenshot({ path: OUT + '/e1_card.png' });
   // 카드의 보기 → 명동으로 이동, 정보 열림
   await p.tap('#card [data-go]'); await p.waitForTimeout(700);
   const go = await G(s => { const g = __game, c = g.cam(), d = g.D[s.my]; return { sel: document.querySelector('#sheet h2') && document.querySelector('#sheet h2').textContent, sx: d.x * c.s + c.x, sy: d.y * c.s + c.y, w: innerWidth }; }, set);
   ok(/명동/.test(go.sel || ''), '보기 → 명동 정보 열림');
+  // 소식 줄 옆 고정 칩: 다른 소식이 덮어도 남고, 누르면 명동
+  await G(() => { __game.select(null); }); const pin0 = await G(() => { const n = document.getElementById('news'); n.textContent = '다른 소식'; return { vis: !document.getElementById('pin').hidden, t: document.getElementById('pin').textContent }; });
+  ok(pin0.vis && /함락 명동/.test(pin0.t), '함락 칩 고정: ' + pin0.t);
+  await p.tap('#pin'); await p.waitForTimeout(500); ok(/명동/.test(await p.textContent('#sheet h2')), '함락 칩 → 명동');
+  await p.screenshot({ path: OUT + '/e1b_pin.png' });
   ok(go.sx > 0 && go.sx < go.w, '지도가 명동으로 이동');
   // 지도 표식이 이번 달 유지
   const mk = await G(() => (__game.S.marks || {}).list); ok(mk && mk.some(x => x.k === 'lost'), '함락 표식 기록');
@@ -46,6 +51,7 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   await p.tap('.x').catch(() => {}); await G(() => __game.select(null));
   const hd = await G(() => {
     const g = __game, S = g.S, E = g.E; S.rank = 0; S.rivalPlan = null;
+    S.f.forEach(x => { if (x.ai) { x.troops = 0; x.away = 0; x.money = 0; } }); S.f[0].troops = 5000; E.dongsOf(S, 0).forEach(i => { S.min[i] = 100; });
     const mine = E.dongsOf(S, 0); const t = mine.find(i => i !== S.f[0].cap) ?? mine[0]; const f = S.f.find(x => x.ai && x.alive);
     const orig = E.endTurn; E.endTurn = function (s) { const r = orig.apply(this, arguments); s.rivalPlan = null; s.battles = [{ t, f: f.id, held: true, mine: 40, theirs: 900, cap: false, fac: '' }]; E.endTurn = orig; return r.filter(l => !/모이고/.test(l.t)); };
     return { t, n: g.D[t].n, f: f.name };
