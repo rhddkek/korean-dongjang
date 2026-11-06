@@ -10,6 +10,7 @@ var Engine = (function () {
     SHARE_CAP: 5,
     TRACKS: ['상권', '교통', '주거', '치안'],
     GROUPS: ['번영회', '부녀회', '상인회', '조기축구회', '통장협의회', '노인회', '청년회', '산악회', '입주자대표회의', '배드민턴클럽', '학부모회', '방범대', '반상회', '테니스동호회', '자율방재단'],
+    REAL: 0.75,   // 실제 규모 반영 강도: 동마다 세수·동원·방어 몫이 실제 규모의 0.75제곱에 비례 (0이면 예전 점수제, 1이면 완전 비례)
     RANKS: ['동장', '구청장', '권역장', '서울시장'], GRP: '구', UNIT: '동', KIND: 'metro', RAIL: '지하철', RAID_KM: 4,
     GU_LIMIT: [0, 3, 5, 5], GU_COST: [2, 2, 3, 3]   // 직급별 구 작전 한 번의 최대 동 수
   };
@@ -140,6 +141,23 @@ var Engine = (function () {
   }
   var D = null, SUBWAY = null, SUBWAY6 = null, SUBWAY7 = null, TOTALPOP = 0, GUDONGS = null, GUREG = null;
 
+  // 실제 규모 반영: 지도 전체 합계는 그대로 두고, 동마다 몫을 실제 인구·경제 규모의 C.REAL 제곱에 비례해 나눔
+  //   동원 ← 주민 수, 세수 ← 직장인 + 주민 0.35 (+인프라·생활 약간), 방어 ← 주간 인구(주민 + 직장인 절반) + 넓이 약간
+  function realScale(list) {
+    var a = C.REAL; if (!a) return;
+    function spread(key, mass, floor) {
+      var tot = 0, w = 0, ws = list.map(function (d) { var x = Math.pow(Math.max(1, mass(d)), a); w += x; tot += d[key + '0']; return x; });
+      list.forEach(function (d, i) { d[key] = Math.max(floor, tot * ws[i] / w); });
+    }
+    spread('draft', function (d) { return d.pop; }, 1.2);
+    spread('tax', function (d) { return (d.work + d.pop * 0.35) * (1 + (d.I - 50) * 0.002 + (d.L - 50) * 0.002); }, 1.5);
+    spread('base', function (d) { return d.pop + d.work * 0.5; }, 14);
+    list.forEach(function (d) { d.base += Math.min(d.km * 2, 20); });
+    // 관리비·동원 효율은 '동 개수' 대신 규모 가중 개수로: 작은 면·동은 0.25개~1개로 셈
+    var avg = list.reduce(function (x, d) { return x + d.tax + d.draft * 1.5; }, 0) / list.length;
+    list.forEach(function (d) { d._w = Math.max(0.25, Math.min(1, (d.tax + d.draft * 1.5) / avg)); });
+  }
+  function nEff(list) { return C.REAL ? list.reduce(function (x, i) { return x + D.d[i]._w; }, 0) : list.length; }
   function setData(data) {
     D = data;
     TOTALPOP = 0; ROLE_TH = null;
@@ -151,8 +169,10 @@ var Engine = (function () {
       d.base = 30 + d.P * 1.5 + d.I * 0.7 + Math.min(d.km * 5, 40);
       d.tax = 3 + d.E * 0.28 + d.I * 0.05 + d.L * 0.06;
       d.draft = 4 + d.P * 0.18;
+      d.base0 = d.base; d.tax0 = d.tax; d.draft0 = d.draft;
       d.type = d.ty || (d.work >= 30000 || (d.work > d.pop * 2 && d.work >= 8000) ? 'office' : d.sub >= 3 ? 'station' : (d.P >= 82 && d.work < d.pop * 0.5) ? 'town' : d.fac >= 230 ? 'busy' : d.r.length > 0 ? 'river' : d.km >= 3.5 ? 'wide' : d.L >= 55 ? 'life' : 'home');
     });
+    realScale(data.d);
     // 지하철 기습: 역이 있는 동끼리 4km 이내 (전국 모드는 KTX 역끼리 더 멀리)
     var R0 = C.RAID_KM * 100, R7 = R0 * 1.375, R6 = R0 * 1.5;
     SUBWAY = data.d.map(function () { return []; }); SUBWAY6 = data.d.map(function () { return []; }); SUBWAY7 = data.d.map(function () { return []; });
@@ -341,7 +361,7 @@ var Engine = (function () {
       var g = findCombo(s, k, t);
       if (!g) return;
       var gain = '';
-      if (k === 'jj') { var dd = drafted(dongsOf(s, 0).length), v = g.reduce(function (a, j) { return a + draftOf(s, j); }, 0) * 0.2 * dd; gain = '동원 +' + Math.max(1, Math.round(v)) + '명/월'; }
+      if (k === 'jj') { var dd = drafted(nEff(dongsOf(s, 0))), v = g.reduce(function (a, j) { return a + draftOf(s, j); }, 0) * 0.2 * dd; gain = '동원 +' + Math.max(1, Math.round(v)) + '명/월'; }
       else if (k === 'mk') gain = g.length + '개 동 상권 개발비 −30%';
       else gain = g.length + '개 역세권에서 지하철 기습 불이익 없음';
       out.push({ k: k, n: COMBO[k].n, d: g, gain: gain });
@@ -384,7 +404,7 @@ var Engine = (function () {
   }
   // 시설이 이번 달 벌어 준 것: 상권 특구·아파트 단지의 옆 동 몫, 정부 사업 수입
   function facReport(s) {
-    var mine = dongsOf(s, 0), fm = fullMapOf(s, 0, mine), out = { tax: 0, draft: 0, items: [] }, dd = drafted(mine.length);
+    var mine = dongsOf(s, 0), fm = fullMapOf(s, 0, mine), out = { tax: 0, draft: 0, items: [] }, dd = drafted(nEff(mine));
     mine.forEach(function (i) {
       [0, 2].forEach(function (t) {
         if (lv(s, i, t) < 5) return;
@@ -414,8 +434,8 @@ var Engine = (function () {
       tax += taxOf(s, i, fm); draft += draftOf(s, i);
       var gt = govTaxOf(s, i); tax += gt; if (gt > 0) govIn += gt; else govOut -= gt;
     });
-    var up = upkeep(list.length);
-    draft *= drafted(list.length);
+    var ne = nEff(list), up = upkeep(ne);
+    draft *= drafted(ne);
     var aidTax = 0, aidDraft = 0;
     if (fid === 0 && list.length && list.length <= 3) {   // 약소 동 지원금
       aidTax = Math.max(0, 16 - tax); aidDraft = Math.max(0, 12 - draft);
@@ -624,7 +644,7 @@ var Engine = (function () {
     s.dev[k]++;
     var t1 = taxOf(s, i, fm), d1 = draftOf(s, i);
     s.dev[k]--;
-    return { tax: t1 - t0, draft: (d1 - d0) * drafted(list.length) };
+    return { tax: t1 - t0, draft: (d1 - d0) * drafted(nEff(list)) };
   }
   function collapseText(c) { return c.name + ' 본거지 함락.' + (c.joined ? ' ' + c.joined + '개 동이 우리에게 넘어왔습니다.' : ' 남은 동들은 독립했습니다.'); }
   function devCost(s, i, t) { var l = lv(s, i, t); if (l >= 5) return null; return t === 0 && s.owner[i] === 0 && comboOn(s, 'mk', i) ? Math.round(C.COST[l] * 0.7) : C.COST[l]; }
@@ -1509,7 +1529,7 @@ var Engine = (function () {
     C: C, setData: setData, setCity: setCity, city: function () { return CITY; }, headOf: headOf, stem: stem, create: create, preview: preview, needFor: needFor, attack: attack, develop: develop, devCost: devCost,
     recruit: recruit, persuade: persuade, persuadeCost: persuadeCost, pact: pact, pactCost: pactCost, pactCheck: pactCheck, breakPact: breakPact,
     merge: merge, mergeCost: mergeCost, mergeCheck: mergeCheck, endTurn: endTurn, economy: economy, defense: defense, route: route,
-    dongsOf: dongsOf, guHeld: guHeld, popShare: popShare, rankNow: rankNow, maxAP: maxAP, factionList: factionList, lv: lv, taxOf: taxOf, draftOf: draftOf, drafted: drafted,
+    dongsOf: dongsOf, guHeld: guHeld, popShare: popShare, rankNow: rankNow, maxAP: maxAP, factionList: factionList, lv: lv, taxOf: taxOf, draftOf: draftOf, drafted: drafted, nEff: nEff,
     fullMapOf: fullMapOf, fullGu: fullGu, stem: stem, power: power, J: J, ro: ro, TYPES: TYPES, traitOf: traitOf,
     guStatus: guStatus, guTargets: guTargets, guLimit: guLimit, guCost: function (s) { return C.GU_COST[s.rank]; }, guAttack: guAttack, guAttackPreview: guAttackPreview, guPersuade: guPersuade, guPersuadePreview: guPersuadePreview, guDevelop: guDevelop, guDevelopPreview: guDevelopPreview,
     devEffect: devEffect, spPreview: spPreview, COMBO: COMBO, roleOf: function (i) { return roleOf(D.d[i]); }, comboOn: comboOn, comboPreview: comboPreview, settleF: settleF, settleLeft: settleLeft, planInfo: planInfo, facReport: facReport, govTaxOf: govTaxOf, govNext: govNext, winChance: winChance, offerInfo: offerInfo, acceptOffer: acceptOffer, declineOffer: declineOffer, eventView: eventView, GOV: GOV, govInfo: govInfo, govApply: govApply, govPact: govPact, govSite: govSite, govDone: govDone, govEligible: govEligible, FAC: FAC, FAC_SP: FAC_SP, facName: facName, raidTargets: raidTargets, collapseText: collapseText, ABIL: ABIL, PROJECTS: PROJECTS, abilityOf: abilityOf, avgMood: avgMood,

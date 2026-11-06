@@ -16,7 +16,7 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
     // 명동과 맞닿은 동 하나를 강한 AI 땅으로
     const f = S.f.find(x => x.ai && x.alive); const nb = D[my].a.find(j => j !== S.f[0].cap && j !== pil);
     S.owner[nb] = f.id; f.troops = 60000; f.money = 0; f.lostAt = -9; S.f[0].pact = {};
-    S.f[0].troops = 0; S.f[0].away = 0; S.min[my] = 30;
+    S.f[0].troops = 0; S.f[0].away = 0; S.min[my] = 60;
     // 숙적 예고는 다른 세력이 필동을
     S.rival = f.id; const rt = E.route(S, f.id, my) || { mult: 0, src: nb };
     S.rivalPlan = { t: my, f: f.id, n: 50000, mult: rt.mult, src: rt.src };

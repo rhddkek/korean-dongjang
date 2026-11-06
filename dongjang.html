@@ -278,8 +278,10 @@ details.diplo .acts{margin-top:2px}
 (function (root) {
   function presets(E, D, GU) {
     var idx = D.map(function (d, i) { return i; });
-    var nbAvg = function (i) { var a = D[i].a; return a.reduce(function (x, j) { return x + D[j].base; }, 0) / Math.max(1, a.length); };
-    var power = function (i) { var d = D[i], T = E.TYPES[d.type]; return (d.tax * (T.tax || 1) * 1.2 + d.draft * (T.draft || 1)) / (nbAvg(i) / 4); };
+    // 추천 동은 점수제 값(base0·tax0·draft0)으로 고름: 실제 규모 반영과 상관없이 고르게 강하고 둘러싸인 동이 뽑힘
+    var B = function (d) { return d.base0 != null ? d.base0 : d.base; }, Tx = function (d) { return d.tax0 != null ? d.tax0 : d.tax; }, Dr = function (d) { return d.draft0 != null ? d.draft0 : d.draft; };
+    var nbAvg = function (i) { var a = D[i].a; return a.reduce(function (x, j) { return x + B(D[j]); }, 0) / Math.max(1, a.length); };
+    var power = function (i) { var d = D[i], T = E.TYPES[d.type]; return (Tx(d) * (T.tax || 1) * 1.2 + Dr(d) * (T.draft || 1)) / (nbAvg(i) / 4); };
     var used = {}, out = [];
     function take(list, label, why) { var i = list.find(function (x) { return !used[x]; }); if (i === undefined) return; used[i] = 1; D[i].a.forEach(function (j) { used[j] = 1; }); out.push([GU[D[i].g].n, D[i].n, label, why]); }
     var land = idx.filter(function (i) { return D[i].a.length >= 3 && D[i].pop > 3000; });
@@ -297,6 +299,11 @@ details.diplo .acts{margin-top:2px}
     // 처음이면 추천: 역이 있고 고르게 강한 동
     var rec = easy.filter(function (i) { return D[i].sub > 0 && D[i].type !== 'office' && D[i].km < KM; });
     if (!rec.length) rec = easy.filter(function (i) { return D[i].type !== 'office' && D[i].km < KM; });
+    // 실제 규모 반영 중에는 자체 규모(동원 + 세수)가 중간 이상인 동만 추천 후보로 (너무 작은 동은 버티기 어려움)
+    if (E.C.REAL) {
+      var own = function (i) { return D[i].draft + D[i].tax * 0.6; }, os = land.map(own).sort(function (a, b) { return a - b; }), omed = os[Math.floor(os.length * 0.5)];
+      var big = rec.filter(function (i) { return own(i) >= omed; }); if (big.length) rec = big;
+    }
     take(rec.sort(function (a, b) { return power(b) - power(a); }), '', '처음이면 추천');
     take(easy.filter(function (i) { return D[i].type === 'office'; }).sort(function (a, b) { return D[b].work - D[a].work; }), '', '돈으로 밀어붙이기');
     take(easy.filter(function (i) { return D[i].type === 'town'; }).sort(function (a, b) { return D[b].pop - D[a].pop; }), '', '사람으로 밀어붙이기');
@@ -320,6 +327,7 @@ var Engine = (function () {
     SHARE_CAP: 5,
     TRACKS: ['상권', '교통', '주거', '치안'],
     GROUPS: ['번영회', '부녀회', '상인회', '조기축구회', '통장협의회', '노인회', '청년회', '산악회', '입주자대표회의', '배드민턴클럽', '학부모회', '방범대', '반상회', '테니스동호회', '자율방재단'],
+    REAL: 0.75,   // 실제 규모 반영 강도: 동마다 세수·동원·방어 몫이 실제 규모의 0.75제곱에 비례 (0이면 예전 점수제, 1이면 완전 비례)
     RANKS: ['동장', '구청장', '권역장', '서울시장'], GRP: '구', UNIT: '동', KIND: 'metro', RAIL: '지하철', RAID_KM: 4,
     GU_LIMIT: [0, 3, 5, 5], GU_COST: [2, 2, 3, 3]   // 직급별 구 작전 한 번의 최대 동 수
   };
@@ -450,6 +458,23 @@ var Engine = (function () {
   }
   var D = null, SUBWAY = null, SUBWAY6 = null, SUBWAY7 = null, TOTALPOP = 0, GUDONGS = null, GUREG = null;
 
+  // 실제 규모 반영: 지도 전체 합계는 그대로 두고, 동마다 몫을 실제 인구·경제 규모의 C.REAL 제곱에 비례해 나눔
+  //   동원 ← 주민 수, 세수 ← 직장인 + 주민 0.35 (+인프라·생활 약간), 방어 ← 주간 인구(주민 + 직장인 절반) + 넓이 약간
+  function realScale(list) {
+    var a = C.REAL; if (!a) return;
+    function spread(key, mass, floor) {
+      var tot = 0, w = 0, ws = list.map(function (d) { var x = Math.pow(Math.max(1, mass(d)), a); w += x; tot += d[key + '0']; return x; });
+      list.forEach(function (d, i) { d[key] = Math.max(floor, tot * ws[i] / w); });
+    }
+    spread('draft', function (d) { return d.pop; }, 1.2);
+    spread('tax', function (d) { return (d.work + d.pop * 0.35) * (1 + (d.I - 50) * 0.002 + (d.L - 50) * 0.002); }, 1.5);
+    spread('base', function (d) { return d.pop + d.work * 0.5; }, 14);
+    list.forEach(function (d) { d.base += Math.min(d.km * 2, 20); });
+    // 관리비·동원 효율은 '동 개수' 대신 규모 가중 개수로: 작은 면·동은 0.25개~1개로 셈
+    var avg = list.reduce(function (x, d) { return x + d.tax + d.draft * 1.5; }, 0) / list.length;
+    list.forEach(function (d) { d._w = Math.max(0.25, Math.min(1, (d.tax + d.draft * 1.5) / avg)); });
+  }
+  function nEff(list) { return C.REAL ? list.reduce(function (x, i) { return x + D.d[i]._w; }, 0) : list.length; }
   function setData(data) {
     D = data;
     TOTALPOP = 0; ROLE_TH = null;
@@ -461,8 +486,10 @@ var Engine = (function () {
       d.base = 30 + d.P * 1.5 + d.I * 0.7 + Math.min(d.km * 5, 40);
       d.tax = 3 + d.E * 0.28 + d.I * 0.05 + d.L * 0.06;
       d.draft = 4 + d.P * 0.18;
+      d.base0 = d.base; d.tax0 = d.tax; d.draft0 = d.draft;
       d.type = d.ty || (d.work >= 30000 || (d.work > d.pop * 2 && d.work >= 8000) ? 'office' : d.sub >= 3 ? 'station' : (d.P >= 82 && d.work < d.pop * 0.5) ? 'town' : d.fac >= 230 ? 'busy' : d.r.length > 0 ? 'river' : d.km >= 3.5 ? 'wide' : d.L >= 55 ? 'life' : 'home');
     });
+    realScale(data.d);
     // 지하철 기습: 역이 있는 동끼리 4km 이내 (전국 모드는 KTX 역끼리 더 멀리)
     var R0 = C.RAID_KM * 100, R7 = R0 * 1.375, R6 = R0 * 1.5;
     SUBWAY = data.d.map(function () { return []; }); SUBWAY6 = data.d.map(function () { return []; }); SUBWAY7 = data.d.map(function () { return []; });
@@ -651,7 +678,7 @@ var Engine = (function () {
       var g = findCombo(s, k, t);
       if (!g) return;
       var gain = '';
-      if (k === 'jj') { var dd = drafted(dongsOf(s, 0).length), v = g.reduce(function (a, j) { return a + draftOf(s, j); }, 0) * 0.2 * dd; gain = '동원 +' + Math.max(1, Math.round(v)) + '명/월'; }
+      if (k === 'jj') { var dd = drafted(nEff(dongsOf(s, 0))), v = g.reduce(function (a, j) { return a + draftOf(s, j); }, 0) * 0.2 * dd; gain = '동원 +' + Math.max(1, Math.round(v)) + '명/월'; }
       else if (k === 'mk') gain = g.length + '개 동 상권 개발비 −30%';
       else gain = g.length + '개 역세권에서 지하철 기습 불이익 없음';
       out.push({ k: k, n: COMBO[k].n, d: g, gain: gain });
@@ -694,7 +721,7 @@ var Engine = (function () {
   }
   // 시설이 이번 달 벌어 준 것: 상권 특구·아파트 단지의 옆 동 몫, 정부 사업 수입
   function facReport(s) {
-    var mine = dongsOf(s, 0), fm = fullMapOf(s, 0, mine), out = { tax: 0, draft: 0, items: [] }, dd = drafted(mine.length);
+    var mine = dongsOf(s, 0), fm = fullMapOf(s, 0, mine), out = { tax: 0, draft: 0, items: [] }, dd = drafted(nEff(mine));
     mine.forEach(function (i) {
       [0, 2].forEach(function (t) {
         if (lv(s, i, t) < 5) return;
@@ -724,8 +751,8 @@ var Engine = (function () {
       tax += taxOf(s, i, fm); draft += draftOf(s, i);
       var gt = govTaxOf(s, i); tax += gt; if (gt > 0) govIn += gt; else govOut -= gt;
     });
-    var up = upkeep(list.length);
-    draft *= drafted(list.length);
+    var ne = nEff(list), up = upkeep(ne);
+    draft *= drafted(ne);
     var aidTax = 0, aidDraft = 0;
     if (fid === 0 && list.length && list.length <= 3) {   // 약소 동 지원금
       aidTax = Math.max(0, 16 - tax); aidDraft = Math.max(0, 12 - draft);
@@ -934,7 +961,7 @@ var Engine = (function () {
     s.dev[k]++;
     var t1 = taxOf(s, i, fm), d1 = draftOf(s, i);
     s.dev[k]--;
-    return { tax: t1 - t0, draft: (d1 - d0) * drafted(list.length) };
+    return { tax: t1 - t0, draft: (d1 - d0) * drafted(nEff(list)) };
   }
   function collapseText(c) { return c.name + ' 본거지 함락.' + (c.joined ? ' ' + c.joined + '개 동이 우리에게 넘어왔습니다.' : ' 남은 동들은 독립했습니다.'); }
   function devCost(s, i, t) { var l = lv(s, i, t); if (l >= 5) return null; return t === 0 && s.owner[i] === 0 && comboOn(s, 'mk', i) ? Math.round(C.COST[l] * 0.7) : C.COST[l]; }
@@ -1819,7 +1846,7 @@ var Engine = (function () {
     C: C, setData: setData, setCity: setCity, city: function () { return CITY; }, headOf: headOf, stem: stem, create: create, preview: preview, needFor: needFor, attack: attack, develop: develop, devCost: devCost,
     recruit: recruit, persuade: persuade, persuadeCost: persuadeCost, pact: pact, pactCost: pactCost, pactCheck: pactCheck, breakPact: breakPact,
     merge: merge, mergeCost: mergeCost, mergeCheck: mergeCheck, endTurn: endTurn, economy: economy, defense: defense, route: route,
-    dongsOf: dongsOf, guHeld: guHeld, popShare: popShare, rankNow: rankNow, maxAP: maxAP, factionList: factionList, lv: lv, taxOf: taxOf, draftOf: draftOf, drafted: drafted,
+    dongsOf: dongsOf, guHeld: guHeld, popShare: popShare, rankNow: rankNow, maxAP: maxAP, factionList: factionList, lv: lv, taxOf: taxOf, draftOf: draftOf, drafted: drafted, nEff: nEff,
     fullMapOf: fullMapOf, fullGu: fullGu, stem: stem, power: power, J: J, ro: ro, TYPES: TYPES, traitOf: traitOf,
     guStatus: guStatus, guTargets: guTargets, guLimit: guLimit, guCost: function (s) { return C.GU_COST[s.rank]; }, guAttack: guAttack, guAttackPreview: guAttackPreview, guPersuade: guPersuade, guPersuadePreview: guPersuadePreview, guDevelop: guDevelop, guDevelopPreview: guDevelopPreview,
     devEffect: devEffect, spPreview: spPreview, COMBO: COMBO, roleOf: function (i) { return roleOf(D.d[i]); }, comboOn: comboOn, comboPreview: comboPreview, settleF: settleF, settleLeft: settleLeft, planInfo: planInfo, facReport: facReport, govTaxOf: govTaxOf, govNext: govNext, winChance: winChance, offerInfo: offerInfo, acceptOffer: acceptOffer, declineOffer: declineOffer, eventView: eventView, GOV: GOV, govInfo: govInfo, govApply: govApply, govPact: govPact, govSite: govSite, govDone: govDone, govEligible: govEligible, FAC: FAC, FAC_SP: FAC_SP, facName: facName, raidTargets: raidTargets, collapseText: collapseText, ABIL: ABIL, PROJECTS: PROJECTS, abilityOf: abilityOf, avgMood: avgMood,
@@ -2806,7 +2833,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
     setTimeout(function () { el.remove(); }, REDUCED ? 500 : 800);
   }
   function ownSheet(sh) {
-    var d = D[sel], me = S.f[0], list = E.dongsOf(S, 0), fm = E.fullMapOf(S, 0, list), dk = E.drafted(list.length);
+    var d = D[sel], me = S.f[0], list = E.dongsOf(S, 0), fm = E.fullMapOf(S, 0, list), dk = E.drafted(E.nEff(list));
     var def = E.defense(S, sel);
     var capt = me.cap === sel;
     var html = headHTML(d, GU[d.g].n + ' · 우리 동' + (capt ? ' · 본거지' : '')) + typeLine(d) + govBadge(sel) + comboHTML(sel);
@@ -3067,7 +3094,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
   }
   function menuSheet(sh) {
     var html = '<div class="head"><div><h2>메뉴</h2></div><button class="x" type="button" aria-label="닫기">×</button></div>';
-    html += '<div class="sec">게임 방법</div><ul class="prose"><li>빨간 테두리 동을 눌러 인원을 보내면 공격합니다. 공격과 설득은 결재를 씁니다.</li><li>보낸 인원은 다음 달에 돌아옵니다. 그동안 우리 동 방어가 약해지니 나눠서 쓰세요.</li><li>직장인이 많으면 세수가, 주민이 많으면 동원이 많습니다. 동네 유형마다 특성이 있습니다.</li><li>우리 동을 누르면 개발합니다. 값은 어느 동이나 같고, 버튼 옆에 실제로 늘어나는 양이 나옵니다. 우리 동이 3개 이하일 때는 지원금이 나옵니다.</li><li>한 ' + GRP + '의 동을 절반 이상 차지하면 ' + R1N + ', 그런 ' + Jm(GRP, '이', '가') + ' ' + R2 + '개면 ' + R2S + ', ' + CNAME + ' 인구 60%면 ' + MAYOR + '입니다. 인구는 통계 기준으로 고정이라 개발해도 늘지 않습니다.</li><li>' + Jm(GRP, '을', '를') + ' 통째로 먹으면 그 ' + GRP + '의 재정자립도만큼 세수가 늘어납니다.' + (SEOUL ? '' : ' (' + (CITY_ID === 'busan' ? '부산은 보도된 수치, 중구만 추정' : '상가·직장인 밀도로 만든 게임용 추정치' + (KIND !== 'metro' && KIND !== 'nation' && /부산/.test(DATA.full) ? ', 부산 구는 보도된 수치' : '')) + ')') + '</li><li>' + R1N + '부터는 ' + GRP + ' 현황에서 한꺼번에 공격·설득·개발할 수 있습니다.</li><li>처음에는 우리 ' + Jm(GRP, '과', '와') + ' 맞닿은 ' + GRP + '만 보입니다. 땅을 넓히면 안개가 걷힙니다. 동네 통계는 안개 속에서도 볼 수 있습니다.</li><li>개발은 단계마다 이름 붙은 시설이 생깁니다. 3단계·5단계 시설은 옆 우리 동까지 효과가 미칩니다. 예: 자치경찰대(치안 3단계)는 옆 우리 동 방어 +15%, 자치소방서(치안 5단계)는 그 일대 독립을 막습니다.</li><li>동네 조합: 일터 동과 맞닿은 주거 동 둘(직주근접, 동원 +20%), 이어진 상권 동 셋(골목상권, 상권 개발비 −30%), 지하철로 이어진 역세권 셋(환승, 기습 불이익 없음)을 모으면 그 동들에만 보너스가 붙습니다. 종류마다 한 판에 한 번입니다.</li><li>시설의 옆 동 효과는 같은 종류끼리 2곳까지만 겹칩니다(세수·동원 최대 +20%, 방어 최대 +30%). 자치소방서는 독립만 막고, 민심이 낮아 줄어드는 세수·동원은 그대로입니다. 시설이 있는 동을 빼앗기면 그 효과는 그 즉시 사라집니다.</li><li>몇 달마다 정부 공모가 열립니다. 공공기관은 오래 벌고, 공공병원은 민심을 지키고, 자원회수시설은 지원금을 착공·준공 두 번에 나눠 주는 대신 민심을 깎습니다. 후반에는 바로 효과가 나는 안전센터 공모가 섞입니다. 다른 세력도 조건과 부담금을 채워야 신청할 수 있고, 아무도 없으면 유찰됩니다. 효과는 게임용으로 지어낸 것입니다.</li><li>숙적은 우리가 크게 진 직후, 우리 인원이 대부분 나가 있을 때, 공사 중이거나 많이 키운 동이 국경에 있을 때 움직입니다. 힘이 다 빠진 숙적은 본거지만 남겨 달라며 협상을 걸어옵니다. ' + R2S + '부터는 작은 세력도 협상을 제안합니다.</li><li>지도의 작은 색 점은 우리 동의 개발 단계입니다. 노랑 상권, 파랑 교통, 초록 주거, 회색 치안. ' + (SEOUL ? '산 무늬는 산을 낀 동네를 대략 표시한 것입니다.' : '') + '</li><li>시작한 동의 유형에 따라 한 판 내내 대표 능력 하나를 씁니다. 점령한 동은 특성 보너스만 줍니다.</li><li>설득·주민투표·통합·협상으로 들어온 동은 민심이 높지만 첫 달 수입이 50%이고 매달 15%p씩 늘어 약 4달 뒤 정상이 됩니다. 주거·치안을 올리면 더 빨라집니다. 공격으로 뺏은 동은 대신 민심 35에서 시작합니다.</li><li>숙적은 공격하기 한 달 전에 어느 동 앞에 모이는지, 몇 명인지 알려 줍니다. 그 동을 누르면 막는 방법(인원 남기기, 치안, 협정, 선제공격)이 나옵니다. 대비가 돼 있으면 저쪽이 공격을 접습니다.</li><li>민심이 40 아래인 동은 독립할 수 있습니다. ' + R1N + '부터 주민 화합 사업으로 막을 수 있습니다.</li><li>세력의 본거지(검은 점)를 빼앗으면 그 세력은 무너지고 동 일부가 따라옵니다. 큰 세력일수록 본거지가 단단하고, 본거지는 지하철로 칠 수 없습니다.</li><li>새로 얻은 동은 그달 말부터 수입에 들어오지만, 민심이 회복될 때까지는 적게 들어옵니다.</li><li>' + MAYOR + '이 된 뒤에도 남은 동까지 계속 먹을 수 있습니다.</li></ul>';
+    html += '<div class="sec">게임 방법</div><ul class="prose"><li>빨간 테두리 동을 눌러 인원을 보내면 공격합니다. 공격과 설득은 결재를 씁니다.</li><li>보낸 인원은 다음 달에 돌아옵니다. 그동안 우리 동 방어가 약해지니 나눠서 쓰세요.</li><li>세수는 실제 직장인 수(주민 수 일부 포함), 동원은 실제 주민 수, 방어는 낮 인구(주민 + 직장인 절반)에 거의 비례합니다. 규모가 4배면 약 2.8배, 10배면 약 5.6배입니다. 작은 동은 관리비도 적게 듭니다. 동네 유형마다 특성이 있습니다.</li><li>우리 동을 누르면 개발합니다. 값은 어느 동이나 같고, 버튼 옆에 실제로 늘어나는 양이 나옵니다. 우리 동이 3개 이하일 때는 지원금이 나옵니다.</li><li>한 ' + GRP + '의 동을 절반 이상 차지하면 ' + R1N + ', 그런 ' + Jm(GRP, '이', '가') + ' ' + R2 + '개면 ' + R2S + ', ' + CNAME + ' 인구 60%면 ' + MAYOR + '입니다. 인구는 통계 기준으로 고정이라 개발해도 늘지 않습니다.</li><li>' + Jm(GRP, '을', '를') + ' 통째로 먹으면 그 ' + GRP + '의 재정자립도만큼 세수가 늘어납니다.' + (SEOUL ? '' : ' (' + (CITY_ID === 'busan' ? '부산은 보도된 수치, 중구만 추정' : '상가·직장인 밀도로 만든 게임용 추정치' + (KIND !== 'metro' && KIND !== 'nation' && /부산/.test(DATA.full) ? ', 부산 구는 보도된 수치' : '')) + ')') + '</li><li>' + R1N + '부터는 ' + GRP + ' 현황에서 한꺼번에 공격·설득·개발할 수 있습니다.</li><li>처음에는 우리 ' + Jm(GRP, '과', '와') + ' 맞닿은 ' + GRP + '만 보입니다. 땅을 넓히면 안개가 걷힙니다. 동네 통계는 안개 속에서도 볼 수 있습니다.</li><li>개발은 단계마다 이름 붙은 시설이 생깁니다. 3단계·5단계 시설은 옆 우리 동까지 효과가 미칩니다. 예: 자치경찰대(치안 3단계)는 옆 우리 동 방어 +15%, 자치소방서(치안 5단계)는 그 일대 독립을 막습니다.</li><li>동네 조합: 일터 동과 맞닿은 주거 동 둘(직주근접, 동원 +20%), 이어진 상권 동 셋(골목상권, 상권 개발비 −30%), 지하철로 이어진 역세권 셋(환승, 기습 불이익 없음)을 모으면 그 동들에만 보너스가 붙습니다. 종류마다 한 판에 한 번입니다.</li><li>시설의 옆 동 효과는 같은 종류끼리 2곳까지만 겹칩니다(세수·동원 최대 +20%, 방어 최대 +30%). 자치소방서는 독립만 막고, 민심이 낮아 줄어드는 세수·동원은 그대로입니다. 시설이 있는 동을 빼앗기면 그 효과는 그 즉시 사라집니다.</li><li>몇 달마다 정부 공모가 열립니다. 공공기관은 오래 벌고, 공공병원은 민심을 지키고, 자원회수시설은 지원금을 착공·준공 두 번에 나눠 주는 대신 민심을 깎습니다. 후반에는 바로 효과가 나는 안전센터 공모가 섞입니다. 다른 세력도 조건과 부담금을 채워야 신청할 수 있고, 아무도 없으면 유찰됩니다. 효과는 게임용으로 지어낸 것입니다.</li><li>숙적은 우리가 크게 진 직후, 우리 인원이 대부분 나가 있을 때, 공사 중이거나 많이 키운 동이 국경에 있을 때 움직입니다. 힘이 다 빠진 숙적은 본거지만 남겨 달라며 협상을 걸어옵니다. ' + R2S + '부터는 작은 세력도 협상을 제안합니다.</li><li>지도의 작은 색 점은 우리 동의 개발 단계입니다. 노랑 상권, 파랑 교통, 초록 주거, 회색 치안. ' + (SEOUL ? '산 무늬는 산을 낀 동네를 대략 표시한 것입니다.' : '') + '</li><li>시작한 동의 유형에 따라 한 판 내내 대표 능력 하나를 씁니다. 점령한 동은 특성 보너스만 줍니다.</li><li>설득·주민투표·통합·협상으로 들어온 동은 민심이 높지만 첫 달 수입이 50%이고 매달 15%p씩 늘어 약 4달 뒤 정상이 됩니다. 주거·치안을 올리면 더 빨라집니다. 공격으로 뺏은 동은 대신 민심 35에서 시작합니다.</li><li>숙적은 공격하기 한 달 전에 어느 동 앞에 모이는지, 몇 명인지 알려 줍니다. 그 동을 누르면 막는 방법(인원 남기기, 치안, 협정, 선제공격)이 나옵니다. 대비가 돼 있으면 저쪽이 공격을 접습니다.</li><li>민심이 40 아래인 동은 독립할 수 있습니다. ' + R1N + '부터 주민 화합 사업으로 막을 수 있습니다.</li><li>세력의 본거지(검은 점)를 빼앗으면 그 세력은 무너지고 동 일부가 따라옵니다. 큰 세력일수록 본거지가 단단하고, 본거지는 지하철로 칠 수 없습니다.</li><li>새로 얻은 동은 그달 말부터 수입에 들어오지만, 민심이 회복될 때까지는 적게 들어옵니다.</li><li>' + Jm(MAYOR, '이', '가') + ' 된 뒤에도 남은 동까지 계속 먹을 수 있습니다.</li></ul>';
     html += '<div class="sec">소리</div><div class="acts"><button class="btn" id="sndBtn" type="button">' + (soundOn ? '효과음 켜짐 · 끄기' : '효과음 꺼짐 · 켜기') + '</button></div>';
     html += '<div class="sec">저장</div><p class="why">진행 상황은 이 기기의 브라우저에 자동 저장됩니다. 기기를 바꾸거나 브라우저 기록을 지울 때는 저장 코드를 복사해 두세요.</p><div class="two" style="margin-top:6px"><button class="btn" id="expBtn" type="button">저장 코드 복사</button><button class="btn" id="impBtn" type="button">코드 불러오기</button></div><textarea id="expText" readonly hidden></textarea>';
     html += '<div class="acts"><button class="btn" id="newGame" type="button">' + (confirmNew ? '정말 처음부터 시작 (지금 판은 사라집니다)' : '새 게임') + '</button></div>';

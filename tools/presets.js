@@ -2,8 +2,10 @@
 (function (root) {
   function presets(E, D, GU) {
     var idx = D.map(function (d, i) { return i; });
-    var nbAvg = function (i) { var a = D[i].a; return a.reduce(function (x, j) { return x + D[j].base; }, 0) / Math.max(1, a.length); };
-    var power = function (i) { var d = D[i], T = E.TYPES[d.type]; return (d.tax * (T.tax || 1) * 1.2 + d.draft * (T.draft || 1)) / (nbAvg(i) / 4); };
+    // 추천 동은 점수제 값(base0·tax0·draft0)으로 고름: 실제 규모 반영과 상관없이 고르게 강하고 둘러싸인 동이 뽑힘
+    var B = function (d) { return d.base0 != null ? d.base0 : d.base; }, Tx = function (d) { return d.tax0 != null ? d.tax0 : d.tax; }, Dr = function (d) { return d.draft0 != null ? d.draft0 : d.draft; };
+    var nbAvg = function (i) { var a = D[i].a; return a.reduce(function (x, j) { return x + B(D[j]); }, 0) / Math.max(1, a.length); };
+    var power = function (i) { var d = D[i], T = E.TYPES[d.type]; return (Tx(d) * (T.tax || 1) * 1.2 + Dr(d) * (T.draft || 1)) / (nbAvg(i) / 4); };
     var used = {}, out = [];
     function take(list, label, why) { var i = list.find(function (x) { return !used[x]; }); if (i === undefined) return; used[i] = 1; D[i].a.forEach(function (j) { used[j] = 1; }); out.push([GU[D[i].g].n, D[i].n, label, why]); }
     var land = idx.filter(function (i) { return D[i].a.length >= 3 && D[i].pop > 3000; });
@@ -21,6 +23,11 @@
     // 처음이면 추천: 역이 있고 고르게 강한 동
     var rec = easy.filter(function (i) { return D[i].sub > 0 && D[i].type !== 'office' && D[i].km < KM; });
     if (!rec.length) rec = easy.filter(function (i) { return D[i].type !== 'office' && D[i].km < KM; });
+    // 실제 규모 반영 중에는 자체 규모(동원 + 세수)가 중간 이상인 동만 추천 후보로 (너무 작은 동은 버티기 어려움)
+    if (E.C.REAL) {
+      var own = function (i) { return D[i].draft + D[i].tax * 0.6; }, os = land.map(own).sort(function (a, b) { return a - b; }), omed = os[Math.floor(os.length * 0.5)];
+      var big = rec.filter(function (i) { return own(i) >= omed; }); if (big.length) rec = big;
+    }
     take(rec.sort(function (a, b) { return power(b) - power(a); }), '', '처음이면 추천');
     take(easy.filter(function (i) { return D[i].type === 'office'; }).sort(function (a, b) { return D[b].work - D[a].work; }), '', '돈으로 밀어붙이기');
     take(easy.filter(function (i) { return D[i].type === 'town'; }).sort(function (a, b) { return D[b].pop - D[a].pop; }), '', '사람으로 밀어붙이기');
