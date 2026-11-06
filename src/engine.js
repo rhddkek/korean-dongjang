@@ -510,7 +510,16 @@ var Engine = (function () {
 
   var EXP_Q = 3;   // 급행으로 바로 돌아오는 출동은 한 달에 3번까지
   function quickOk(s, fid, r) { return fid === 0 && s.express === s.month && r.via === 'subway' && (s.expQ || 0) < EXP_Q; }
-  function resolve(s, fid, t, n, r) {
+  // 상대 턴 기록: AI 턴 동안 일어난 일을 순서대로 (화면에서 하나씩 다시 보여 줌). 저장되지 않음
+  var RP = null;
+  function rpPush(s, e, b0) {
+    if (!RP) return;
+    var ch = [];
+    if (b0) { for (var i = 0; i < s.owner.length; i++) if (s.owner[i] !== b0[i]) ch.push([i, s.owner[i]]); }
+    e.ch = e.ch || ch; RP.ev.push(e);
+  }
+  function resolve(s, fid, t, n, r, plan) {
+    var b0 = RP && fid > 0 ? s.owner.slice() : null;
     var att = s.f[fid], o = s.owner[t];
     var def = defense(s, t);
     var a = n * (1 + r.mult);
@@ -547,6 +556,7 @@ var Engine = (function () {
       s.battles.push({ t: t, f: fid, held: !win, mine: Math.round(win ? def.share * 0.55 : Math.min(def.share, a * 0.3)), theirs: res.lost, cap: !!res.movedCap || s.f[0].cap === t, fac: res.facNote || '' });
     }
     if (o >= 0 && s.f[o].alive && fid === 0) { s.f[o].grudge = s.month + 6; s.f[o].grudgeWhy = 'atk'; }
+    if (b0) rpPush(s, { k: 'atk', f: fid, o: o, t: t, src: r.src, via: r.via, win: win, plan: !!plan, col: res.collapse ? res.collapse.name : null, n: Math.round(n) }, b0);
     return res;
   }
   function capture(s, fid, t, res) {
@@ -1386,7 +1396,7 @@ var Engine = (function () {
         }
       }
       if (pr) {
-        var pres = resolve(s, f.id, pt, pn, pr);
+        var pres = resolve(s, f.id, pt, pn, pr, true);
         tries--;
         if (pres.win) { s.stat.lost++; f.tookMine = (f.tookMine || 0) + 1; pushLog(s, f.name + '의 작전. ' + J(D.d[pt].n, '을', '를') + ' 빼앗겼습니다.', 'bad', pt); if (pres.movedCap !== undefined) pushLog(s, '본거지를 ' + ro(D.d[pres.movedCap].n) + ' 옮겼습니다.', 'bad'); }
         else { f.lostAt = s.month; pushLog(s, J(D.d[pt].n, '이', '가') + ' ' + f.name + '의 작전을 막아냈습니다.', 'good', pt); if (pres.facNote) pushLog(s, pres.facNote, 'good'); }
@@ -1441,6 +1451,7 @@ var Engine = (function () {
     }
   }
   function endTurn(s) {
+    RP = null;
     if (s.over) return s.last;
     s.last = [];
     s.battles = [];
@@ -1473,10 +1484,12 @@ var Engine = (function () {
       }
       s.min[i] = Math.min(gi && gi.k === 'plant' && !gi.pact ? 70 : 100, s.min[i] + heal);
     }
+    RP = { start: s.owner.slice(), ev: [] };
     // 반란: 민심이 바닥인 동은 독립할 수 있음
     dongsOf(s, 0).forEach(function (i) {
       if (s.min[i] < 40 && s.f[0].cap !== i && !(s.stable && s.stable[D.d[i].g] > s.month) && lv(s, i, 3) < 5 && !nbLv(s, i, 3, 5) && rnd(s) < (s.min[i] < 25 ? 0.12 : 0.06)) {
         s.owner[i] = -1; s.min[i] = 60;
+        rpPush(s, { k: 'rebel', t: i, o: 0, ch: [[i, -1]] });
         pushLog(s, '민심이 낮았던 ' + D.d[i].n + ' 주민들이 독립을 선언했습니다.', 'bad', i);
       }
     });
@@ -1496,6 +1509,7 @@ var Engine = (function () {
       var id = addFaction(s, part[0], f.troops * part.length / list.length);
       f.troops *= 1 - part.length / list.length;
       part.forEach(function (i) { s.owner[i] = id; s.min[i] = Math.min(s.min[i], 60); });
+      rpPush(s, { k: 'split', f: id, o: f.id, t: part[0], ch: part.map(function (i) { return [i, id]; }) });
       pushLog(s, f.name + '에 내분이 일어났습니다. ' + J(s.f[id].name, '이', '가') + ' ' + part.length + '개 동을 들고 나갔습니다.');
     });
     // 새 세력: 빈 동네가 많으면 가끔 등장
@@ -1506,6 +1520,7 @@ var Engine = (function () {
         var c = pick(s, free);
         if (D.d[c].P + D.d[c].E > 90) {
           var id = addFaction(s, c, 180 + s.month * 3);
+          rpPush(s, { k: 'rise', f: id, o: -1, t: c, ch: [[c, id]] });
           pushLog(s, J(s.f[id].name, '이', '가') + ' ' + D.d[c].n + '에서 들고일어났습니다.');
         }
       }
@@ -1513,6 +1528,7 @@ var Engine = (function () {
     me.troops += me.away || 0; me.away = 0;   // 출동 인원은 AI 턴이 끝난 뒤 복귀
     tickVote(s); tickRivalPlan(s); tickGov(s);
     Object.keys(me.pact || {}).forEach(function (fid) { if (me.pact[fid] === s.month + 1 && s.f[fid].alive) pushLog(s, J(s.f[fid].name, '과', '와') + '의 협정이 다음 달 끝납니다.'); });
+    if (RP) RP.done = true;
     if (!s.over) { tickEvents(s); tickRival(s); tickOffer(s); }
     afterChange(s);
     s.ap = maxAP(s);
@@ -1526,7 +1542,7 @@ var Engine = (function () {
   }
 
   return {
-    C: C, setData: setData, setCity: setCity, city: function () { return CITY; }, headOf: headOf, stem: stem, create: create, preview: preview, needFor: needFor, attack: attack, develop: develop, devCost: devCost,
+    C: C, setData: setData, setCity: setCity, city: function () { return CITY; }, replay: function () { return RP; }, headOf: headOf, stem: stem, create: create, preview: preview, needFor: needFor, attack: attack, develop: develop, devCost: devCost,
     recruit: recruit, persuade: persuade, persuadeCost: persuadeCost, pact: pact, pactCost: pactCost, pactCheck: pactCheck, breakPact: breakPact,
     merge: merge, mergeCost: mergeCost, mergeCheck: mergeCheck, endTurn: endTurn, economy: economy, defense: defense, route: route,
     dongsOf: dongsOf, guHeld: guHeld, popShare: popShare, rankNow: rankNow, maxAP: maxAP, factionList: factionList, lv: lv, taxOf: taxOf, draftOf: draftOf, drafted: drafted, nEff: nEff,

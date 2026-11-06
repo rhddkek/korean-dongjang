@@ -50,6 +50,13 @@ button{cursor:pointer;touch-action:manipulation}
 #next{background:var(--ink);color:#fff;border:0;border-radius:3px;padding:0 16px;font-weight:700;white-space:nowrap;min-height:44px;font-size:15px}
 #next:active{transform:translateY(1px)}
 #next.go{background:var(--stamp)}
+#rpBlock{position:fixed;inset:0;z-index:30;background:transparent;cursor:pointer}
+#rpBar{position:absolute;z-index:31;display:flex;align-items:center;gap:6px;background:#17231C;color:#fff;border-radius:4px;padding:5px 6px 5px 12px;box-shadow:0 2px 10px rgba(0,0,0,.18)}
+#rpBar[hidden]{display:none}
+#rpBar.end button{display:none}
+#rpBar.end{padding:8px 14px;pointer-events:none}
+#rpLabel{flex:1;font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#rpBar button{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:3px;font-size:13px;min-height:34px;padding:0 10px;white-space:nowrap}
 #mapBtns{position:absolute;z-index:4;display:flex;gap:6px}
 #mapBtns button{background:var(--sheet);border:1px solid var(--ink);border-radius:3px;font-size:12.5px;min-height:34px;padding:0 9px}
 .chip.on{border-color:var(--stamp);box-shadow:inset 0 0 0 1px var(--stamp)}
@@ -225,6 +232,8 @@ details.diplo .acts{margin-top:2px}
 <div id="app">
   <canvas id="map" aria-label="서울 행정동 지도. 동을 누르면 정보가 열립니다."></canvas>
   <div id="stampLayer"></div>
+  <div id="rpBlock" hidden></div>
+  <div id="rpBar" hidden role="status" aria-live="polite"><span id="rpLabel">상대 턴</span><button id="rpFast" type="button">빠르게</button><button id="rpSkip" type="button">건너뛰기</button></div>
   <div id="mapBtns" hidden><button id="toCap" type="button">본거지</button><button id="toAll" type="button">서울 전체</button></div>
   <div id="legend" hidden><span id="legendName"></span><span>낮음</span><span class="bar"></span><span>높음</span></div>
   <header id="hud" hidden>
@@ -827,7 +836,16 @@ var Engine = (function () {
 
   var EXP_Q = 3;   // 급행으로 바로 돌아오는 출동은 한 달에 3번까지
   function quickOk(s, fid, r) { return fid === 0 && s.express === s.month && r.via === 'subway' && (s.expQ || 0) < EXP_Q; }
-  function resolve(s, fid, t, n, r) {
+  // 상대 턴 기록: AI 턴 동안 일어난 일을 순서대로 (화면에서 하나씩 다시 보여 줌). 저장되지 않음
+  var RP = null;
+  function rpPush(s, e, b0) {
+    if (!RP) return;
+    var ch = [];
+    if (b0) { for (var i = 0; i < s.owner.length; i++) if (s.owner[i] !== b0[i]) ch.push([i, s.owner[i]]); }
+    e.ch = e.ch || ch; RP.ev.push(e);
+  }
+  function resolve(s, fid, t, n, r, plan) {
+    var b0 = RP && fid > 0 ? s.owner.slice() : null;
     var att = s.f[fid], o = s.owner[t];
     var def = defense(s, t);
     var a = n * (1 + r.mult);
@@ -864,6 +882,7 @@ var Engine = (function () {
       s.battles.push({ t: t, f: fid, held: !win, mine: Math.round(win ? def.share * 0.55 : Math.min(def.share, a * 0.3)), theirs: res.lost, cap: !!res.movedCap || s.f[0].cap === t, fac: res.facNote || '' });
     }
     if (o >= 0 && s.f[o].alive && fid === 0) { s.f[o].grudge = s.month + 6; s.f[o].grudgeWhy = 'atk'; }
+    if (b0) rpPush(s, { k: 'atk', f: fid, o: o, t: t, src: r.src, via: r.via, win: win, plan: !!plan, col: res.collapse ? res.collapse.name : null, n: Math.round(n) }, b0);
     return res;
   }
   function capture(s, fid, t, res) {
@@ -1703,7 +1722,7 @@ var Engine = (function () {
         }
       }
       if (pr) {
-        var pres = resolve(s, f.id, pt, pn, pr);
+        var pres = resolve(s, f.id, pt, pn, pr, true);
         tries--;
         if (pres.win) { s.stat.lost++; f.tookMine = (f.tookMine || 0) + 1; pushLog(s, f.name + '의 작전. ' + J(D.d[pt].n, '을', '를') + ' 빼앗겼습니다.', 'bad', pt); if (pres.movedCap !== undefined) pushLog(s, '본거지를 ' + ro(D.d[pres.movedCap].n) + ' 옮겼습니다.', 'bad'); }
         else { f.lostAt = s.month; pushLog(s, J(D.d[pt].n, '이', '가') + ' ' + f.name + '의 작전을 막아냈습니다.', 'good', pt); if (pres.facNote) pushLog(s, pres.facNote, 'good'); }
@@ -1758,6 +1777,7 @@ var Engine = (function () {
     }
   }
   function endTurn(s) {
+    RP = null;
     if (s.over) return s.last;
     s.last = [];
     s.battles = [];
@@ -1790,10 +1810,12 @@ var Engine = (function () {
       }
       s.min[i] = Math.min(gi && gi.k === 'plant' && !gi.pact ? 70 : 100, s.min[i] + heal);
     }
+    RP = { start: s.owner.slice(), ev: [] };
     // 반란: 민심이 바닥인 동은 독립할 수 있음
     dongsOf(s, 0).forEach(function (i) {
       if (s.min[i] < 40 && s.f[0].cap !== i && !(s.stable && s.stable[D.d[i].g] > s.month) && lv(s, i, 3) < 5 && !nbLv(s, i, 3, 5) && rnd(s) < (s.min[i] < 25 ? 0.12 : 0.06)) {
         s.owner[i] = -1; s.min[i] = 60;
+        rpPush(s, { k: 'rebel', t: i, o: 0, ch: [[i, -1]] });
         pushLog(s, '민심이 낮았던 ' + D.d[i].n + ' 주민들이 독립을 선언했습니다.', 'bad', i);
       }
     });
@@ -1813,6 +1835,7 @@ var Engine = (function () {
       var id = addFaction(s, part[0], f.troops * part.length / list.length);
       f.troops *= 1 - part.length / list.length;
       part.forEach(function (i) { s.owner[i] = id; s.min[i] = Math.min(s.min[i], 60); });
+      rpPush(s, { k: 'split', f: id, o: f.id, t: part[0], ch: part.map(function (i) { return [i, id]; }) });
       pushLog(s, f.name + '에 내분이 일어났습니다. ' + J(s.f[id].name, '이', '가') + ' ' + part.length + '개 동을 들고 나갔습니다.');
     });
     // 새 세력: 빈 동네가 많으면 가끔 등장
@@ -1823,6 +1846,7 @@ var Engine = (function () {
         var c = pick(s, free);
         if (D.d[c].P + D.d[c].E > 90) {
           var id = addFaction(s, c, 180 + s.month * 3);
+          rpPush(s, { k: 'rise', f: id, o: -1, t: c, ch: [[c, id]] });
           pushLog(s, J(s.f[id].name, '이', '가') + ' ' + D.d[c].n + '에서 들고일어났습니다.');
         }
       }
@@ -1830,6 +1854,7 @@ var Engine = (function () {
     me.troops += me.away || 0; me.away = 0;   // 출동 인원은 AI 턴이 끝난 뒤 복귀
     tickVote(s); tickRivalPlan(s); tickGov(s);
     Object.keys(me.pact || {}).forEach(function (fid) { if (me.pact[fid] === s.month + 1 && s.f[fid].alive) pushLog(s, J(s.f[fid].name, '과', '와') + '의 협정이 다음 달 끝납니다.'); });
+    if (RP) RP.done = true;
     if (!s.over) { tickEvents(s); tickRival(s); tickOffer(s); }
     afterChange(s);
     s.ap = maxAP(s);
@@ -1843,7 +1868,7 @@ var Engine = (function () {
   }
 
   return {
-    C: C, setData: setData, setCity: setCity, city: function () { return CITY; }, headOf: headOf, stem: stem, create: create, preview: preview, needFor: needFor, attack: attack, develop: develop, devCost: devCost,
+    C: C, setData: setData, setCity: setCity, city: function () { return CITY; }, replay: function () { return RP; }, headOf: headOf, stem: stem, create: create, preview: preview, needFor: needFor, attack: attack, develop: develop, devCost: devCost,
     recruit: recruit, persuade: persuade, persuadeCost: persuadeCost, pact: pact, pactCost: pactCost, pactCheck: pactCheck, breakPact: breakPact,
     merge: merge, mergeCost: mergeCost, mergeCheck: mergeCheck, endTurn: endTurn, economy: economy, defense: defense, route: route,
     dongsOf: dongsOf, guHeld: guHeld, popShare: popShare, rankNow: rankNow, maxAP: maxAP, factionList: factionList, lv: lv, taxOf: taxOf, draftOf: draftOf, drafted: drafted, nEff: nEff,
@@ -1942,7 +1967,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
   function dateOf(m) { var t = 2027 * 12 + m; return Math.floor(t / 12) + '년 ' + (t % 12 + 1) + '월'; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function fCol(id) { return id === 0 ? PAL[0] : PAL[1 + (id - 1) % (PAL.length - 1)]; }
-  function save() { try { if (S) localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
+  function save() { try { if (S) { var o = S.owner; if (RPS) S.owner = RPS.real; localStorage.setItem(SAVE_KEY, JSON.stringify(S)); S.owner = o; } } catch (e) {} }
   function backup() { try { var t = localStorage.getItem(SAVE_KEY); if (t) localStorage.setItem(SAVE_KEY + '-prev', t); } catch (e) {} }
   function bests() { try { return JSON.parse(localStorage.getItem(BEST_KEY)) || {}; } catch (e) { return {}; } }
   function saveBest(i, m) { try { var b = bests(); if (!b[i] || m < b[i]) { b[i] = m; localStorage.setItem(BEST_KEY, JSON.stringify(b)); } } catch (e) {} }
@@ -2096,7 +2121,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
   }
   function frame(now) {
     needs = false;
-    if (S) { var mb = $('mapBtns'), vr = viewRect(), hide = vr.h < 230 || !$('over').hidden; if (mb.hidden !== hide) mb.hidden = hide; if (!hide) { mb.style.top = (vr.y + 8) + 'px'; mb.style.right = (W - vr.x - vr.w + 8) + 'px'; } }
+    if (S) { var mb = $('mapBtns'), vr = viewRect(), hide = vr.h < 230 || !$('over').hidden || !!RPS; if (mb.hidden !== hide) mb.hidden = hide; if (!hide) { mb.style.top = (vr.y + 8) + 'px'; mb.style.right = (W - vr.x - vr.w + 8) + 'px'; } var rb = $('rpBar'); if (RPS) { rb.style.top = (vr.y + 8) + 'px'; rb.style.left = (vr.x + 8) + 'px'; rb.style.right = (W - vr.x - vr.w + 8) + 'px'; } }
     if (tween) {
       var k = Math.min(1, (now - tween.t0) / tween.dur), e = 1 - Math.pow(1 - k, 3);
       cam.s = tween.a.s + (tween.b.s - tween.a.s) * e;
@@ -2173,7 +2198,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
       }
     }
     drawLabels(c, cur);
-    drawMarks(c);
+    if (RPS) drawReplay(c); else drawMarks(c);
   }
   function marksNow() {
     var out = [];
@@ -2181,6 +2206,130 @@ if (typeof module !== 'undefined') module.exports = Engine;
     if (S.marks && S.marks.m === S.month) S.marks.list.forEach(function (x) { out.push(x); });
     if (S.rivalPlan && S.owner[S.rivalPlan.t] === 0) out.push({ t: S.rivalPlan.t, k: 'threat' });
     return out;
+  }
+  // ---- 상대 턴 재생: '다음 달'을 누르면 AI가 한 일을 하나씩 보여 줌 (우리 땅 일 → 우리 근처 → 그 밖은 묶어서) ----
+  var RPM = (function () { try { return localStorage.getItem('dongjang-replay') || 'normal'; } catch (e) { return 'normal'; } })();
+  var RPS = null, rpEndTimer = 0;
+  function setReplayMode(m) { RPM = m; try { localStorage.setItem('dongjang-replay', m); } catch (e) {} }
+  function rpSteps(before, R) {
+    var near = {};
+    before.forEach(function (o, i) { if (o === 0) { near[i] = 1; D[i].a.forEach(function (j) { near[j] = 1; }); } });
+    var others = 0;
+    return R.ev.map(function (e) {
+      var ours = e.o === 0 || e.k === 'rebel';
+      var vis = !fogged(e.t);
+      var show = ours || (vis && (near[e.t] || (e.src != null && near[e.src])) && (e.win || e.k !== 'atk')) || (vis && (e.col || e.k === 'split' || e.k === 'rise'));
+      if (show && !ours) { if (others >= 8) show = false; else others++; }
+      return { e: e, show: show };
+    });
+  }
+  function startReplay(before, R, done) {
+    if (RPM === 'off' || !R || !R.ev || !R.ev.length) { done(); return; }
+    var steps = rpSteps(before, R);
+    var shown = steps.filter(function (x) { return x.show; }).length;
+    if (!shown) { done(); return; }
+    RPS = { steps: steps, i: -1, real: S.owner, own: before.slice(), done: done, cur: null, t0: 0, quick: 0, shown: shown, k: 0, fast: RPM === 'fast' };
+    S.owner = RPS.own;
+    clearTimeout(rpEndTimer); $('rpBar').classList.remove('end');
+    $('rpBlock').hidden = false; $('rpBar').hidden = false; $('mapBtns').hidden = true;
+    rpText('상대 턴 · ' + dateOf(S.month));
+    rpNext();
+    requestAnimationFrame(rpTick);
+  }
+  function rpText(t) { $('rpLabel').textContent = tx(t); }
+  function rpDur() { return RPS.fast ? 520 : 1150; }
+  function rpApply(st) { st.e.ch.forEach(function (c) { RPS.own[c[0]] = c[1]; }); st.applied = true; }
+  function rpNext() {
+    if (RPS.cur && !RPS.cur.applied) rpApply(RPS.cur);
+    RPS.i++;
+    while (RPS.i < RPS.steps.length && !RPS.steps[RPS.i].show) { rpApply(RPS.steps[RPS.i]); RPS.quick++; RPS.i++; }
+    if (RPS.i >= RPS.steps.length) { RPS.cur = null; return false; }
+    var st = RPS.cur = RPS.steps[RPS.i], e = st.e; RPS.k++;
+    st.t0 = performance.now();
+    rpText('상대 턴 ' + RPS.k + '/' + RPS.shown);
+    // 우리 땅 일만 지도를 옮겨 보여 줌
+    if (e.o === 0 || e.k === 'rebel') {
+      var r = viewRect(), d = D[e.t], sx = d.x * cam.s + cam.x, sy = d.y * cam.s + cam.y;
+      if (sx < r.x + 30 || sx > r.x + r.w - 30 || sy < r.y + 40 || sy > r.y + r.h - 30) {
+        var ns = Math.max(cam.s, fitS * 2, zoomFor(e.t) * 0.6);
+        tweenTo({ s: ns, x: r.x + r.w / 2 - d.x * ns, y: r.y + r.h / 2 - d.y * ns });
+      }
+    }
+    return true;
+  }
+  function rpTick() {
+    if (!RPS) return;
+    var st = RPS.cur, now = performance.now();
+    if (st) {
+      var p = (now - st.t0) / rpDur();
+      if (p >= 0.5 && !st.applied) {
+        rpApply(st);
+        var e = st.e;
+        if (e.o === 0 && e.ch.length) sfx('fail'); else if (e.o === 0 && e.k === 'atk' && !e.win) sfx('stamp');
+      }
+      if (p >= 1 && !rpNext()) { rpEnd(); return; }
+    } else { rpEnd(); return; }
+    dirty();
+    requestAnimationFrame(rpTick);
+  }
+  function rpEnd() {
+    if (!RPS) return;
+    var R = RPS; RPS = null;
+    S.owner = R.real;
+    $('rpBlock').hidden = true;
+    // 끝: '우리 턴'을 잠깐 보여 주고 사라짐
+    var rb = $('rpBar'); rb.classList.add('end'); rb.style.right = 'auto'; rpText('우리 턴 · ' + dateOf(S.month));
+    clearTimeout(rpEndTimer); rpEndTimer = setTimeout(function () { if (!RPS) { rb.hidden = true; rb.classList.remove('end'); } }, 900);
+    dirty();
+    R.done(R.quick);
+  }
+  function rpSkip() { if (!RPS) return; RPS.cur = null; RPS.i = RPS.steps.length; rpEnd(); }
+  function drawReplay(c) {
+    if (!RPS || !RPS.cur) return;
+    var st = RPS.cur, e = st.e, p = Math.min(1, (performance.now() - st.t0) / rpDur());
+    var d = D[e.t], col = e.f != null && e.f >= 0 && S.f[e.f] ? fCol(e.f) : '#5D6A60';
+    c.save(); c.setTransform(DPR * cam.s, 0, 0, DPR * cam.s, DPR * cam.x, DPR * cam.y);
+    var px = 1 / cam.s;
+    // 목표 동 강조
+    c.strokeStyle = '#fff'; c.lineWidth = 7 * px; c.stroke(dongPath[e.t]);
+    c.strokeStyle = e.o === 0 ? '#D4321F' : '#17231C'; c.lineWidth = 3.4 * px; c.stroke(dongPath[e.t]);
+    // 공격 화살표 (출발 동 → 목표 동)
+    if (e.k === 'atk' && e.src != null && D[e.src]) {
+      var s0 = D[e.src], k = Math.min(1, p / 0.42), x1 = s0.x + (d.x - s0.x) * k, y1 = s0.y + (d.y - s0.y) * k;
+      var mx = (s0.x + d.x) / 2, my = (s0.y + d.y) / 2, dx = d.x - s0.x, dy = d.y - s0.y, L = Math.sqrt(dx * dx + dy * dy) || 1;
+      var cx = mx - dy / L * L * 0.18, cy = my + dx / L * L * 0.18;
+      var bx = function (t) { return (1 - t) * (1 - t) * s0.x + 2 * (1 - t) * t * cx + t * t * d.x; }, by = function (t) { return (1 - t) * (1 - t) * s0.y + 2 * (1 - t) * t * cy + t * t * d.y; };
+      c.lineCap = 'round';
+      [['#fff', 8], [col, 4.2]].forEach(function (w) {
+        c.strokeStyle = w[0]; c.lineWidth = w[1] * px; c.beginPath(); c.moveTo(s0.x, s0.y);
+        for (var q = 1; q <= 24; q++) { var t = q / 24 * k; c.lineTo(bx(t), by(t)); }
+        c.stroke();
+      });
+      if (k > 0.2) {
+        var t2 = k, ex = bx(t2), ey = by(t2), ex0 = bx(Math.max(0, t2 - 0.04)), ey0 = by(Math.max(0, t2 - 0.04)), ang = Math.atan2(ey - ey0, ex - ex0), hs = 13 * px;
+        c.fillStyle = col; c.strokeStyle = '#fff'; c.lineWidth = 2 * px;
+        c.beginPath(); c.moveTo(ex + Math.cos(ang) * hs * 0.6, ey + Math.sin(ang) * hs * 0.6); c.lineTo(ex + Math.cos(ang + 2.5) * hs, ey + Math.sin(ang + 2.5) * hs); c.lineTo(ex + Math.cos(ang - 2.5) * hs, ey + Math.sin(ang - 2.5) * hs); c.closePath(); c.stroke(); c.fill();
+      }
+      x1 = y1 = 0;
+    } else {
+      var rr = (18 + 30 * p) * px; c.strokeStyle = col; c.globalAlpha = 1 - p * 0.7; c.lineWidth = 3 * px;
+      c.beginPath(); c.arc(d.x, d.y, rr, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1;
+    }
+    c.restore();
+    // 꼬리표: 누가 어디로 → 결과
+    var fn = e.f != null && e.f >= 0 && S.f[e.f] ? S.f[e.f].name : '';
+    var t = e.k === 'rebel' ? D[e.t].n + ' 주민 독립 선언' : e.k === 'split' ? S.f[e.o].name + ' 내분 · ' + fn + ' 독립' : e.k === 'rise' ? fn + ' 등장' : fn + ' → ' + D[e.t].n;
+    var res = st.applied ? (e.k !== 'atk' ? '' : e.win ? (e.col ? '본거지 함락 · ' + e.col + ' 해체' : e.o === 0 ? '빼앗김' : '점령') : '막아냄') : '';
+    c.setTransform(DPR, 0, 0, DPR, 0, 0);
+    c.font = '700 13px "IBM Plex Sans KR","Apple SD Gothic Neo",sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle';
+    var line = tx(t), w1 = c.measureText(line).width, w2 = res ? c.measureText(res).width + 14 : 0, w = w1 + w2 + 18, h = 24;
+    var x = Math.max(8, Math.min(W - w - 8, d.x * cam.s + cam.x - w / 2)), y = d.y * cam.s + cam.y - 30;
+    c.fillStyle = 'rgba(23,35,28,.92)'; c.beginPath(); if (c.roundRect) c.roundRect(x, y - h / 2, w, h, 5); else c.rect(x, y - h / 2, w, h); c.fill();
+    c.fillStyle = '#fff'; c.fillText(line, x + 9, y + 0.5);
+    if (res) {
+      var good = !e.win && e.o === 0, bad = e.win && e.o === 0;
+      c.fillStyle = bad ? '#FF8A7A' : good ? '#8FE0B9' : '#FFD27A'; c.fillText(res, x + 9 + w1 + 10, y + 0.5);
+    }
   }
   function drawMarks(c) {
     if (!S || lens) return;
@@ -3096,12 +3245,14 @@ if (typeof module !== 'undefined') module.exports = Engine;
     var html = '<div class="head"><div><h2>메뉴</h2></div><button class="x" type="button" aria-label="닫기">×</button></div>';
     html += '<div class="sec">게임 방법</div><ul class="prose"><li>빨간 테두리 동을 눌러 인원을 보내면 공격합니다. 공격과 설득은 결재를 씁니다.</li><li>보낸 인원은 다음 달에 돌아옵니다. 그동안 우리 동 방어가 약해지니 나눠서 쓰세요.</li><li>세수는 실제 직장인 수(주민 수 일부 포함), 동원은 실제 주민 수, 방어는 낮 인구(주민 + 직장인 절반)에 거의 비례합니다. 규모가 4배면 약 2.8배, 10배면 약 5.6배입니다. 작은 동은 관리비도 적게 듭니다. 동네 유형마다 특성이 있습니다.</li><li>우리 동을 누르면 개발합니다. 값은 어느 동이나 같고, 버튼 옆에 실제로 늘어나는 양이 나옵니다. 우리 동이 3개 이하일 때는 지원금이 나옵니다.</li><li>한 ' + GRP + '의 동을 절반 이상 차지하면 ' + R1N + ', 그런 ' + Jm(GRP, '이', '가') + ' ' + R2 + '개면 ' + R2S + ', ' + CNAME + ' 인구 60%면 ' + MAYOR + '입니다. 인구는 통계 기준으로 고정이라 개발해도 늘지 않습니다.</li><li>' + Jm(GRP, '을', '를') + ' 통째로 먹으면 그 ' + GRP + '의 재정자립도만큼 세수가 늘어납니다.' + (SEOUL ? '' : ' (' + (CITY_ID === 'busan' ? '부산은 보도된 수치, 중구만 추정' : '상가·직장인 밀도로 만든 게임용 추정치' + (KIND !== 'metro' && KIND !== 'nation' && /부산/.test(DATA.full) ? ', 부산 구는 보도된 수치' : '')) + ')') + '</li><li>' + R1N + '부터는 ' + GRP + ' 현황에서 한꺼번에 공격·설득·개발할 수 있습니다.</li><li>처음에는 우리 ' + Jm(GRP, '과', '와') + ' 맞닿은 ' + GRP + '만 보입니다. 땅을 넓히면 안개가 걷힙니다. 동네 통계는 안개 속에서도 볼 수 있습니다.</li><li>개발은 단계마다 이름 붙은 시설이 생깁니다. 3단계·5단계 시설은 옆 우리 동까지 효과가 미칩니다. 예: 자치경찰대(치안 3단계)는 옆 우리 동 방어 +15%, 자치소방서(치안 5단계)는 그 일대 독립을 막습니다.</li><li>동네 조합: 일터 동과 맞닿은 주거 동 둘(직주근접, 동원 +20%), 이어진 상권 동 셋(골목상권, 상권 개발비 −30%), 지하철로 이어진 역세권 셋(환승, 기습 불이익 없음)을 모으면 그 동들에만 보너스가 붙습니다. 종류마다 한 판에 한 번입니다.</li><li>시설의 옆 동 효과는 같은 종류끼리 2곳까지만 겹칩니다(세수·동원 최대 +20%, 방어 최대 +30%). 자치소방서는 독립만 막고, 민심이 낮아 줄어드는 세수·동원은 그대로입니다. 시설이 있는 동을 빼앗기면 그 효과는 그 즉시 사라집니다.</li><li>몇 달마다 정부 공모가 열립니다. 공공기관은 오래 벌고, 공공병원은 민심을 지키고, 자원회수시설은 지원금을 착공·준공 두 번에 나눠 주는 대신 민심을 깎습니다. 후반에는 바로 효과가 나는 안전센터 공모가 섞입니다. 다른 세력도 조건과 부담금을 채워야 신청할 수 있고, 아무도 없으면 유찰됩니다. 효과는 게임용으로 지어낸 것입니다.</li><li>숙적은 우리가 크게 진 직후, 우리 인원이 대부분 나가 있을 때, 공사 중이거나 많이 키운 동이 국경에 있을 때 움직입니다. 힘이 다 빠진 숙적은 본거지만 남겨 달라며 협상을 걸어옵니다. ' + R2S + '부터는 작은 세력도 협상을 제안합니다.</li><li>지도의 작은 색 점은 우리 동의 개발 단계입니다. 노랑 상권, 파랑 교통, 초록 주거, 회색 치안. ' + (SEOUL ? '산 무늬는 산을 낀 동네를 대략 표시한 것입니다.' : '') + '</li><li>시작한 동의 유형에 따라 한 판 내내 대표 능력 하나를 씁니다. 점령한 동은 특성 보너스만 줍니다.</li><li>설득·주민투표·통합·협상으로 들어온 동은 민심이 높지만 첫 달 수입이 50%이고 매달 15%p씩 늘어 약 4달 뒤 정상이 됩니다. 주거·치안을 올리면 더 빨라집니다. 공격으로 뺏은 동은 대신 민심 35에서 시작합니다.</li><li>숙적은 공격하기 한 달 전에 어느 동 앞에 모이는지, 몇 명인지 알려 줍니다. 그 동을 누르면 막는 방법(인원 남기기, 치안, 협정, 선제공격)이 나옵니다. 대비가 돼 있으면 저쪽이 공격을 접습니다.</li><li>민심이 40 아래인 동은 독립할 수 있습니다. ' + R1N + '부터 주민 화합 사업으로 막을 수 있습니다.</li><li>세력의 본거지(검은 점)를 빼앗으면 그 세력은 무너지고 동 일부가 따라옵니다. 큰 세력일수록 본거지가 단단하고, 본거지는 지하철로 칠 수 없습니다.</li><li>새로 얻은 동은 그달 말부터 수입에 들어오지만, 민심이 회복될 때까지는 적게 들어옵니다.</li><li>' + Jm(MAYOR, '이', '가') + ' 된 뒤에도 남은 동까지 계속 먹을 수 있습니다.</li></ul>';
     html += '<div class="sec">소리</div><div class="acts"><button class="btn" id="sndBtn" type="button">' + (soundOn ? '효과음 켜짐 · 끄기' : '효과음 꺼짐 · 켜기') + '</button></div>';
+    html += '<div class="sec">상대 턴 보기</div><div class="chips" id="rpMode">' + [['normal', '보통'], ['fast', '빠르게'], ['off', '끄기']].map(function (m) { return '<button class="chip' + (RPM === m[0] ? ' on' : '') + '" type="button" data-m="' + m[0] + '"' + (RPM === m[0] ? ' aria-pressed="true"' : '') + '>' + m[1] + '</button>'; }).join('') + '</div><p class="why">다음 달을 누르면 다른 세력이 한 일을 하나씩 보여 줍니다. 우리 땅에서 난 일은 항상, 우리 근처 다툼은 몇 건만 보여 주고 나머지는 지도에 바로 반영합니다. 보는 중에 화면을 누르면 빨라지고, 한 번 더 누르면 건너뜁니다.</p>';
     html += '<div class="sec">저장</div><p class="why">진행 상황은 이 기기의 브라우저에 자동 저장됩니다. 기기를 바꾸거나 브라우저 기록을 지울 때는 저장 코드를 복사해 두세요.</p><div class="two" style="margin-top:6px"><button class="btn" id="expBtn" type="button">저장 코드 복사</button><button class="btn" id="impBtn" type="button">코드 불러오기</button></div><textarea id="expText" readonly hidden></textarea>';
     html += '<div class="acts"><button class="btn" id="newGame" type="button">' + (confirmNew ? '정말 처음부터 시작 (지금 판은 사라집니다)' : '새 게임') + '</button></div>';
     if (!SEOUL) html += '<div class="sec">자료 출처</div>' + (KIND === 'metro' ? METRO_SRC : MODE_SRC);
     else html += '<div class="sec">자료 출처</div><p class="src">서울특별시 서울 열린데이터광장: <a href="https://data.seoul.go.kr/dataList/OA-22183/S/1/datasetView.do" target="_blank" rel="noopener">상권분석서비스(상주인구-행정동)</a>, <a href="https://data.seoul.go.kr/dataList/OA-22184/S/1/datasetView.do" target="_blank" rel="noopener">상권분석서비스(직장인구-행정동)</a>, 상권분석서비스(집객시설-행정동). 2023~2024년 기준이라 지금과 다를 수 있습니다. 직장인 수가 빠진 26개 동과 시설 수가 빠진 관악구 신사동은 같은 구의 값으로 추정했습니다.<br>재정자립도: <a href="https://m.go.seoul.co.kr/news/2024/07/16/20240716500023" target="_blank" rel="noopener">서울시의회 자료 보도(서울신문)</a>, 2023년 기준.<br>생활 점수의 소득 항목은 237개 동만 확보해 나머지는 같은 구의 중간값을 썼습니다.<br>행정동 경계: 통계청·행정안전부 자료를 정리한 admdongkor(MIT), 2026년 10월 기준.</p><p class="src">경제·인프라·생활 점수와 동네 유형은 통계를 바탕으로 계산한 게임용 값으로, 실제 매출이나 소득 순위가 아니며 동네의 우열을 뜻하지 않습니다. 등장 단체와 사건은 모두 지어낸 것입니다.</p>';
     sh.innerHTML = tx(html);
     bind('sndBtn', function () { setSound(!soundOn); if (soundOn) sfx('stamp'); renderSheet(); });
+    Array.prototype.forEach.call(sh.querySelectorAll('#rpMode .chip'), function (b) { b.addEventListener('click', function () { setReplayMode(b.dataset.m); renderSheet(); }); });
     bind('expBtn', function () {
       var code = encodeSave(S), ta = $('expText');
       ta.hidden = false; ta.value = code;
@@ -3207,6 +3358,11 @@ if (typeof module !== 'undefined') module.exports = Engine;
     var before = S.owner.slice();
     var nBefore = before.filter(function (o) { return o === 0; }).length, capBefore = S.f[0].cap;
     var ev = E.endTurn(S);
+    save();
+    if (sel !== null) { sel = null; sheetMode = 'none'; renderSheet(); }
+    startReplay(before, E.replay(), function (quick) { afterTurn(before, nBefore, capBefore, ev, quick); });
+  }));
+  function afterTurn(before, nBefore, capBefore, ev, quick) {
     var lost = 0, lostList = []; flash = {};
     before.forEach(function (o, i) {
       if (o === 0 && S.owner[i] !== 0) { flash[i] = 2; lost++; lostList.push(i); }
@@ -3245,7 +3401,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
     // 잃은 동이 있으면(후반엔 본거지가 아니고 한 곳뿐이면 소식 줄로만) 결과 카드 하나로 묶어 보여 줌
     var big = lostList.length ? (S.rank < 2 || lostList.length > 1 || capHit) : (held.length && S.rank === 0);
     if (big && !S.over && $('over').hidden) battleCard(lostList, held, battles, nBefore, capHit);
-  }));
+  }
   function battleCard(lostList, held, battles, nBefore, capHit) {
     var rows = [];
     lostList.forEach(function (i) {
@@ -3262,6 +3418,9 @@ if (typeof module !== 'undefined') module.exports = Engine;
     bind('cardOk', function () { hideCard(); sync(); });
     Array.prototype.forEach.call($('card').querySelectorAll('[data-go]'), function (b) { b.addEventListener('click', function () { hideCard(); goDong(+b.dataset.go); sync(); }); });
   }
+  $('rpBlock').addEventListener('click', function () { if (!RPS) return; if (!RPS.fast) { RPS.fast = true; } else rpSkip(); });
+  $('rpFast').addEventListener('click', function () { if (RPS) RPS.fast = !RPS.fast; $('rpFast').textContent = RPS && RPS.fast ? '보통' : '빠르게'; });
+  $('rpSkip').addEventListener('click', rpSkip);
   $('govBar').addEventListener('click', function () { $('sheet').scrollTop = 0; sel = null; errMsg = ''; sheetMode = sheetMode === 'gov' ? 'none' : 'gov'; renderSheet(); dirty(); });
   $('offerBar').addEventListener('click', function () { $('sheet').scrollTop = 0; sel = null; errMsg = ''; sheetMode = sheetMode === 'offer' ? 'none' : 'offer'; renderSheet(); dirty(); });
   $('evBar').addEventListener('click', function () { $('sheet').scrollTop = 0; sel = null; sheetMode = sheetMode === 'ev' ? 'none' : 'ev'; renderSheet(); dirty(); });

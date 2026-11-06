@@ -1,7 +1,7 @@
 // v7: 시설 예정 효과, 생존 협상, 빈집 경고, 급행 바로 복귀 3번, 안전센터, 숙적의 시설 노림·빈집 노림
 const { chromium, devices } = require('playwright'); const http=require('http'), fs=require('fs');
 const OUT=process.argv[2]||'.';
-const html='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light}body{margin:0;font:14px system-ui}[hidden]{display:none!important}img{max-width:100%}</style></head><body>'+fs.readFileSync('dongjang.html','utf8')+'</body></html>';
+const html='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light}body{margin:0;font:14px system-ui}[hidden]{display:none!important}img{max-width:100%}</style></head><body><script>try{localStorage.getItem("dongjang-replay")||localStorage.setItem("dongjang-replay","off")}catch(e){}</script>'+fs.readFileSync('dongjang.html','utf8')+'</body></html>';
 const srv=http.createServer((q,r)=>{r.setHeader('content-type','text/html;charset=utf-8');r.end(html)}).listen(8129);
 const ok=(c,m)=>console.log((c?'PASS ':'FAIL ')+m);
 (async()=>{
