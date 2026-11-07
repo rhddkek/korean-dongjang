@@ -2,7 +2,7 @@
 var Engine = (function () {
   'use strict';
   var C = {
-    WIN_POP: 0.6,
+    WIN_POP: 0.6, COAL_POP: 0.45, ELECT_WAIT: 3,
     GRACE: 8,            // 처음 몇 달은 AI가 플레이어를 건드리지 않음
     COST: [25, 50, 90, 150, 240],
     RECRUIT: 1.2,        // 예산 1억 = 1.2명 (고정가)
@@ -31,6 +31,32 @@ var Engine = (function () {
     rich: { word: '돈이 많음', tries: 0, rec: 0.7, dev: 0.35, money: 1.25 },
     talk: { word: '협상에 잘 응함', tries: -1, rec: 0.75, dev: 0.35, money: 1, deal: 0.7 }
   };
+  // 정책 카드: 승진할 때와 6달마다 3장 중 1장. 한 판에 같은 카드는 한 번
+  var CARDS = {
+    redev: { n: '재개발 특구', e: '개발비 −30%. 대신 개발한 동 민심 −5', tag: '개발' },
+    patrol: { n: '자율방범대', e: '우리 동 방어 +20%', tag: '방어' },
+    fort: { n: '철벽 본거지', e: '본거지 방어 +60%, 본거지 옆 우리 동 방어 +20%', tag: '방어' },
+    shuttle: { n: '출근 셔틀', e: '강·바다 건너는 공격의 불이익이 사라짐', tag: '공격', need: 'water' },
+    express: { n: '급행 노선', e: '지하철 기습 거리 +40%, 기습 전력 +15%', tag: '공격', need: 'sub' },
+    elite: { n: '정예 기동대', e: '모든 공격 전력 +12%', tag: '공격' },
+    market: { n: '상인회 장악', e: '오피스·번화가·상권 동 세수 +25%', tag: '돈' },
+    coupon: { n: '지역화폐', e: '세수 +10%', tag: '돈' },
+    saving: { n: '관리비 절감', e: '관리비 −20%', tag: '돈' },
+    bond: { n: '주민 채권', e: '지금 바로 월 세수 4달치. 대신 관리비 +10%', tag: '돈' },
+    mom: { n: '부녀회 연대', e: '주택가·대단지·주거 동 동원 +25%', tag: '사람' },
+    hire: { n: '공무원 특채', e: '같은 돈으로 모집 인원 +25%', tag: '사람' },
+    youth: { n: '청년 동원령', e: '동원 +15%. 대신 매달 우리 동 민심 −1', tag: '사람' },
+    festival: { n: '동네 축제', e: '매달 우리 동 민심 +3', tag: '민심' },
+    settle: { n: '빠른 정착', e: '새로 얻은 동이 두 배 빨리 정착', tag: '민심' },
+    talk: { n: '설득의 달인', e: '독립 동 설득 비용 −30%', tag: '외교' },
+    diplo: { n: '외교 특보', e: '불가침 비용 −40%. 우리 세력이 2배만 돼도 통합에 응함', tag: '외교' },
+    paper: { n: '결재 간소화', e: '한 달 결재 +1건', tag: '행정' },
+    intel: { n: '정보망', e: '모든 지역의 안개가 걷힘', tag: '행정' }
+  };
+  function hasCard(s, k) { return !!(s.cards && s.cards.indexOf(k) >= 0); }
+  // 세력 회장: 이름과 얼굴(화면에서 그림)의 씨앗
+  var SUR = ['김', '이', '박', '최', '정', '강', '조', '윤', '장', '임', '한', '오', '서', '신', '권', '황', '안', '송', '류', '홍'];
+  var GIV = ['덕배', '순자', '영수', '말순', '춘자', '상철', '미숙', '용팔', '복남', '정자', '만수', '옥자', '기철', '금순', '동팔', '영자', '봉구', '경숙', '칠성', '점례', '갑수', '명자', '태식', '두리'];
   var GROUP_TRAIT = { '조기축구회': 'fight', '청년회': 'fight', '방범대': 'fight', '자율방재단': 'fight', '학부모회': 'build', '입주자대표회의': 'build', '반상회': 'build', '노인회': 'build', '상인회': 'rich', '번영회': 'rich', '통장협의회': 'talk', '부녀회': 'talk', '산악회': 'talk', '배드민턴클럽': 'talk', '테니스동호회': 'talk' };
   // 시작 동 유형별 대표 능력 (시작 동 유형에만 붙고 한 판 내내 유지)
   // 개발 단계마다 이름 붙은 시설. 3단계·5단계에는 주변까지 미치는 효과가 있다.
@@ -230,7 +256,8 @@ var Engine = (function () {
       f: [], ap: 2, rank: 0, log: [], last: [],
       stat: { took: 0, lost: 0, sent: 0, home: 0, built: 0, merged: 0, biggest: 0, talked: 0, raid: 0, bridge: 0, guop: 0, events: 0 },
       ev: null, evUsed: [], nextEv: 4 + Math.floor((seed >>> 3) % 3), rival: -1, rivalAt: 0,
-      weakAt: -9, gov: { open: null, sites: {}, nextAt: 6, idx: 0 }, abil: abilityOf(data.d[start].type), scoutAt: {}, vote: null, express: -99, rallyAt: -99, stable: {}, exprProj: false, rivalPlan: null, awayLate: 0
+      weakAt: -9, gov: { open: null, sites: {}, nextAt: 6, idx: 0 }, abil: abilityOf(data.d[start].type), scoutAt: {}, vote: null, express: -99, rallyAt: -99, stable: {}, exprProj: false, rivalPlan: null, awayLate: 0,
+      cards: [], cardOffer: null, cardQ: 0, cardNext: 6, coal: null, elect: null
     };
     var me = { id: 0, name: officeOf(data.d[start].n), cap: start, money: Math.max(60, Math.round(30 + data.d[start].E * 2)), troops: Math.max(230, Math.round(130 + data.d[start].P * 1.9)), away: 0, ai: false, alive: true, c: 0, pact: {}, grudge: 0 };
     s.f.push(me);
@@ -260,7 +287,7 @@ var Engine = (function () {
     s.f.forEach(function (x) { if (x.alive) used[x.grp] = (used[x.grp] || 0) + 1; });
     var g = pick(s, C.GROUPS);
     var id = s.f.length;
-    s.f.push({ id: id, name: stem(D.d[cap].n) + ' ' + g, grp: g, cap: cap, money: 50, troops: troops, away: 0, ai: true, alive: true, c: id, grudge: 0, tookMine: 0, lostAt: -9 });
+    s.f.push({ id: id, name: stem(D.d[cap].n) + ' ' + g, grp: g, cap: cap, money: 50, troops: troops, away: 0, ai: true, alive: true, c: id, grudge: 0, tookMine: 0, lostAt: -9, boss: { nm: pick(s, SUR) + pick(s, GIV), face: Math.floor(rnd(s) * 1e6) } });
     s.owner[cap] = id;
     return id;
   }
@@ -275,7 +302,7 @@ var Engine = (function () {
   function lv(s, i, t) { return s.dev[i * 4 + t]; }
   function mood(s, i) { return 0.5 + 0.5 * s.min[i] / 100; }
   // 설득·투표·통합으로 들어온 동: 첫 달 50%에서 매달 +15%p (주거·치안 단계마다 +5%p 더)
-  function settleRate(s, i) { return 0.15 + 0.05 * (lv(s, i, 2) + lv(s, i, 3)); }
+  function settleRate(s, i) { return (0.15 + 0.05 * (lv(s, i, 2) + lv(s, i, 3))) * (s.owner[i] === 0 && hasCard(s, 'settle') ? 2 : 1); }
   function settleF(s, i) {
     if (s.owner[i] !== 0 || !s.settle || s.settle[i] === undefined) return 1;
     var m = Math.max(0, s.month - s.settle[i] - 1);
@@ -379,6 +406,7 @@ var Engine = (function () {
     if (f >= 0 && s.f[f].cap === i) v *= 1.3;
     v *= settleF(s, i);
     if (fullMap && fullMap[d.g]) v *= 1 + D.gu[d.g].f / 100;
+    if (f === 0 && hasCard(s, 'market') && (d.type === 'office' || d.type === 'busy' || hasRole(i, '상권'))) v *= 1.25;
     return v;
   }
   function draftOf(s, i) {
@@ -389,6 +417,7 @@ var Engine = (function () {
     v *= settleF(s, i);
     var gs = govDone(s, i); if (gs && gs.k === 'hospital') v *= 1.15;
     if (f === 0 && comboOn(s, 'jj', i)) v *= 1.2;
+    if (f === 0 && hasCard(s, 'mom') && (d.type === 'home' || d.type === 'town' || hasRole(i, '주거'))) v *= 1.25;
     return v;
   }
   function fullMapOf(s, fid, list) {
@@ -436,6 +465,11 @@ var Engine = (function () {
     });
     var ne = nEff(list), up = upkeep(ne);
     draft *= drafted(ne);
+    if (fid === 0) {
+      if (hasCard(s, 'coupon')) tax *= 1.1;
+      if (hasCard(s, 'youth')) draft *= 1.15;
+      up *= (hasCard(s, 'saving') ? 0.8 : 1) * (hasCard(s, 'bond') ? 1.1 : 1);
+    }
     var aidTax = 0, aidDraft = 0;
     if (fid === 0 && list.length && list.length <= 3) {   // 약소 동 지원금
       aidTax = Math.max(0, 16 - tax); aidDraft = Math.max(0, 12 - draft);
@@ -450,6 +484,10 @@ var Engine = (function () {
     if (o >= 0) {
       var isCap = s.f[o].cap === i;
       if (isCap) base *= 1.35 * (o === 0 ? 1 : 1 + Math.min(1.2, dongsOf(s, o).length * 0.06));   // 큰 세력일수록 본거지가 단단함
+      if (o === 0) {
+        if (hasCard(s, 'patrol')) base *= 1.2;
+        if (hasCard(s, 'fort')) base *= isCap ? 1.6 : D.d[s.f[0].cap].a.indexOf(i) >= 0 ? 1.2 : 1;
+      }
       var alert = o === 0 && !isCap && s.rivalPlan && s.rivalPlan.t === i;   // 예고된 동은 주민들이 대비해 대기 인원을 더 받음
       share = o === 0 ? Math.min(s.f[o].troops * (isCap ? 0.4 : alert ? 0.3 : 0.24), base * (alert ? 8 : 3)) : Math.min(s.f[o].troops * (isCap ? 0.4 : C.SHARE), base * C.SHARE_CAP);
     }
@@ -466,13 +504,15 @@ var Engine = (function () {
     }
     d.a.forEach(function (j) {
       if (s.owner[j] !== fid) return;
-      var free = lv(s, j, 1) >= 2;
+      var free = lv(s, j, 1) >= 2 || (fid === 0 && hasCard(s, 'shuttle'));
       if (d._river[j]) consider(j, free ? 'bridgeOk' : 'bridge', free ? 0 : (TYPES[D.d[j].type].bridge ? -0.15 : -0.3));
       else consider(j, 'land', 0);
     });
     var tOwner = s.owner[t];
-    var exp = fid === 0 && s.express === s.month, net = fid === 0 && s.exprProj ? SUBWAY7 : SUBWAY;
-    if (d.sub > 0 && !(tOwner >= 0 && s.f[tOwner].cap === t)) net[t].forEach(function (j) { if (s.owner[j] === fid) { var tr = fid === 0 && comboOn(s, 'tr', j); consider(j, 'subway', (TYPES[D.d[j].type].subway || tr ? 0 : -0.2) + (exp ? 0.15 : 0) + (tr ? 0.1 : 0)); } });
+    var exp = fid === 0 && s.express === s.month, net = fid === 0 && (s.exprProj || hasCard(s, 'express')) ? SUBWAY7 : SUBWAY;
+    var xc = fid === 0 && hasCard(s, 'express') ? 0.15 : 0;
+    if (d.sub > 0 && !(tOwner >= 0 && s.f[tOwner].cap === t)) net[t].forEach(function (j) { if (s.owner[j] === fid) { var tr = fid === 0 && comboOn(s, 'tr', j); consider(j, 'subway', (TYPES[D.d[j].type].subway || tr ? 0 : -0.2) + (exp ? 0.15 : 0) + (tr ? 0.1 : 0) + xc); } });
+    if (best && fid === 0 && hasCard(s, 'elite')) best = { src: best.src, via: best.via, mult: best.mult + 0.12 };
     return best;
   }
   function winChance(atk, def) {
@@ -657,7 +697,7 @@ var Engine = (function () {
     return { tax: t1 - t0, draft: (d1 - d0) * drafted(nEff(list)) };
   }
   function collapseText(c) { return c.name + ' 본거지 함락.' + (c.joined ? ' ' + c.joined + '개 동이 우리에게 넘어왔습니다.' : ' 남은 동들은 독립했습니다.'); }
-  function devCost(s, i, t) { var l = lv(s, i, t); if (l >= 5) return null; return t === 0 && s.owner[i] === 0 && comboOn(s, 'mk', i) ? Math.round(C.COST[l] * 0.7) : C.COST[l]; }
+  function devCost(s, i, t) { var l = lv(s, i, t); if (l >= 5) return null; var c = t === 0 && s.owner[i] === 0 && comboOn(s, 'mk', i) ? C.COST[l] * 0.7 : C.COST[l]; if (s.owner[i] === 0 && hasCard(s, 'redev')) c *= 0.7; return Math.round(c); }
   function develop(s, i, t) {
     if (s.owner[i] !== 0) return { err: '우리 동이 아닙니다.' };
     var c = devCost(s, i, t);
@@ -666,17 +706,18 @@ var Engine = (function () {
     s.f[0].money -= c;
     s.dev[i * 4 + t]++;
     s.stat.built++;
+    if (hasCard(s, 'redev')) s.min[i] = Math.max(10, s.min[i] - 5);
     return { ok: true };
   }
   function recruit(s, money) {
     money = Math.min(Math.floor(money), Math.floor(s.f[0].money));
     if (money <= 0) return { err: '예산이 없습니다.' };
     s.f[0].money -= money;
-    var n = Math.round(money * C.RECRUIT);
+    var n = Math.round(money * C.RECRUIT * (hasCard(s, 'hire') ? 1.25 : 1));
     s.f[0].troops += n;
     return { ok: true, n: n };
   }
-  function persuadeCost(s, i) { return Math.round(D.d[i].base * 0.65 * (1 + 0.35 * lv(s, i, 3))); }
+  function persuadeCost(s, i) { return Math.round(D.d[i].base * 0.65 * (1 + 0.35 * lv(s, i, 3)) * (hasCard(s, 'talk') ? 0.7 : 1)); }
   function persuade(s, i) {
     if (s.owner[i] !== -1) return { err: '독립 동만 설득할 수 있습니다.' };
     var r = route(s, 0, i);
@@ -692,12 +733,13 @@ var Engine = (function () {
     return { ok: true };
   }
   function dealX(s, fid) { return traitOf(s, fid).deal || 1; }
-  function pactCost(s, fid) { return Math.round((20 + dongsOf(s, fid).length * 5) * dealX(s, fid)); }
+  function pactCost(s, fid) { return Math.round((20 + dongsOf(s, fid).length * 5) * dealX(s, fid) * (hasCard(s, 'diplo') ? 0.6 : 1)); }
   function grudgeText(s, f) { return (f.grudgeWhy === 'scout' ? '회원을 빼 가서 관계가 나빠졌습니다. 만나 주지 않습니다. ' : '최근에 공격해서 만나 주지 않습니다. ') + (f.grudge - s.month) + '달 뒤 다시 오세요.'; }
   function pactCheck(s, fid) {
     var f = s.f[fid];
     if (!f || !f.alive) return { ok: false, why: '사라진 세력입니다.' };
     if (s.f[0].pact && s.f[0].pact[fid] > s.month) return { ok: false, why: '이미 협정 중입니다.' };
+    if (inCoal(s, fid)) return { ok: false, why: '반동장 연합에 들어가 있어 만나 주지 않습니다.' };
     if (f.grudge > s.month) return { ok: false, why: grudgeText(s, f) };
     return { ok: true };
   }
@@ -723,7 +765,9 @@ var Engine = (function () {
   function mergeCheck(s, fid) {
     var f = s.f[fid];
     if (!f || !f.alive) return { ok: false, why: '사라진 세력입니다.' };
-    if (power(s, 0) < power(s, fid) * 3) return { ok: false, why: '우리 세력이 3배는 돼야 응합니다.' };
+    var mx = hasCard(s, 'diplo') ? 2 : 3;
+    if (power(s, 0) < power(s, fid) * mx) return { ok: false, why: '우리 세력이 ' + mx + '배는 돼야 응합니다.' };
+    if (s.coal && s.coal.m.indexOf(fid) >= 0) return { ok: false, why: '반동장 연합에 들어가 있어 만나 주지 않습니다.' };
     if (f.grudge > s.month) return { ok: false, why: grudgeText(s, f) };
     return { ok: true };
   }
@@ -1276,6 +1320,9 @@ var Engine = (function () {
     if (o.weakAt === undefined) o.weakAt = -9;
     if (!o.gov) o.gov = { open: null, sites: {}, nextAt: o.month + 3, idx: 0 };
     if (!o.abil) o.abil = abilityOf(D.d[o.start].type);
+    if (!o.cards) { o.cards = []; o.cardOffer = null; o.cardQ = 0; o.cardNext = o.month + 6; }
+    if (o.coal === undefined) o.coal = null; if (o.elect === undefined) o.elect = null;
+    o.f.forEach(function (f) { if (f.ai && !f.boss) f.boss = { nm: SUR[(f.id * 7) % SUR.length] + GIV[(f.id * 11 + 3) % GIV.length], face: f.id * 7919 % 1000000 }; });
     if (!o.scoutAt) o.scoutAt = {}; if (o.vote === undefined) o.vote = null; if (o.express === undefined || o.express === -1) o.express = -99; if (o.rallyAt === undefined) o.rallyAt = -99;
     if (o.gov && o.gov.sites) Object.keys(o.gov.sites).forEach(function (k) { if (o.gov.sites[k].paid === undefined) o.gov.sites[k].paid = 2; });
     if (o.offer === undefined) o.offer = null;
@@ -1290,6 +1337,63 @@ var Engine = (function () {
   }
 
   // ---- 진급 / 승리 ----
+  function cardPool(s) {
+    return Object.keys(CARDS).filter(function (k) {
+      if (hasCard(s, k)) return false;
+      var nd = CARDS[k].need;
+      if (nd === 'sub' && !D.d.some(function (d) { return d.sub > 0; })) return false;
+      if (nd === 'water' && !D.d.some(function (d) { return d.r.length; })) return false;
+      return true;
+    });
+  }
+  function offerCards(s, why) {
+    if (!s.cards) { s.cards = []; s.cardQ = 0; }
+    if (s.cardOffer) { s.cardQ = (s.cardQ || 0) + 1; return; }
+    var pool = cardPool(s), out = [];
+    while (out.length < 3 && pool.length) { var k = pool.splice(Math.floor(rnd(s) * pool.length), 1)[0]; out.push(k); }
+    if (out.length) { s.cardOffer = out; s.cardWhy = why || ''; }
+  }
+  function chooseCard(s, k) {
+    if (!s.cardOffer || s.cardOffer.indexOf(k) < 0) return { err: '고를 수 없는 카드입니다.' };
+    s.cards.push(k); s.cardOffer = null;
+    if (k === 'bond') { var e = economy(s, 0); s.f[0].money += Math.round(e.tax * 4); }
+    pushLog(s, '정책 카드 시행: ' + CARDS[k].n + '. ' + CARDS[k].e + '.', 'good');
+    if (s.cardQ > 0) { s.cardQ--; offerCards(s, s.cardWhy); }
+    return { ok: true };
+  }
+  // ---- 반동장 연합과 선거 ----
+  function coalForm(s) {
+    var m = s.f.filter(function (f) { return f.ai && f.alive && dongsOf(s, f.id).length; }).map(function (f) { return f.id; });
+    if (m.length < 2) return;
+    s.coal = { at: s.month, m: m };
+    var broke = 0;
+    m.forEach(function (id) { var f = s.f[id]; f.troops *= 1.1; if (s.f[0].pact && s.f[0].pact[id] > s.month) { delete s.f[0].pact[id]; broke++; } });
+    pushLog(s, '남은 세력 ' + m.length + '곳이 반동장 연합을 맺었습니다. 서로 싸우지 않고 우리만 노립니다.' + (broke ? ' 불가침 협정 ' + broke + '건이 깨졌습니다.' : ''), 'bad');
+  }
+  function inCoal(s, fid) { return !!(s.coal && s.coal.m.indexOf(fid) >= 0); }
+  // 예상 득표율: 우리 동은 민심에 따라 55~90%, 독립 동 25%(우리와 맞닿으면 35%), 다른 세력 동 10%(협정 중이면 20%)
+  function voteShare(s) {
+    var v = 0;
+    for (var i = 0; i < s.owner.length; i++) {
+      var o = s.owner[i], p;
+      if (o === 0) p = 0.35 + 0.55 * s.min[i] / 100;
+      else if (o === -1) p = D.d[i].a.some(function (j) { return s.owner[j] === 0; }) ? 0.35 : 0.25;
+      else p = s.f[0].pact && s.f[0].pact[o] > s.month ? 0.2 : 0.1;
+      v += D.d[i].pop * p;
+    }
+    return v / TOTALPOP;
+  }
+  function election(s) {
+    var v = voteShare(s), win = v > 0.5;
+    s.elect.res = { v: v, win: win, m: s.month };
+    if (win) {
+      s.won = true; s.rank = 3; s.promo = 3; s.stat.vote = v;
+      pushLog(s, C.RANKS[3] + ' 선거에서 득표율 ' + (v * 100).toFixed(1) + '%로 당선됐습니다. ' + C.RANKS[3] + '에 취임합니다.', 'rank');
+    } else {
+      s.elect = { at: s.month + 6, n: (s.elect.n || 1) + 1, last: v, res: s.elect.res };
+      pushLog(s, '선거에서 떨어졌습니다. 득표율 ' + (v * 100).toFixed(1) + '%. 6달 뒤 재선거입니다. 우리 동 민심을 올리고 땅을 더 넓히세요.', 'bad');
+    }
+  }
   function guHeld(s, fid) {
     var c = 0;
     GUDONGS.forEach(function (list) {
@@ -1309,7 +1413,7 @@ var Engine = (function () {
   }
   function maxAP(s) {
     var n = dongsOf(s, 0).length;
-    return [2, 3, 5, 5][Math.max(s.rank, rankNow(s))] + Math.min(10, Math.floor(n / 15));
+    return [2, 3, 5, 5][Math.max(s.rank, rankNow(s))] + Math.min(10, Math.floor(n / 15)) + (hasCard(s, 'paper') ? 1 : 0);
   }
   function afterChange(s) {
     if (s.owner && s.f && s.f[0]) checkCombos(s);
@@ -1319,14 +1423,17 @@ var Engine = (function () {
       s.promo = r;
       if (r === 1) s.stat.r1 = s.month;
       if (r === 2) { s.stat.r2 = s.month; if (s.stat.r1 === undefined) s.stat.r1 = s.month; }
+      offerCards(s, 'rank');
       var extra = maxAP(s) - s.ap;
       pushLog(s, (r === 3 ? C.RANKS[3] : r === 1 && C.KIND !== 'metro' ? C.RANKS[1] : C.RANKS[r]) + '에 올랐습니다.', 'rank');
       if (s.rival >= 0 && s.f[s.rival].alive) pushLog(s, s.f[s.rival].name + ': ' + (r === 1 ? '벌써 ' + J(C.RANKS[1], '이라고요', '라고요') + '? 우리 회장님이 가만 안 있습니다.' : J(C.RANKS[2], '이요', '요') + '? 우리 단톡방에서는 아직 동장님입니다.'), 'riv');
     }
     s.stat.biggest = Math.max(s.stat.biggest, dongsOf(s, 0).length);
-    if (!s.won && popShare(s, 0) >= C.WIN_POP) {
-      s.won = true; s.rank = 3; s.promo = 3;
-      pushLog(s, CITY.name + ' 인구의 60%를 장악했습니다. ' + C.RANKS[3] + '에 취임합니다.', 'rank');
+    var sh = popShare(s, 0);
+    if (!s.won && !s.coal && sh >= C.COAL_POP && s.month > 0) coalForm(s);
+    if (!s.won && !s.elect && sh >= C.WIN_POP) {
+      s.elect = { at: s.month + C.ELECT_WAIT, n: 1 };
+      pushLog(s, CITY.name + ' 인구의 60%를 장악했습니다. ' + C.ELECT_WAIT + '달 뒤 ' + C.RANKS[3] + ' 선거입니다. 우리 동 민심이 표가 됩니다.', 'rank');
     }
     if (s.over && !s.endLogged) { s.endLogged = 1; pushLog(s, '마지막 동까지 빼앗겼습니다.', 'bad'); }
   }
@@ -1370,11 +1477,11 @@ var Engine = (function () {
       var wb2 = weakBorder(s, f.id);
       if (wb2 && f.troops * 0.8 >= wb2.need * 1.3) { opp = true; s.rivalHitAt = s.month; tries += 1; pushLog(s, J(f.name, '이', '가') + ' 우리 인원이 비어 있는 틈을 노립니다.', 'riv'); }
     }
-    var hunt = pounce || opp;
+    var hunt = pounce || opp || (inCoal(s, f.id) && touching);
     // 본거지가 위협받으면 확장을 멈추고 지킨다
     var capDef = defense(s, f.cap).total, threat = 0;
     D.d[f.cap].a.forEach(function (j) { var o = s.owner[j]; if (o >= 0 && o !== f.id) threat = Math.max(threat, s.f[o].troops + (o === 0 ? s.f[o].away || 0 : 0)); });
-    if (threat * 0.8 > capDef) { f.troops += Math.max(0, f.money) * C.RECRUIT * 0.5; f.money *= 0.5; tries = 0; }
+    if (threat * 0.8 > capDef) { f.troops += Math.max(0, f.money) * C.RECRUIT * 0.5; f.money *= 0.5; tries = inCoal(s, f.id) && touching ? 1 : 0; }   // 연합은 겁먹지 않고 계속 침
     if (f.lostAt + 1 >= s.month) tries = Math.min(tries, 1);
     // 숙적 작전: 예고한 동을 친다. 본거지가 위협받아 못 나오면 미룸
     if (tries <= 0 && s.rivalPlan && s.rivalPlan.f === f.id && s.owner[s.rivalPlan.t] === 0) {
@@ -1414,6 +1521,7 @@ var Engine = (function () {
           if (seen[t2] || s.owner[t2] === f.id) continue;
           seen[t2] = 1;
           var o = s.owner[t2];
+          if (o > 0 && inCoal(s, f.id) && inCoal(s, o)) continue;
           if (o === 0) {
             if (s.month <= C.GRACE) continue;
             if (s.f[0].pact && s.f[0].pact[f.id] > s.month) continue;
@@ -1482,6 +1590,7 @@ var Engine = (function () {
         if (gi && gi.k === 'hospital') heal += 3;
         else if (D.d[i].a.some(function (j) { var gj = govDone(s, j); return gj && gj.k === 'hospital' && s.owner[j] === s.owner[i] && s.owner[i] >= 0; })) heal += 3;
       }
+      if (s.owner[i] === 0) heal += (hasCard(s, 'festival') ? 3 : 0) - (hasCard(s, 'youth') ? 1 : 0);
       s.min[i] = Math.min(gi && gi.k === 'plant' && !gi.pact ? 70 : 100, s.min[i] + heal);
     }
     RP = { start: s.owner.slice(), ev: [] };
@@ -1531,6 +1640,8 @@ var Engine = (function () {
     if (RP) RP.done = true;
     if (!s.over) { tickEvents(s); tickRival(s); tickOffer(s); }
     afterChange(s);
+    if (!s.over && s.elect && !s.won && s.month >= s.elect.at) election(s);
+    if (!s.over && !s.won && s.month >= (s.cardNext || 6)) { s.cardNext = s.month + 6; offerCards(s, 'half'); }
     s.ap = maxAP(s);
     return s.last;
   }
@@ -1542,7 +1653,7 @@ var Engine = (function () {
   }
 
   return {
-    C: C, setData: setData, setCity: setCity, city: function () { return CITY; }, replay: function () { return RP; }, headOf: headOf, stem: stem, create: create, preview: preview, needFor: needFor, attack: attack, develop: develop, devCost: devCost,
+    C: C, setData: setData, setCity: setCity, city: function () { return CITY; }, replay: function () { return RP; }, CARDS: CARDS, hasCard: hasCard, chooseCard: chooseCard, offerCards: offerCards, voteShare: voteShare, inCoal: inCoal, SUR: SUR, GIV: GIV, headOf: headOf, stem: stem, create: create, preview: preview, needFor: needFor, attack: attack, develop: develop, devCost: devCost,
     recruit: recruit, persuade: persuade, persuadeCost: persuadeCost, pact: pact, pactCost: pactCost, pactCheck: pactCheck, breakPact: breakPact,
     merge: merge, mergeCost: mergeCost, mergeCheck: mergeCheck, endTurn: endTurn, economy: economy, defense: defense, route: route,
     dongsOf: dongsOf, guHeld: guHeld, popShare: popShare, rankNow: rankNow, maxAP: maxAP, factionList: factionList, lv: lv, taxOf: taxOf, draftOf: draftOf, drafted: drafted, nEff: nEff,

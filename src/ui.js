@@ -207,7 +207,7 @@
     });
     return S.month === 0 && S.stat.took === 0 && fresh.length === S.seenGu.filter(Boolean).length ? [] : fresh;
   }
-  function fogged(i) { return !!(S && !lens && S.seenGu && !S.seenGu[D[i].g] && !S.won); }
+  function fogged(i) { return !!(S && !lens && S.seenGu && !S.seenGu[D[i].g] && !S.won && !(S.cards && S.cards.indexOf('intel') >= 0)); }
   function revealNews(gs) {
     if (!gs.length) return '';
     return gs.map(function (g) {
@@ -236,7 +236,7 @@
   }
   function frame(now) {
     needs = false;
-    if (S) { var mb = $('mapBtns'), vr = viewRect(), hide = vr.h < 230 || !$('over').hidden || !!RPS; if (mb.hidden !== hide) mb.hidden = hide; if (!hide) { mb.style.top = (vr.y + 8) + 'px'; mb.style.right = (W - vr.x - vr.w + 8) + 'px'; } var rb = $('rpBar'); if (RPS) { rb.style.top = (vr.y + 8) + 'px'; rb.style.left = (vr.x + 8) + 'px'; rb.style.right = (W - vr.x - vr.w + 8) + 'px'; } }
+    if (S) { var mb = $('mapBtns'), vr = viewRect(), hide = vr.h < 230 || !$('over').hidden || !!RPS; if (mb.hidden !== hide) mb.hidden = hide; if (!hide) { mb.style.top = (vr.y + 8) + 'px'; mb.style.right = (W - vr.x - vr.w + 8) + 'px'; } var rb = $('rpBar'); if (RPS) { rb.style.top = (vr.y + 8) + 'px'; rb.style.left = (vr.x + 8) + 'px'; rb.style.right = (W - vr.x - vr.w + 8) + 'px'; var tk = $('rpTalk'); tk.style.top = (vr.y + 56) + 'px'; tk.style.left = (vr.x + 8) + 'px'; tk.style.right = (W - vr.x - vr.w + 8) + 'px'; } }
     if (tween) {
       var k = Math.min(1, (now - tween.t0) / tween.dur), e = 1 - Math.pow(1 - k, 3);
       cam.s = tween.a.s + (tween.b.s - tween.a.s) * e;
@@ -362,6 +362,9 @@
     var st = RPS.cur = RPS.steps[RPS.i], e = st.e; RPS.k++;
     st.t0 = performance.now();
     rpText('상대 턴 ' + RPS.k + '/' + RPS.shown);
+    var tk = $('rpTalk');
+    if (e.k === 'atk' && e.o === 0 && e.f > 0 && bossOf(e.f)) { tk.innerHTML = bossHTML(e.f, e.win ? 'win' : 'lose', D[e.t].n); tk.hidden = false; }
+    else tk.hidden = true;
     // 우리 땅 일만 지도를 옮겨 보여 줌
     if (e.o === 0 || e.k === 'rebel') {
       var r = viewRect(), d = D[e.t], sx = d.x * cam.s + cam.x, sy = d.y * cam.s + cam.y;
@@ -391,7 +394,7 @@
     if (!RPS) return;
     var R = RPS; RPS = null;
     S.owner = R.real;
-    $('rpBlock').hidden = true;
+    $('rpBlock').hidden = true; $('rpTalk').hidden = true;
     // 끝: '우리 턴'을 잠깐 보여 주고 사라짐
     var rb = $('rpBar'); rb.classList.add('end'); rb.style.right = 'auto'; rpText('우리 턴 · ' + dateOf(S.month));
     clearTimeout(rpEndTimer); rpEndTimer = setTimeout(function () { if (!RPS) { rb.hidden = true; rb.classList.remove('end'); } }, 900);
@@ -784,11 +787,13 @@
   function goalShort() {
     if (S.rank < 1) return R1S + ' ' + E.guStatus(S, bestGu()).need + '개 더';
     if (S.rank < 2) return R2S + ' ' + Math.max(0, R2 - E.guHeld(S, 0)) + (KIND === 'metro' ? '구' : '곳') + ' 더';
+    if (S.elect && !S.won) return '선거 ' + Math.max(0, S.elect.at - S.month) + '달 · ' + (E.voteShare(S) * 100).toFixed(0) + '%';
     return '인구 ' + (E.popShare(S, 0) * 100).toFixed(1) + '%';
   }
   function goalLong() {
     if (S.rank < 1) { var g = bestGu(); return hd(GU[g].n) + '까지 ' + E.guStatus(S, g).need + '개 ' + UNITN; }
     if (S.rank < 2) return R2S + '까지 ' + GRP + ' ' + Math.max(0, R2 - E.guHeld(S, 0)) + '곳';
+    if (S.elect && !S.won) return MAYOR + ' 선거 ' + Math.max(0, S.elect.at - S.month) + '달 뒤 · 예상 득표 ' + (E.voteShare(S) * 100).toFixed(1) + '% / 과반';
     return CNAME + ' 인구 ' + (E.popShare(S, 0) * 100).toFixed(1) + '% / 60%';
   }
   function firstWinCard(name, before, lost, back) {
@@ -978,11 +983,11 @@
     }
     var sub = GU[d.g].n + ' · ';
     if (o === -1) sub += '독립 동';
-    else sub += '<span class="dot" style="background:' + fCol(o) + '"></span>' + esc(S.f[o].name) + (S.f[o].cap === sel ? ' 본거지' : '') + (o === S.rival ? ' · 숙적' : '') + ' · ' + E.traitOf(S, o).word;
+    else sub += '<span class="dot" style="background:' + fCol(o) + '"></span>' + esc(S.f[o].name) + (S.f[o].cap === sel ? ' 본거지' : '') + (o === S.rival ? ' · 숙적' : '') + (E.inCoal(S, o) ? ' · 연합' : '') + ' · ' + E.traitOf(S, o).word;
     var max = Math.floor(me.troops);
     sendN = Math.max(max > 0 ? 1 : 0, Math.min(max, sendN));
     var p = E.preview(S, sel, sendN), pacted = o > 0 && me.pact && me.pact[o] > S.month;
-    var html = headHTML(d, sub) + typeLine(d) + govBadge(sel) + comboHTML(sel);
+    var html = headHTML(d, sub) + (o > 0 ? bossHTML(o, 'meet') : '') + typeLine(d) + govBadge(sel) + comboHTML(sel);
     var per = o === -1 && p.route && p.route.via !== 'subway', c = per ? E.persuadeCost(S, sel) : 0;
     if (!p.route) {
       html += '<p class="why" style="margin-top:10px">' + esc(p.reason) + ' 근처 동을 먼저 차지하세요.' + (o > 0 && S.f[o].cap === sel ? ' 본거지는 지하철로 칠 수 없습니다.' : ' 역이 있는 우리 동에서 4km 안이면 지하철로 칠 수 있습니다.') + '</p>';
@@ -1069,7 +1074,7 @@
     save(); sync();
   }
   function doAttack() {
-    var t = sel, mark = S.last.length, before = E.economy(S, 0), res = E.attack(S, t, sendN);
+    var t = sel, mark = S.last.length, before = E.economy(S, 0), o0 = S.owner[t], res = E.attack(S, t, sendN);
     if (res.err) { errMsg = res.err; renderSheet(); return; }
     var after = E.economy(S, 0);
     setNews(res.win ? D[t].n + ' 접수. ' + res.lost + '명 귀가, 세수 ' + signed(after.tax - before.tax, money) + '/월.' + (res.collapse ? ' ' + E.collapseText(res.collapse) : '') + (res.quick ? ' 급행으로 바로 복귀.' : '') : D[t].n + ' 공격 실패. ' + res.lost + '명 귀가.', !res.win);
@@ -1081,6 +1086,10 @@
       setNews(res.collapse.name + ' 회장이 마지막 회의를 열었습니다. 안건은 해산입니다.');
     } else stampAt(t, res.win);
     if (res.win && !S.won) firstWinCard(D[t].n, before, res.lost, res.back);
+    if (res.collapse && o0 > 0 && $('over').hidden && res.collapse.joined + res.collapse.freed >= 3) {
+      showCard('<div class="seal">해체</div><h2>' + esc(res.collapse.name) + ' 해체</h2>' + bossHTML(o0, 'fall') + '<p>' + esc(E.collapseText(res.collapse)) + '</p><div class="acts"><button class="btn red" id="cardOk" type="button">계속</button></div>');
+      bind('cardOk', function () { hideCard(); sync(); });
+    }
     save();
     sync();
   }
@@ -1224,7 +1233,7 @@
   // 예고된 공격: 저쪽 전력과 지금 방어, 기존 수단으로 막는 방법
   function planHTML() {
     var pi = E.planInfo(S); if (!pi) return '';
-    var h = '<div class="plan"><b>' + esc(E.J(pi.name, '이', '가')) + ' 다음 달 이 동을 노립니다' + (pi.why ? ' · ' + esc(pi.why) : '') + '</b>';
+    var h = '<div class="plan">' + (S.rivalPlan ? bossHTML(S.rivalPlan.f, 'plan', D[S.rivalPlan.t].n) : '') + '<b>' + esc(E.J(pi.name, '이', '가')) + ' 다음 달 이 동을 노립니다' + (pi.why ? ' · ' + esc(pi.why) : '') + '</b>';
     h += '<span class="num">저쪽 예상 전력 약 ' + people(pi.atk) + ' · 지금 방어 ' + people(pi.def) + ' · 저쪽 승률 ' + Math.round(pi.p * 100) + '%</span>';
     if (pi.cons) h += '<span>' + esc(pi.cons) + '.</span>';
     var opt = [];
@@ -1295,7 +1304,16 @@
     var me = S.f[0], e = E.economy(S, 0), held = E.guHeld(S, 0);
     var html = '<div class="head"><div><h2>' + esc(title()) + '</h2><p>' + esc(me.name) + ' · 본거지 ' + esc(D[me.cap].n) + '</p></div><button class="x" type="button" aria-label="닫기">×</button></div>';
     var share = E.popShare(S, 0);
-    html += '<div class="sec">' + MAYOR + '까지</div><div class="bar"><u style="width:' + Math.min(100, share * 100) + '%"></u><s style="left:60%"></s></div><p class="why num">' + CNAME + ' 인구 ' + (share * 100).toFixed(1) + '% 장악. 60%가 되면 ' + MAYOR + '에 취임합니다.</p>';
+    html += '<div class="sec">' + MAYOR + '까지</div><div class="bar"><u style="width:' + Math.min(100, share * 100) + '%"></u><s style="left:60%"></s></div><p class="why num">' + CNAME + ' 인구 ' + (share * 100).toFixed(1) + '% 장악. 60%를 넘기면 ' + E.C.ELECT_WAIT + '달 뒤 ' + MAYOR + ' 선거가 열리고, 과반을 얻으면 취임합니다.' + (!S.coal && !S.won ? ' 45%를 넘기면 남은 세력이 반동장 연합을 맺습니다.' : '') + '</p>';
+    if (S.elect && !S.won) {
+      var vs = E.voteShare(S);
+      html += '<div class="sec">선거 예측 · ' + Math.max(0, S.elect.at - S.month) + '달 뒤' + (S.elect.n > 1 ? ' (재선거)' : '') + '</div><div class="bar"><u style="width:' + Math.min(100, vs * 100) + '%"></u><s style="left:50%"></s></div><p class="why num">지금 치르면 득표율 ' + (vs * 100).toFixed(1) + '%' + (vs > 0.5 ? ', 당선권입니다.' : ', 과반에 ' + (50 - vs * 100).toFixed(1) + '%p 모자랍니다.') + ' 우리 동 민심이 높을수록, 인구가 많을수록 표가 늘어납니다. 우리 동 민심 평균 ' + Math.round(E.avgMood(S)) + '.</p>';
+    }
+    if (S.coal && !S.won) {
+      var cm = S.coal.m.filter(function (id) { return S.f[id].alive; });
+      html += '<div class="sec">반동장 연합 · ' + cm.length + '개 세력</div><div class="faces sm">' + cm.slice(0, 10).map(function (id) { return faceImg(id, 30); }).join('') + '</div><p class="why num">연합 전체 ' + people(cm.reduce(function (x, id) { return x + S.f[id].troops + (S.f[id].away || 0); }, 0)) + '. 서로 싸우지 않고 우리만 노립니다. 연합 세력과는 협정·통합이 안 됩니다.</p>';
+    }
+    html += '<div class="sec">시행 중인 정책 · ' + (S.cards || []).length + '장</div>' + ((S.cards || []).length ? '<div class="pcards own">' + S.cards.map(function (k) { return cardHTML(k, false); }).join('') + '</div>' : '<p class="why">아직 없습니다. 승진할 때와 반년마다 정책 카드를 하나씩 고릅니다.' + (S.cardNext ? ' 다음 정책 회의는 ' + Math.max(0, S.cardNext - S.month) + '달 뒤.' : '') + '</p>');
     if (S.rank < 1) { var g = bestGu(), st = E.guStatus(S, g); html += '<p class="why num">' + R1N + ': 한 ' + GRP + '의 ' + UNITN + '을 절반 이상 차지. ' + GU[g].n + ' ' + st.have + '/' + st.total + '개.</p>'; }
     else if (S.rank < 2) html += '<p class="why num">' + RANK2 + ': ' + R2 + '개 ' + GRP + '에서 각각 ' + UNITN + '을 절반 이상 차지. 지금 ' + held + '개 ' + GRP + '.</p>';
     html += '<div class="sec">일당 주고 인원 모으기 (1억 = 1.2명)</div><div class="chips">' + [100, 300].map(function (v) {
@@ -1327,7 +1345,7 @@
     var fl = E.factionList(S), nbF = {}, big = null;
     E.dongsOf(S, 0).forEach(function (i) { D[i].a.forEach(function (j) { var o = S.owner[j]; if (o > 0) nbF[o] = 1; }); });
     Object.keys(nbF).forEach(function (o) { var f = S.f[o]; if (f.alive && (!big || f.troops + (f.away || 0) > big.troops + (big.away || 0))) big = f; });
-    if (big) html += '<div class="sec">맞닿은 세력 중 가장 큰 곳</div><p class="why num"><span class="dot" style="background:' + fCol(big.id) + '"></span><b>' + esc(big.name) + '</b>' + (big.id === S.rival ? ' · 숙적' : '') + ' · ' + E.dongsOf(S, big.id).length + '개 동 · ' + people(big.troops + (big.away || 0)) + (me.pact && me.pact[big.id] > S.month ? ' · 협정 ' + (me.pact[big.id] - S.month) + '달' : '') + '</p>';
+    if (big) html += '<div class="sec">맞닿은 세력 중 가장 큰 곳</div>' + bossHTML(big.id, 'meet') + '<p class="why num"><span class="dot" style="background:' + fCol(big.id) + '"></span><b>' + esc(big.name) + '</b>' + (big.id === S.rival ? ' · 숙적' : '') + (E.inCoal(S, big.id) ? ' · 연합' : '') + ' · ' + E.dongsOf(S, big.id).length + '개 동 · ' + people(big.troops + (big.away || 0)) + (me.pact && me.pact[big.id] > S.month ? ' · 협정 ' + (me.pact[big.id] - S.month) + '달' : '') + '</p>';
     html += '<details class="more"><summary>세력 순위 보기</summary><div class="rows num">' + fl.slice(0, 7).map(function (f) {
       var pct = me.pact && me.pact[f.id] > S.month ? ' · 협정 ' + (me.pact[f.id] - S.month) + '달' : '';
       var hid = f.id !== 0 && S.seenGu && !S.seenGu[D[f.cap].g];
@@ -1358,7 +1376,7 @@
   }
   function menuSheet(sh) {
     var html = '<div class="head"><div><h2>메뉴</h2></div><button class="x" type="button" aria-label="닫기">×</button></div>';
-    html += '<div class="sec">게임 방법</div><ul class="prose"><li>빨간 테두리 동을 눌러 인원을 보내면 공격합니다. 공격과 설득은 결재를 씁니다.</li><li>보낸 인원은 다음 달에 돌아옵니다. 그동안 우리 동 방어가 약해지니 나눠서 쓰세요.</li><li>세수는 실제 직장인 수(주민 수 일부 포함), 동원은 실제 주민 수, 방어는 낮 인구(주민 + 직장인 절반)에 거의 비례합니다. 규모가 4배면 약 2.8배, 10배면 약 5.6배입니다. 작은 동은 관리비도 적게 듭니다. 동네 유형마다 특성이 있습니다.</li><li>우리 동을 누르면 개발합니다. 값은 어느 동이나 같고, 버튼 옆에 실제로 늘어나는 양이 나옵니다. 우리 동이 3개 이하일 때는 지원금이 나옵니다.</li><li>한 ' + GRP + '의 동을 절반 이상 차지하면 ' + R1N + ', 그런 ' + Jm(GRP, '이', '가') + ' ' + R2 + '개면 ' + R2S + ', ' + CNAME + ' 인구 60%면 ' + MAYOR + '입니다. 인구는 통계 기준으로 고정이라 개발해도 늘지 않습니다.</li><li>' + Jm(GRP, '을', '를') + ' 통째로 먹으면 그 ' + GRP + '의 재정자립도만큼 세수가 늘어납니다.' + (SEOUL ? '' : ' (' + (CITY_ID === 'busan' ? '부산은 보도된 수치, 중구만 추정' : '상가·직장인 밀도로 만든 게임용 추정치' + (KIND !== 'metro' && KIND !== 'nation' && /부산/.test(DATA.full) ? ', 부산 구는 보도된 수치' : '')) + ')') + '</li><li>' + R1N + '부터는 ' + GRP + ' 현황에서 한꺼번에 공격·설득·개발할 수 있습니다.</li><li>처음에는 우리 ' + Jm(GRP, '과', '와') + ' 맞닿은 ' + GRP + '만 보입니다. 땅을 넓히면 안개가 걷힙니다. 동네 통계는 안개 속에서도 볼 수 있습니다.</li><li>개발은 단계마다 이름 붙은 시설이 생깁니다. 3단계·5단계 시설은 옆 우리 동까지 효과가 미칩니다. 예: 자치경찰대(치안 3단계)는 옆 우리 동 방어 +15%, 자치소방서(치안 5단계)는 그 일대 독립을 막습니다.</li><li>동네 조합: 일터 동과 맞닿은 주거 동 둘(직주근접, 동원 +20%), 이어진 상권 동 셋(골목상권, 상권 개발비 −30%), 지하철로 이어진 역세권 셋(환승, 기습 불이익 없음)을 모으면 그 동들에만 보너스가 붙습니다. 종류마다 한 판에 한 번입니다.</li><li>시설의 옆 동 효과는 같은 종류끼리 2곳까지만 겹칩니다(세수·동원 최대 +20%, 방어 최대 +30%). 자치소방서는 독립만 막고, 민심이 낮아 줄어드는 세수·동원은 그대로입니다. 시설이 있는 동을 빼앗기면 그 효과는 그 즉시 사라집니다.</li><li>몇 달마다 정부 공모가 열립니다. 공공기관은 오래 벌고, 공공병원은 민심을 지키고, 자원회수시설은 지원금을 착공·준공 두 번에 나눠 주는 대신 민심을 깎습니다. 후반에는 바로 효과가 나는 안전센터 공모가 섞입니다. 다른 세력도 조건과 부담금을 채워야 신청할 수 있고, 아무도 없으면 유찰됩니다. 효과는 게임용으로 지어낸 것입니다.</li><li>숙적은 우리가 크게 진 직후, 우리 인원이 대부분 나가 있을 때, 공사 중이거나 많이 키운 동이 국경에 있을 때 움직입니다. 힘이 다 빠진 숙적은 본거지만 남겨 달라며 협상을 걸어옵니다. ' + R2S + '부터는 작은 세력도 협상을 제안합니다.</li><li>지도의 작은 색 점은 우리 동의 개발 단계입니다. 노랑 상권, 파랑 교통, 초록 주거, 회색 치안. ' + (SEOUL ? '산 무늬는 산을 낀 동네를 대략 표시한 것입니다.' : '') + '</li><li>시작한 동의 유형에 따라 한 판 내내 대표 능력 하나를 씁니다. 점령한 동은 특성 보너스만 줍니다.</li><li>설득·주민투표·통합·협상으로 들어온 동은 민심이 높지만 첫 달 수입이 50%이고 매달 15%p씩 늘어 약 4달 뒤 정상이 됩니다. 주거·치안을 올리면 더 빨라집니다. 공격으로 뺏은 동은 대신 민심 35에서 시작합니다.</li><li>숙적은 공격하기 한 달 전에 어느 동 앞에 모이는지, 몇 명인지 알려 줍니다. 그 동을 누르면 막는 방법(인원 남기기, 치안, 협정, 선제공격)이 나옵니다. 대비가 돼 있으면 저쪽이 공격을 접습니다.</li><li>민심이 40 아래인 동은 독립할 수 있습니다. ' + R1N + '부터 주민 화합 사업으로 막을 수 있습니다.</li><li>세력의 본거지(검은 점)를 빼앗으면 그 세력은 무너지고 동 일부가 따라옵니다. 큰 세력일수록 본거지가 단단하고, 본거지는 지하철로 칠 수 없습니다.</li><li>새로 얻은 동은 그달 말부터 수입에 들어오지만, 민심이 회복될 때까지는 적게 들어옵니다.</li><li>' + Jm(MAYOR, '이', '가') + ' 된 뒤에도 남은 동까지 계속 먹을 수 있습니다.</li></ul>';
+    html += '<div class="sec">게임 방법</div><ul class="prose"><li>빨간 테두리 동을 눌러 인원을 보내면 공격합니다. 공격과 설득은 결재를 씁니다.</li><li>보낸 인원은 다음 달에 돌아옵니다. 그동안 우리 동 방어가 약해지니 나눠서 쓰세요.</li><li>세수는 실제 직장인 수(주민 수 일부 포함), 동원은 실제 주민 수, 방어는 낮 인구(주민 + 직장인 절반)에 거의 비례합니다. 규모가 4배면 약 2.8배, 10배면 약 5.6배입니다. 작은 동은 관리비도 적게 듭니다. 동네 유형마다 특성이 있습니다.</li><li>우리 동을 누르면 개발합니다. 값은 어느 동이나 같고, 버튼 옆에 실제로 늘어나는 양이 나옵니다. 우리 동이 3개 이하일 때는 지원금이 나옵니다.</li><li>한 ' + GRP + '의 동을 절반 이상 차지하면 ' + R1N + ', 그런 ' + Jm(GRP, '이', '가') + ' ' + R2 + '개면 ' + R2S + ', ' + CNAME + ' 인구 60%면 ' + MAYOR + '입니다. 인구는 통계 기준으로 고정이라 개발해도 늘지 않습니다.</li><li>' + Jm(GRP, '을', '를') + ' 통째로 먹으면 그 ' + GRP + '의 재정자립도만큼 세수가 늘어납니다.' + (SEOUL ? '' : ' (' + (CITY_ID === 'busan' ? '부산은 보도된 수치, 중구만 추정' : '상가·직장인 밀도로 만든 게임용 추정치' + (KIND !== 'metro' && KIND !== 'nation' && /부산/.test(DATA.full) ? ', 부산 구는 보도된 수치' : '')) + ')') + '</li><li>' + R1N + '부터는 ' + GRP + ' 현황에서 한꺼번에 공격·설득·개발할 수 있습니다.</li><li>처음에는 우리 ' + Jm(GRP, '과', '와') + ' 맞닿은 ' + GRP + '만 보입니다. 땅을 넓히면 안개가 걷힙니다. 동네 통계는 안개 속에서도 볼 수 있습니다.</li><li>개발은 단계마다 이름 붙은 시설이 생깁니다. 3단계·5단계 시설은 옆 우리 동까지 효과가 미칩니다. 예: 자치경찰대(치안 3단계)는 옆 우리 동 방어 +15%, 자치소방서(치안 5단계)는 그 일대 독립을 막습니다.</li><li>동네 조합: 일터 동과 맞닿은 주거 동 둘(직주근접, 동원 +20%), 이어진 상권 동 셋(골목상권, 상권 개발비 −30%), 지하철로 이어진 역세권 셋(환승, 기습 불이익 없음)을 모으면 그 동들에만 보너스가 붙습니다. 종류마다 한 판에 한 번입니다.</li><li>시설의 옆 동 효과는 같은 종류끼리 2곳까지만 겹칩니다(세수·동원 최대 +20%, 방어 최대 +30%). 자치소방서는 독립만 막고, 민심이 낮아 줄어드는 세수·동원은 그대로입니다. 시설이 있는 동을 빼앗기면 그 효과는 그 즉시 사라집니다.</li><li>몇 달마다 정부 공모가 열립니다. 공공기관은 오래 벌고, 공공병원은 민심을 지키고, 자원회수시설은 지원금을 착공·준공 두 번에 나눠 주는 대신 민심을 깎습니다. 후반에는 바로 효과가 나는 안전센터 공모가 섞입니다. 다른 세력도 조건과 부담금을 채워야 신청할 수 있고, 아무도 없으면 유찰됩니다. 효과는 게임용으로 지어낸 것입니다.</li><li>숙적은 우리가 크게 진 직후, 우리 인원이 대부분 나가 있을 때, 공사 중이거나 많이 키운 동이 국경에 있을 때 움직입니다. 힘이 다 빠진 숙적은 본거지만 남겨 달라며 협상을 걸어옵니다. ' + R2S + '부터는 작은 세력도 협상을 제안합니다.</li><li>지도의 작은 색 점은 우리 동의 개발 단계입니다. 노랑 상권, 파랑 교통, 초록 주거, 회색 치안. ' + (SEOUL ? '산 무늬는 산을 낀 동네를 대략 표시한 것입니다.' : '') + '</li><li>시작한 동의 유형에 따라 한 판 내내 대표 능력 하나를 씁니다. 점령한 동은 특성 보너스만 줍니다.</li><li>설득·주민투표·통합·협상으로 들어온 동은 민심이 높지만 첫 달 수입이 50%이고 매달 15%p씩 늘어 약 4달 뒤 정상이 됩니다. 주거·치안을 올리면 더 빨라집니다. 공격으로 뺏은 동은 대신 민심 35에서 시작합니다.</li><li>숙적은 공격하기 한 달 전에 어느 동 앞에 모이는지, 몇 명인지 알려 줍니다. 그 동을 누르면 막는 방법(인원 남기기, 치안, 협정, 선제공격)이 나옵니다. 대비가 돼 있으면 저쪽이 공격을 접습니다.</li><li>민심이 40 아래인 동은 독립할 수 있습니다. ' + R1N + '부터 주민 화합 사업으로 막을 수 있습니다.</li><li>세력의 본거지(검은 점)를 빼앗으면 그 세력은 무너지고 동 일부가 따라옵니다. 큰 세력일수록 본거지가 단단하고, 본거지는 지하철로 칠 수 없습니다.</li><li>새로 얻은 동은 그달 말부터 수입에 들어오지만, 민심이 회복될 때까지는 적게 들어옵니다.</li><li>승진할 때와 반년마다 정책 카드 세 장 중 하나를 고릅니다. 고른 카드는 한 판 내내 적용됩니다.</li><li>' + CNAME + ' 인구 45%를 넘기면 남은 세력이 반동장 연합을 맺습니다. 연합 세력은 서로 싸우지 않고 우리만 노리며, 협정·통합을 받지 않습니다.</li><li>인구 60%를 넘기면 ' + E.C.ELECT_WAIT + '달 뒤 ' + MAYOR + ' 선거가 열립니다. 우리 동 주민은 민심에 따라 35~90%, 맞닿은 독립 동은 35%, 그 밖의 독립 동은 25%, 다른 세력 동은 10%(협정 중이면 20%)가 우리를 찍습니다. 과반이면 취임, 못 넘기면 6달 뒤 재선거입니다.</li><li>세력마다 회장이 있습니다. 얼굴과 대사는 지어낸 것입니다.</li><li>' + Jm(MAYOR, '이', '가') + ' 된 뒤에도 남은 동까지 계속 먹을 수 있습니다.</li></ul>';
     html += '<div class="sec">소리</div><div class="acts"><button class="btn" id="sndBtn" type="button">' + (soundOn ? '효과음 켜짐 · 끄기' : '효과음 꺼짐 · 켜기') + '</button></div>';
     html += '<div class="sec">상대 턴 보기</div><div class="chips" id="rpMode">' + [['normal', '보통'], ['fast', '빠르게'], ['off', '끄기']].map(function (m) { return '<button class="chip' + (RPM === m[0] ? ' on' : '') + '" type="button" data-m="' + m[0] + '"' + (RPM === m[0] ? ' aria-pressed="true"' : '') + '>' + m[1] + '</button>'; }).join('') + '</div><p class="why">다음 달을 누르면 다른 세력이 한 일을 하나씩 보여 줍니다. 우리 땅에서 난 일은 항상, 우리 근처 다툼은 몇 건만 보여 주고 나머지는 지도에 바로 반영합니다. 보는 중에 화면을 누르면 빨라지고, 한 번 더 누르면 건너뜁니다.</p>';
     html += '<div class="sec">저장</div><p class="why">진행 상황은 이 기기의 브라우저에 자동 저장됩니다. 기기를 바꾸거나 브라우저 기록을 지울 때는 저장 코드를 복사해 두세요.</p><div class="two" style="margin-top:6px"><button class="btn" id="expBtn" type="button">저장 코드 복사</button><button class="btn" id="impBtn" type="button">코드 불러오기</button></div><textarea id="expText" readonly hidden></textarea>';
@@ -1400,19 +1418,132 @@
       resumeGame(o); save();
     });
   }
+  // ---- 세력 회장: 코드로 그리는 16×16 도트 얼굴 + 성격별 대사 ----
+  var FACE = {};
+  function bossOf(fid) {
+    var f = S && S.f[fid]; if (!f || !f.ai) return null;
+    var b = f.boss || { nm: E.SUR[(fid * 7) % E.SUR.length] + E.GIV[(fid * 11 + 3) % E.GIV.length], face: fid * 7919 % 1000000 };
+    var tr = { '조기축구회': 'fight', '청년회': 'fight', '방범대': 'fight', '자율방재단': 'fight', '학부모회': 'build', '입주자대표회의': 'build', '반상회': 'build', '노인회': 'build', '상인회': 'rich', '번영회': 'rich' }[f.grp] || 'talk';
+    return { nm: b.nm + ' 회장', face: b.face, tr: tr, grp: f.grp, name: f.name };
+  }
+  function faceURL(fid) {
+    var b = bossOf(fid); if (!b) return '';
+    var key = fid + ':' + b.face; if (FACE[key]) return FACE[key];
+    var seed = b.face >>> 0 || 1, r = function () { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+    var k = document.createElement('canvas'); k.width = k.height = 16; var c = k.getContext('2d');
+    var px = function (x, y, w, h, col) { c.fillStyle = col; c.fillRect(x, y, w, h); };
+    var skin = ['#F2CDA8', '#EBBE95', '#DDAA80', '#C99169'][Math.floor(r() * 4)];
+    var hairC = ['#1F1B18', '#3A2E25', '#5E5E5E', '#9C9C9C', '#E4E4E4'][Math.floor(r() * 5)];
+    var shirt = fCol(fid);
+    px(0, 0, 16, 16, '#F3F1E7');
+    // 몸·옷
+    px(2, 13, 12, 3, shirt); px(6, 13, 4, 1, skin);
+    if (b.tr === 'rich') { px(7, 13, 2, 3, '#B8322A'); px(5, 13, 1, 3, '#fff'); px(10, 13, 1, 3, '#fff'); }
+    // 얼굴
+    px(4, 4, 8, 9, skin); px(3, 7, 1, 3, skin); px(12, 7, 1, 3, skin); px(5, 12, 6, 1, skin);
+    // 머리 모양
+    var hs = Math.floor(r() * 5);
+    if (b.grp === '산악회') { px(3, 2, 10, 3, '#C8402E'); px(2, 4, 12, 1, '#C8402E'); px(4, 1, 8, 1, '#C8402E'); }
+    else if (b.grp === '방범대' || b.grp === '자율방재단') { px(3, 2, 10, 3, '#24406B'); px(3, 4, 12, 1, '#24406B'); px(7, 2, 2, 1, '#E7C24A'); }
+    else if (b.grp === '조기축구회') { px(4, 3, 8, 2, hairC); px(3, 4, 10, 1, '#fff'); px(3, 4, 1, 3, hairC); px(12, 4, 1, 3, hairC); }
+    else if (hs === 0) { px(4, 2, 8, 3, hairC); px(3, 3, 1, 3, hairC); px(12, 3, 1, 3, hairC); }
+    else if (hs === 1) { for (var q = 0; q < 6; q++) { px(3 + q * 2, 1 + (q % 2), 2, 2, hairC); } px(3, 3, 10, 2, hairC); px(2, 4, 1, 4, hairC); px(13, 4, 1, 4, hairC); }
+    else if (hs === 2) { px(3, 5, 1, 3, hairC); px(12, 5, 1, 3, hairC); px(4, 4, 1, 1, hairC); px(11, 4, 1, 1, hairC); }
+    else if (hs === 3) { px(4, 2, 8, 2, hairC); px(4, 4, 3, 1, hairC); px(9, 4, 3, 1, hairC); px(3, 3, 1, 4, hairC); px(12, 3, 1, 4, hairC); px(7, 2, 1, 2, skin); }
+    else { px(3, 2, 10, 3, hairC); px(2, 4, 2, 7, hairC); px(12, 4, 2, 7, hairC); }
+    // 눈썹·눈
+    var ang = b.tr === 'fight';
+    if (ang) { px(5, 6, 1, 1, '#2A211B'); px(6, 7, 1, 1, '#2A211B'); px(10, 6, 1, 1, '#2A211B'); px(9, 7, 1, 1, '#2A211B'); }
+    else { px(5, 6, 2, 1, '#2A211B'); px(9, 6, 2, 1, '#2A211B'); }
+    var gl = r();
+    px(5, 8, 1, 1, '#2A211B'); px(10, 8, 1, 1, '#2A211B');
+    if (gl < 0.1) { px(4, 7, 3, 2, '#1A1A1A'); px(9, 7, 3, 2, '#1A1A1A'); px(7, 7, 2, 1, '#1A1A1A'); }
+    else if (gl < 0.32) { var gc = '#9A8468'; px(4, 7, 3, 1, gc); px(9, 7, 3, 1, gc); px(4, 9, 3, 1, gc); px(9, 9, 3, 1, gc); px(4, 8, 1, 1, gc); px(6, 8, 1, 1, gc); px(9, 8, 1, 1, gc); px(11, 8, 1, 1, gc); px(7, 8, 2, 1, gc); }
+    px(7, 9, 2, 1, '#C98E6B');
+    // 입·수염
+    var m = r();
+    if (r() < 0.25) px(6, 10, 4, 1, hairC === '#E4E4E4' ? '#BDBDBD' : hairC);
+    if (m < 0.4) { px(6, 11, 4, 1, '#8A3B2E'); px(5, 10, 1, 1, '#8A3B2E'); px(10, 10, 1, 1, '#8A3B2E'); }
+    else if (m < 0.7) px(6, 11, 4, 1, '#7A3A2C');
+    else { px(6, 11, 4, 1, '#fff'); px(6, 12, 4, 0.5, '#7A3A2C'); }
+    // 볼
+    px(4, 10, 1, 1, '#E79A86'); px(11, 10, 1, 1, '#E79A86');
+    return (FACE[key] = k.toDataURL());
+  }
+  function faceImg(fid, sz) { var u = faceURL(fid); return u ? '<img class="face" src="' + u + '" width="' + (sz || 40) + '" height="' + (sz || 40) + '" alt="">' : ''; }
+  var LINES = {
+    plan: { fight: ['다음 달 {t}, 우리가 접수합니다. 문 단단히 잠그세요.', '{t} 사람들 벌써 우리 편입니다. 인사나 하러 갈게요.'], build: ['{t}에 놀이터 하나 놔 드리려고요. 우리 손으로.', '{t} 재개발 설명회, 다음 달에 우리가 엽니다.'], rich: ['{t} 상가 번영회비, 다음 달부터 우리가 받습니다.', '{t}? 돈이면 다 됩니다. 다음 달에 봅시다.'], talk: ['{t} 반상회에서 우리 얘기 많이 나온답니다. 다음 달에 갈게요.', '{t} 단톡방 방장이 바뀔 겁니다. 다음 달에.'] },
+    win: { fight: ['{t} 잘 받았습니다. 답례 떡은 없습니다.', '{t}? 생각보다 쉽던데요.'], build: ['{t}는 이제 우리가 가꿉니다.', '{t} 주민센터 현판, 내일 바꿔 답니다.'], rich: ['{t} 임대료 계산서는 우리 앞으로 오겠네요.', '{t}, 계약 끝났습니다.'], talk: ['{t} 주민들이 우리 손을 잡아 주셨습니다.', '{t} 단톡방, 오늘부터 우리 방입니다.'] },
+    lose: { fight: ['{t}… 다음엔 이렇게 안 끝납니다.', '오늘은 봐 드립니다. {t}.'], build: ['{t}은 다음 계획에 넣어 두겠습니다.', '공사 일정이 좀 밀렸을 뿐입니다.'], rich: ['{t}, 값을 잘못 매겼네요.', '돈으로 안 되는 데도 있군요. 일단은.'], talk: ['{t} 분들, 아직 마음의 준비가 안 되셨네요.', '대화로 다시 찾아뵙겠습니다.'] },
+    fall: { fight: ['이걸로 끝난 줄 아십니까… 회원들은 기억합니다.', '졌습니다. 깔끔하게 인정하죠.'], build: ['우리가 깔아 둔 보도블록은 잘 써 주세요.', '동네만은 잘 부탁드립니다.'], rich: ['장부는 넘겨 드리죠. 적자입니다.', '투자 실패군요.'], talk: ['언젠가 같은 단톡방에서 뵙겠습니다.', '말로 했어야 했는데요.'] },
+    coal: { fight: ['혼자서는 못 막는다는 거, 다들 알았습니다. 이제 한 팀입니다.'], build: ['동네를 지키려면 손을 잡을 수밖에요.'], rich: ['돈을 모았습니다. 이제 끝을 보죠.'], talk: ['다 같이 모여 얘기해 봤는데요, 답은 하나더군요.'] },
+    meet: { fight: ['붙어 보시겠습니까?', '우리 회원들 요즘 몸이 근질근질합니다.'], build: ['우리 동네 좋아진 거 보이시죠?', '공원부터 짓고 이야기합시다.'], rich: ['계산서 들고 오셨나요?', '좋은 조건이면 듣겠습니다.'], talk: ['차 한잔 하시죠.', '얘기로 풀 수 있는 건 얘기로 풉시다.'] }
+  };
+  function bossLine(fid, k, t) {
+    var b = bossOf(fid); if (!b) return '';
+    var a = (LINES[k] && LINES[k][b.tr]) || []; if (!a.length) return '';
+    return a[(fid * 7 + S.month) % a.length].replace(/\{t\}(은|는)/g, function () { return Jm(t || '', '은', '는'); }).replace(/\{t\}(을|를)/g, function () { return Jm(t || '', '을', '를'); }).replace(/\{t\}/g, t || '');
+  }
+  function bossHTML(fid, k, t) {
+    var b = bossOf(fid); if (!b) return '';
+    var ln = bossLine(fid, k, t);
+    return '<div class="boss">' + faceImg(fid, 44) + '<div><b>' + esc(b.nm) + '</b><span> · ' + esc(b.name) + '</span>' + (ln ? '<q>' + esc(ln) + '</q>' : '') + '</div></div>';
+  }
+  // ---- 정책 카드 고르기 ----
+  var TAGC = { '개발': '#2E7D57', '방어': '#24406B', '공격': '#B8322A', '돈': '#9A6A12', '사람': '#7A3E9D', '민심': '#C2577A', '외교': '#1D7A8C', '행정': '#47524A' };
+  function cardHTML(k, btn) {
+    var c = E.CARDS[k]; if (!c) return '';
+    var e = tx(c.e.replace('강·바다', WATER ? WATER.split('·').join('·') : '강'));
+    return (btn ? '<button type="button" class="pcard" data-k="' + k + '">' : '<div class="pcard own">') + '<i style="background:' + (TAGC[c.tag] || '#47524A') + '">' + c.tag + '</i><b>' + c.n + '</b><span>' + esc(e) + '</span>' + (btn ? '</button>' : '</div>');
+  }
+  function showCardPick() {
+    var why = S.cardWhy === 'rank' ? '승진 기념으로 새 정책을 하나 시행합니다.' : '반년마다 여는 정책 회의입니다. 하나만 고르세요.';
+    sfx('page');
+    showCard('<div class="seal">정책</div><h2>정책 카드</h2><p class="why">' + why + ' 고른 카드는 이번 판 내내 적용됩니다.' + (S.cards.length ? ' 지금 ' + S.cards.length + '장 시행 중.' : '') + '</p><div class="pcards">' + S.cardOffer.map(function (k) { return cardHTML(k, true); }).join('') + '</div>');
+    Array.prototype.forEach.call($('card').querySelectorAll('.pcard'), function (b) {
+      b.addEventListener('click', function () { var r = E.chooseCard(S, b.dataset.k); if (r.err) return; sfx('stamp'); $('over').hidden = true; save(); sync(); });
+    });
+  }
+  // ---- 연합·선거 카드 ----
+  function showCoal() {
+    S.coalShown = 1; sfx('warn');
+    var m = S.coal.m.filter(function (id) { return S.f[id].alive; }), big = m.slice().sort(function (a, b) { return S.f[b].troops - S.f[a].troops; });
+    var tot = m.reduce(function (x, id) { return x + S.f[id].troops + (S.f[id].away || 0); }, 0);
+    showCard('<div class="seal lose">연합</div><h2>반동장 연합 결성</h2><p>남은 세력 ' + m.length + '곳이 손을 잡았습니다. 서로 싸우지 않고 우리 땅만 노립니다. 연합에 든 세력은 불가침 협정과 통합을 받지 않습니다.</p><div class="faces">' + big.slice(0, 8).map(function (id) { return faceImg(id, 40); }).join('') + '</div>' + (big.length ? bossHTML(big[0], 'coal') : '') + '<div class="rows num"><div class="row"><span>연합 전체 인원</span><span>' + people(tot) + '</span></div><div class="row"><span>우리 대기 인원</span><span>' + people(S.f[0].troops) + '</span></div><div class="row"><span>지금 인구</span><span>' + (E.popShare(S, 0) * 100).toFixed(1) + '% · 60%면 ' + E.C.ELECT_WAIT + '달 뒤 선거</span></div></div><p class="why">맞닿은 동에 대기 인원을 남기고, 치안을 올려 버티세요. 민심이 표가 됩니다.</p><div class="acts"><button class="btn red" id="cardOk" type="button">맞서기</button></div>');
+    bind('cardOk', function () { hideCard(); sync(); });
+  }
+  function electTerm() { return MAYOR + ' 선거'; }
+  function showElectNotice() {
+    S.electShown = S.elect.n; sfx('fanfare');
+    var v = E.voteShare(S);
+    showCard('<div class="seal">선거</div><h2>' + esc(electTerm()) + (S.elect.n > 1 ? ' (재선거)' : '') + ' ' + (S.elect.at - S.month) + '달 뒤</h2><p>' + (S.elect.n > 1 ? '지난 선거 득표율 ' + (S.elect.last * 100).toFixed(1) + '%. 이번엔 과반을 넘겨야 합니다.' : CNAME + ' 인구의 60%를 장악했습니다. 이제 표를 얻어야 ' + Jm(MAYOR, '이', '가') + ' 됩니다.') + '</p><div class="rows num"><div class="row"><span>지금 예상 득표율</span><span><b>' + (v * 100).toFixed(1) + '%</b></span></div></div><p class="why">우리 동 주민은 민심에 따라 35~90%가 우리를 찍습니다. 독립 동은 25%(우리와 맞닿으면 35%), 다른 세력 동은 10%(협정 중이면 20%). 민원 처리·치안·주민 화합 사업으로 민심을 올리고, 땅을 지키세요.</p><div class="acts"><button class="btn red" id="cardOk" type="button">선거 준비</button></div>');
+    bind('cardOk', function () { hideCard(); sync(); });
+  }
+  function showElectLost() {
+    var r = S.elect.res; S.electLostShown = r.m; sfx('fail');
+    showCard('<div class="seal lose">낙선</div><h2>득표율 ' + (r.v * 100).toFixed(1) + '%</h2><p>과반에 ' + (50 - r.v * 100).toFixed(1) + '%p 모자랐습니다. 6달 뒤 재선거입니다.</p><p class="why">민심이 낮은 우리 동부터 챙기고, 인구 많은 동을 더 가져오세요. 맞닿은 독립 동도 표에 조금 보탬이 됩니다.</p><div class="acts"><button class="btn" id="cardOk" type="button">다시 뛰기</button></div>');
+    bind('cardOk', function () { hideCard(); sync(); });
+  }
   // ---- 전면 카드 ----
+  var holdOv = false;   // 달 넘김 결과 카드가 먼저 나오도록 잠깐 미룸
   function checkOverlay() {
-    if (!S || !$('over').hidden) return;
+    if (!S || !$('over').hidden || holdOv) return;
     if (S.over) return showEnd(false);
     if (S.won && !S.keepPlaying && !S.endShown) { S.endShown = 1; return showEnd(true); }
     if (S.promo && S.promo < 3) {
       var r = S.promo; S.promo = 0; sfx('fanfare');
       var name = title();
-      showCard('<div class="seal">' + E.C.RANKS[r] + '</div><h2>' + esc(name) + '</h2><p>' + (r === 1 ? '한 달 기본 결재가 3건으로 늘었습니다. 이제 ' + GRP + ' 현황에서 한꺼번에 공격·설득·개발할 수 있습니다. 다음 목표는 ' + GRP + ' ' + R2 + '곳입니다.' : '한 달 기본 결재가 5건으로 늘었고, ' + GRP + ' 작전은 결재 3건에 5개 동까지 됩니다. 이제 ' + CNAME + ' 인구 60%만 남았습니다.') + '</p><div class="acts"><button class="btn red" id="cardOk" type="button">계속</button></div>');
-      bind('cardOk', hideCard);
+      showCard('<div class="seal">' + E.C.RANKS[r] + '</div><h2>' + esc(name) + '</h2><p>' + (r === 1 ? '한 달 기본 결재가 3건으로 늘었습니다. 이제 ' + GRP + ' 현황에서 한꺼번에 공격·설득·개발할 수 있습니다. 다음 목표는 ' + GRP + ' ' + R2 + '곳입니다.' : '한 달 기본 결재가 5건으로 늘었고, ' + GRP + ' 작전은 결재 3건에 5개 동까지 됩니다. 이제 ' + CNAME + ' 인구 60%를 모아 선거에서 이기면 됩니다.') + '</p><div class="acts"><button class="btn red" id="cardOk" type="button">계속</button></div>');
+      bind('cardOk', function () { hideCard(); checkOverlay(); });
+      return;
     }
+    if (S.won) return;
+    if (S.cardOffer && S.cardOffer.length) return showCardPick();
+    if (S.coal && !S.coalShown) return showCoal();
+    if (S.elect && S.elect.res && !S.elect.res.win && S.electLostShown !== S.elect.res.m) { S.electShown = S.elect.n; return showElectLost(); }
+    if (S.elect && S.electShown !== S.elect.n) return showElectNotice();
   }
-  function showCard(html) { $('card').innerHTML = tx(html); $('over').hidden = false; var b = $('card').querySelector('button'); if (b) b.focus(); }
+  function showCard(html) { $('card').innerHTML = tx(html); $('over').hidden = false; var b = $('card').querySelector('button'); if (b) { try { b.focus({ preventScroll: true }); } catch (e) { b.focus(); } } $('card').scrollTop = 0; }
   function hideCard() { $('over').hidden = true; save(); dirty(); }
   function nickOf(win) {
     var st = S.stat, gu = GU[D[S.start].g].n;
@@ -1438,7 +1569,7 @@
     c.restore();
     c.textAlign = 'left'; c.fillStyle = win ? '#D4321F' : '#47524A'; c.font = '700 66px ' + disp; c.fillText(win ? MAYOR + ' 취임' : '동네에서 쫓겨남', 56, 740);
     c.fillStyle = '#17231C'; c.font = '700 40px ' + bod; c.fillText(GU[D[S.start].g].n + ' ' + D[S.start].n + ' 출신 · ' + nick, 56, 806);
-    var rows = [['걸린 시간', span], ['장악 인구', (E.popShare(S, 0) * 100).toFixed(1) + '%'], ['접수한 동', n + ' / ' + D.length], ['돈으로 설득한 동', S.stat.talked + '개'], ['대표 능력 사용', (S.stat.abil || 0) + '회'], ['집에 돌아간 주민', S.stat.home.toLocaleString('ko-KR') + '명'], ['가장 크게 진 싸움', S.stat.worst ? S.stat.worst.name + ' ' + S.stat.worst.n.toLocaleString('ko-KR') + '명 귀가' : '없음'], ['최대 라이벌', nem || '없음'], ['시설이 번 돈 · 지킨 싸움', money(S.stat.facMoney || 0) + ' · ' + (S.stat.facSaved || 0) + '번']];
+    var rows = [['걸린 시간', span], ['장악 인구', (E.popShare(S, 0) * 100).toFixed(1) + '%' + (win && S.stat.vote ? ' · 득표 ' + (S.stat.vote * 100).toFixed(1) + '%' : '')], ['접수한 동', n + ' / ' + D.length], ['돈으로 설득한 동', S.stat.talked + '개'], ['대표 능력 사용', (S.stat.abil || 0) + '회'], ['집에 돌아간 주민', S.stat.home.toLocaleString('ko-KR') + '명'], ['가장 크게 진 싸움', S.stat.worst ? S.stat.worst.name + ' ' + S.stat.worst.n.toLocaleString('ko-KR') + '명 귀가' : '없음'], ['최대 라이벌', nem || '없음'], ['시설이 번 돈 · 지킨 싸움', money(S.stat.facMoney || 0) + ' · ' + (S.stat.facSaved || 0) + '번']];
     rows.forEach(function (r, i) {
       var y = 862 + i * 45;
       c.textAlign = 'left'; c.fillStyle = '#5D6A60'; c.font = '500 33px ' + bod; c.fillText(tx(r[0]), 56, y);
@@ -1454,10 +1585,10 @@
     var span = ((yr ? yr + '년 ' : '') + (mo ? mo + '개월' : (yr ? '' : '0개월'))).trim();
     var nick = nickOf(win), nem = E.nemesis(S);
     var txt = win
-      ? gu + ' ' + hd(name) + '으로 시작해 ' + span + ' 만에 ' + Jm(MAYOR, '이', '가') + ' 됐습니다. ' + CNAME + ' ' + D.length + '개 동 중 ' + n + '개 접수, 별명은 ' + nick + '. 당신의 동네로도 될까요? #동장의난'
+      ? gu + ' ' + hd(name) + '으로 시작해 ' + span + ' 만에 ' + Jm(MAYOR, '이', '가') + ' 됐습니다' + (st.vote ? '(득표율 ' + (st.vote * 100).toFixed(1) + '%)' : '') + '. ' + CNAME + ' ' + D.length + '개 동 중 ' + n + '개 접수, 별명은 ' + nick + '. 당신의 동네로도 될까요? #동장의난'
       : gu + ' ' + hd(name) + '으로 시작해 ' + span + ' 만에 동네에서 쫓겨났습니다. 한때 ' + st.biggest + '개 동을 거느렸습니다. #동장의난';
     var img = resultImage(win, span, win ? n : st.biggest, nick, nem);
-    showCard('<h2>' + (win ? MAYOR + ' 취임' : '동네에서 쫓겨났습니다') + '</h2>' + (img ? '<img id="resultImg" src="' + img + '" alt="' + esc(txt) + '"><p class="why">이미지를 길게 누르거나 우클릭해서 저장하세요.</p>' : '<div class="seal' + (win ? '' : ' lose') + '">' + (win ? (KIND === 'metro' ? CNAME + '<br>시장' : esc(MAYOR).replace(' ', '<br>')) : '해임') + '</div>') + '<div class="rows num" style="text-align:left;margin-top:6px"><div class="row"><span>' + R1S + ' / ' + R2S + '</span><span>' + (st.r1 !== undefined ? st.r1 + '개월' : '못 함') + ' / ' + (st.r2 !== undefined ? st.r2 + '개월' : '못 함') + '</span></div><div class="row"><span>공격으로 / 설득으로</span><span>' + Math.max(0, st.took - st.talked) + '개 / ' + st.talked + '개</span></div></div><textarea id="shareText" readonly>' + esc(txt) + '</textarea><div class="acts"><button class="btn" id="copy" type="button">문구 복사</button>' + (win ? '<button class="btn" id="cont" type="button">남은 동까지 마저 먹기</button>' : '') + '<button class="btn" id="retry" type="button">같은 조건으로 다시</button><button class="btn red" id="again" type="button">새 동으로 시작</button></div>');
+    showCard('<h2>' + (win ? MAYOR + ' 취임' : '동네에서 쫓겨났습니다') + '</h2>' + (img ? '<img id="resultImg" src="' + img + '" alt="' + esc(txt) + '"><p class="why">이미지를 길게 누르거나 우클릭해서 저장하세요.</p>' : '<div class="seal' + (win ? '' : ' lose') + '">' + (win ? (KIND === 'metro' ? CNAME + '<br>시장' : esc(MAYOR).replace(' ', '<br>')) : '해임') + '</div>') + '<div class="rows num" style="text-align:left;margin-top:6px"><div class="row"><span>' + R1S + ' / ' + R2S + '</span><span>' + (st.r1 !== undefined ? st.r1 + '개월' : '못 함') + ' / ' + (st.r2 !== undefined ? st.r2 + '개월' : '못 함') + '</span></div><div class="row"><span>공격으로 / 설득으로</span><span>' + Math.max(0, st.took - st.talked) + '개 / ' + st.talked + '개</span></div>' + (win && st.vote ? '<div class="row"><span>' + esc(MAYOR) + ' 선거 득표율</span><span>' + (st.vote * 100).toFixed(1) + '%' + (S.elect && S.elect.n > 1 ? ' (' + S.elect.n + '번째 도전)' : '') + '</span></div>' : '') + '</div><textarea id="shareText" readonly>' + esc(txt) + '</textarea><div class="acts"><button class="btn" id="copy" type="button">문구 복사</button>' + (win ? '<button class="btn" id="cont" type="button">남은 동까지 마저 먹기</button>' : '') + '<button class="btn" id="retry" type="button">같은 조건으로 다시</button><button class="btn red" id="again" type="button">새 동으로 시작</button></div>');
     if (win) saveBest(S.start, S.month);
     bind('retry', function () { var st0 = S.start, sd = S.seed0; $('over').hidden = true; beginGame(st0, sd !== undefined ? sd : Date.now() & 0x7fffffff); });
     bind('copy', function () { copyText(txt, $('copy'), $('shareText')); });
@@ -1512,10 +1643,11 @@
     if (sel !== null && sheetMode === 'dong' && S.owner[sel] !== 0) { var n = E.needFor(S, sel, 0.8); sendN = Math.max(1, Math.min(Math.floor(S.f[0].troops), n)); }
     errMsg = '';
     save();
-    sync();
+    holdOv = true; sync(); holdOv = false;
     // 잃은 동이 있으면(후반엔 본거지가 아니고 한 곳뿐이면 소식 줄로만) 결과 카드 하나로 묶어 보여 줌
     var big = lostList.length ? (S.rank < 2 || lostList.length > 1 || capHit) : (held.length && S.rank === 0);
     if (big && !S.over && $('over').hidden) battleCard(lostList, held, battles, nBefore, capHit);
+    else checkOverlay();
   }
   function battleCard(lostList, held, battles, nBefore, capHit) {
     var rows = [];
@@ -1528,7 +1660,9 @@
     var nNow = E.dongsOf(S, 0).length;
     var win = !lostList.length;
     var head = win ? (held.length > 1 ? '공격 ' + held.length + '건을 모두 막았습니다' : D[held[0].t].n + ' 방어 성공!') : capHit ? '본거지를 빼앗겼습니다' : lostList.length > 1 ? '동 ' + lostList.length + '곳을 빼앗겼습니다' : GU[D[lostList[0]].g].n + ' ' + E.J(D[lostList[0]].n, '을', '를') + ' 빼앗겼습니다';
-    showCard('<div class="seal' + (win ? '' : ' lose') + '">' + (win ? '방어' : '함락') + '</div><h2>' + esc(head) + '</h2><div class="rows" style="text-align:left;margin-top:8px">' + rows.map(function (r) { return '<div class="row bt"><span>' + r.h + '<br><small>' + r.s + '</small></span><button class="btn" type="button" data-go="' + r.i + '">보기</button></div>'; }).join('') + (more ? '<div class="row"><span>외 ' + more + '곳</span><span></span></div>' : '') + '<div class="row"><span>우리 동</span><span class="num">' + nBefore + '개 → ' + nNow + '개</span></div>' + (capHit ? '<div class="row"><span>새 본거지</span><span>' + esc(D[S.f[0].cap].n) + '</span></div>' : '') + '</div><p class="why">지도에 이번 달 동안 함락·방어 표시가 남습니다. 소식을 눌러도 그 동으로 갑니다.</p><div class="acts"><button class="btn' + (win ? '' : ' red') + '" id="cardOk" type="button">확인</button></div>');
+    var mb = lostList.length ? battles.filter(function (x) { return x.t === lostList[0] && !x.held; })[0] : held[0];
+    var bq = mb && mb.f > 0 ? bossHTML(mb.f, win ? 'lose' : 'win', D[mb.t].n) : '';
+    showCard('<div class="seal' + (win ? '' : ' lose') + '">' + (win ? '방어' : '함락') + '</div><h2>' + esc(head) + '</h2>' + bq + '<div class="rows" style="text-align:left;margin-top:8px">' + rows.map(function (r) { return '<div class="row bt"><span>' + r.h + '<br><small>' + r.s + '</small></span><button class="btn" type="button" data-go="' + r.i + '">보기</button></div>'; }).join('') + (more ? '<div class="row"><span>외 ' + more + '곳</span><span></span></div>' : '') + '<div class="row"><span>우리 동</span><span class="num">' + nBefore + '개 → ' + nNow + '개</span></div>' + (capHit ? '<div class="row"><span>새 본거지</span><span>' + esc(D[S.f[0].cap].n) + '</span></div>' : '') + '</div><p class="why">지도에 이번 달 동안 함락·방어 표시가 남습니다. 소식을 눌러도 그 동으로 갑니다.</p><div class="acts"><button class="btn' + (win ? '' : ' red') + '" id="cardOk" type="button">확인</button></div>');
     sfx(win ? 'stamp' : 'fail');
     bind('cardOk', function () { hideCard(); sync(); });
     Array.prototype.forEach.call($('card').querySelectorAll('[data-go]'), function (b) { b.addEventListener('click', function () { hideCard(); goDong(+b.dataset.go); sync(); }); });

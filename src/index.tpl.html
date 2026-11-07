@@ -53,6 +53,20 @@ button{cursor:pointer;touch-action:manipulation}
 #rpBlock{position:fixed;inset:0;z-index:30;background:transparent;cursor:pointer}
 #rpBar{position:absolute;z-index:31;display:flex;align-items:center;gap:6px;background:#17231C;color:#fff;border-radius:4px;padding:5px 6px 5px 12px;box-shadow:0 2px 10px rgba(0,0,0,.18)}
 #rpBar[hidden]{display:none}
+img.face{image-rendering:pixelated;image-rendering:crisp-edges;border:2px solid var(--ink);border-radius:3px;background:#F3F1E7;flex:none;vertical-align:middle}
+.boss{display:flex;gap:10px;align-items:center;text-align:left;margin:10px 0 2px;padding:8px 10px;background:#F1EFE4;border-left:3px solid var(--ink);border-radius:3px}
+.boss div{min-width:0}.boss b{font-size:14px}.boss span{font-size:12px;color:#5D6A60}
+.boss q{display:block;font-size:13.5px;line-height:1.45;margin-top:2px;quotes:'\201C' '\201D'}
+.plan .boss{margin:0 0 8px;background:rgba(255,255,255,.6)}
+.faces{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:12px 0 4px}.faces.sm{justify-content:flex-start;margin:6px 0 0;gap:4px}
+.pcards{display:grid;gap:8px;margin-top:12px;text-align:left}
+.pcards.own{grid-template-columns:1fr 1fr;margin-top:6px}
+.pcard{display:block;width:100%;text-align:left;background:#fff;border:2px solid var(--ink);border-radius:4px;padding:10px 12px;font:inherit;color:inherit;min-height:44px}
+button.pcard:active{transform:translateY(1px)}button.pcard:hover{border-color:var(--stamp)}
+.pcard i{font-style:normal;font-size:11px;font-weight:700;color:#fff;border-radius:2px;padding:1px 6px;margin-right:6px;vertical-align:1px}
+.pcard b{font-size:15.5px}.pcard span{display:block;font-size:13px;line-height:1.45;color:#3D4A40;margin-top:3px}
+.pcard.own{padding:7px 9px;border-width:1px}.pcard.own b{font-size:13.5px}.pcard.own span{font-size:12px}
+#rpTalk{position:absolute;z-index:31;pointer-events:none}#rpTalk[hidden]{display:none}#rpTalk .boss{margin:0;background:var(--sheet);box-shadow:0 2px 10px rgba(0,0,0,.18);border:1px solid var(--ink);border-left-width:3px}
 #rpBar.end button{display:none}
 #rpBar.end{padding:8px 14px;pointer-events:none}
 #rpLabel{flex:1;font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -233,7 +247,7 @@ details.diplo .acts{margin-top:2px}
   <canvas id="map" aria-label="서울 행정동 지도. 동을 누르면 정보가 열립니다."></canvas>
   <div id="stampLayer"></div>
   <div id="rpBlock" hidden></div>
-  <div id="rpBar" hidden role="status" aria-live="polite"><span id="rpLabel">상대 턴</span><button id="rpFast" type="button">빠르게</button><button id="rpSkip" type="button">건너뛰기</button></div>
+  <div id="rpTalk" hidden></div><div id="rpBar" hidden role="status" aria-live="polite"><span id="rpLabel">상대 턴</span><button id="rpFast" type="button">빠르게</button><button id="rpSkip" type="button">건너뛰기</button></div>
   <div id="mapBtns" hidden><button id="toCap" type="button">본거지</button><button id="toAll" type="button">서울 전체</button></div>
   <div id="legend" hidden><span id="legendName"></span><span>낮음</span><span class="bar"></span><span>높음</span></div>
   <header id="hud" hidden>

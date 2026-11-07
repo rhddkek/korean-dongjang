@@ -2,7 +2,7 @@
 const { chromium, devices } = require('playwright'); const http = require('http'), fs = require('fs');
 const OUT = process.argv[2] || '.';
 const ONLY = process.argv[3] ? process.argv[3].split(',') : null;
-const html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light}body{margin:0;font:14px system-ui}[hidden]{display:none!important}img{max-width:100%}</style></head><body><script>try{localStorage.getItem("dongjang-replay")||localStorage.setItem("dongjang-replay","off")}catch(e){}</script>' + fs.readFileSync('dongjang.html', 'utf8') + '</body></html>';
+const html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light}body{margin:0;font:14px system-ui}[hidden]{display:none!important}img{max-width:100%}</style></head><body><script>new MutationObserver(function(){var b=document.querySelector("#card button.pcard");if(b&&!b.dataset.ap){b.dataset.ap=1;setTimeout(function(){b.click()},0)}}).observe(document.documentElement,{childList:true,subtree:true})</script><script>try{localStorage.getItem("dongjang-replay")||localStorage.setItem("dongjang-replay","off")}catch(e){}</script>' + fs.readFileSync('dongjang.html', 'utf8') + '</body></html>';
 const srv = http.createServer((q, r) => { r.setHeader('content-type', 'text/html;charset=utf-8'); r.end(html); }).listen(8136);
 const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
 const MODES = [['gyeonggi', '경기', '경기도지사'], ['gangwon', '강원', '강원특별자치도지사'], ['chungbuk', '충북', '충청북도지사'], ['chungnam', '충남', '충청남도지사'], ['jeonbuk', '전북', '전북특별자치도지사'],
