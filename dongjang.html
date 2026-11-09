@@ -15,9 +15,10 @@
 }
 html,body{height:100%;overflow:hidden;background:var(--ground);color:var(--ink);font-family:var(--body);font-size:15px;-webkit-text-size-adjust:100%}
 *{box-sizing:border-box}
+b,strong{font-weight:500}
 button,input{font:inherit;color:inherit}
 button{cursor:pointer;touch-action:manipulation}
-:focus-visible{outline:3px solid #1F6FB5;outline-offset:2px}
+:focus-visible{outline:3px solid #1B4C78;outline-offset:2px}
 #app{position:fixed;inset:0;overflow:hidden}
 #map{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block;cursor:grab}
 .num{font-variant-numeric:tabular-nums}
@@ -26,14 +27,14 @@ button{cursor:pointer;touch-action:manipulation}
 #hud{position:absolute;top:0;left:0;right:0;z-index:5;background:var(--paper);border-bottom:2px solid var(--ink);
   padding:calc(8px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px))}
 #hudTop{display:flex;align-items:baseline;gap:10px;min-width:0}
-#who{font-family:var(--display);font-weight:700;font-synthesis:none;font-size:21px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#who{font-family:var(--display);font-weight:700;font-synthesis:none;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 #when{color:var(--mute);font-size:13px;white-space:nowrap}
-#menuBtn{margin-left:auto;background:none;border:1px solid var(--ink);border-radius:3px;padding:3px 10px;font-size:13px;font-weight:500;white-space:nowrap}
-#cells{display:grid;grid-template-columns:1.05fr 1.05fr .8fr 1.1fr;margin-top:6px;border:1px solid var(--ink);border-radius:3px;background:var(--sheet);width:100%;padding:0;text-align:left}
-.cell{padding:4px 7px;border-left:1px solid var(--line);min-width:0}
+#menuBtn{margin-left:auto;background:none;border:1px solid var(--ink);border-radius:4px;padding:4px 10px;font-size:13px;font-weight:500;white-space:nowrap}
+#cells{display:grid;grid-template-columns:1.05fr 1.05fr .8fr 1.1fr;margin-top:6px;border:1px solid var(--ink);border-radius:4px;background:var(--sheet);width:100%;padding:0;text-align:left}
+.cell{padding:4px 8px;border-left:1px solid var(--line);min-width:0}
 .cell:first-child{border-left:0}
 .cell small{display:block;color:var(--mute);font-size:12px;line-height:1.2}
-.cell b{display:block;font-size:17px;line-height:1.25;font-weight:700;white-space:nowrap}
+.cell b{display:block;font-size:17px;line-height:1.25;font-weight:500;white-space:nowrap}
 .cell i{font-style:normal;font-size:12px;color:var(--good);display:block;line-height:1.2;white-space:nowrap}
 .cell i.neg{color:var(--stamp)}
 
@@ -41,143 +42,174 @@ button{cursor:pointer;touch-action:manipulation}
 #bottom{position:absolute;left:0;right:0;bottom:0;z-index:6;display:flex;flex-direction:column;pointer-events:none}
 #bottom>*{pointer-events:auto}
 #sheet{background:var(--sheet);border-top:2px solid var(--ink);max-height:60dvh;overflow:auto;-webkit-overflow-scrolling:touch;
-  padding:12px max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px))}
+  padding:16px max(16px,env(safe-area-inset-right,0px)) 16px max(16px,env(safe-area-inset-left,0px))}
 #dock{display:flex;align-items:stretch;gap:8px;background:var(--paper);border-top:2px solid var(--ink);
   padding:8px max(16px,env(safe-area-inset-right,0px)) calc(8px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
-#news{flex:1;min-width:0;background:none;border:0;text-align:left;font-size:13.5px;line-height:1.3;padding:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-height:2.7em;align-self:center}
+#news{flex:1;min-width:0;background:none;border:0;text-align:left;font-size:14px;line-height:1.3;padding:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-height:2.7em;align-self:center}
 #news.bad{color:var(--stamp-dark);font-weight:500}
-#lens{background:var(--sheet);border:1px solid var(--ink);border-radius:3px;padding:0 10px;font-size:13px;white-space:nowrap;min-height:44px}
-#next{background:var(--ink);color:#fff;border:0;border-radius:3px;padding:0 16px;font-weight:700;white-space:nowrap;min-height:44px;font-size:15px}
+#lens{background:var(--sheet);border:1px solid var(--ink);border-radius:4px;padding:0 10px;font-size:13px;white-space:nowrap;min-height:44px}
+#next{background:var(--ink);color:#fff;border:0;border-radius:4px;padding:0 16px;font-weight:500;white-space:nowrap;min-height:44px;font-size:15px}
 #next:active{transform:translateY(1px)}
-#next.go{background:var(--stamp)}
+#next.go{background:var(--ink)}
+#next small{display:block;font-size:11px;font-weight:500;opacity:.85;line-height:1.1;margin-top:1px}
+#todo{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:#FFF7D6;border:0;border-top:2px solid var(--ink);padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));font-size:14px;font-weight:500;min-height:40px}
+#todo span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#todo b{font-size:17px;line-height:1}
+#todo[hidden]{display:none}
+/* 간단 보기 */
+#sheet.peek{max-height:none;overflow:visible;padding-bottom:10px}
+.quick{margin-top:6px}.quick .qstat{margin:4px 0 0;font-size:14px;color:var(--mute);line-height:1.4}.quick .qstat b{color:var(--ink)}.quick .qstat.warn{color:var(--stamp-dark)}
+.quick .qstat .good{color:var(--good)}
+.quick .qrow{display:grid;gap:8px;margin-top:10px}.quick .qrow.two{grid-template-columns:1.3fr 1fr}
+.quick .btn{min-height:50px}.quick .btn .pct{font-size:17px;margin-left:4px}
+.quick .qmore{background:none;border:1px solid var(--line);color:var(--mute);font-weight:500;min-height:38px}
+.quick .tip{margin:8px 0 0}
+.quick .qlbl{margin:10px 0 0;font-size:12px;color:var(--mute)}
+.qdevs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
+.qdev{display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:#fff;border:1px solid var(--ink);border-radius:4px;padding:8px 8px;font:inherit;font-size:13px;color:inherit;min-height:56px;text-align:left}
+.qdev:disabled{opacity:.45}.qdev em{font-style:normal;font-size:11px;letter-spacing:0;color:var(--mute)}.qdev b{font-size:14px}
+.qdev .dd{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:1px}
 #rpBlock{position:fixed;inset:0;z-index:30;background:transparent;cursor:pointer}
-#rpBar{position:absolute;z-index:31;display:flex;align-items:center;gap:6px;background:#17231C;color:#fff;border-radius:4px;padding:5px 6px 5px 12px;box-shadow:0 2px 10px rgba(0,0,0,.18)}
+#rpBar{position:absolute;z-index:31;display:flex;align-items:center;gap:6px;background:#17231C;color:#fff;border-radius:4px;padding:4px 6px 4px 12px;box-shadow:0 2px 10px rgba(0,0,0,.18)}
 #rpBar[hidden]{display:none}
+img.face{image-rendering:pixelated;image-rendering:crisp-edges;border:2px solid var(--ink);border-radius:4px;background:#F3F1E7;flex:none;vertical-align:middle}
+.boss{display:flex;gap:10px;align-items:center;text-align:left;margin:10px 0 2px;padding:8px 10px;background:#F1EFE4;border-left:3px solid var(--ink);border-radius:4px}
+.boss div{min-width:0}.boss b{font-size:14px}.boss span{font-size:12px;color:#5D6A60}
+.boss q{display:block;font-size:14px;line-height:1.45;margin-top:2px;quotes:'\201C' '\201D'}
+.plan .boss{margin:0 0 8px;background:rgba(255,255,255,.6)}
+.faces{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:12px 0 4px}.faces.sm{justify-content:flex-start;margin:6px 0 0;gap:4px}
+.pcards{display:grid;gap:8px;margin-top:12px;text-align:left}
+.pcards.own{grid-template-columns:1fr 1fr;margin-top:6px}
+.pcard{display:block;width:100%;text-align:left;background:#fff;border:2px solid var(--ink);border-radius:4px;padding:10px 12px;font:inherit;color:inherit;min-height:44px}
+button.pcard:active{transform:translateY(1px)}button.pcard:hover{border-color:var(--stamp)}
+.pcard i{font-style:normal;font-size:12px;font-weight:500;color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:0 6px;margin-right:8px;vertical-align:1px;white-space:nowrap}.pcard i::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--c);margin-right:4px;vertical-align:0}
+.pcard b{font-size:15px}.pcard span{display:block;font-size:13px;line-height:1.45;color:#3D4A40;margin-top:4px}
+.pcard.own{padding:8px 8px;border-width:1px}.pcard.own b{font-size:14px}.pcard.own span{font-size:12px}
+#rpTalk{position:absolute;z-index:31;pointer-events:none}#rpTalk[hidden]{display:none}#rpTalk .boss{margin:0;background:var(--sheet);box-shadow:0 2px 10px rgba(0,0,0,.18);border:1px solid var(--ink);border-left-width:3px}
 #rpBar.end button{display:none}
-#rpBar.end{padding:8px 14px;pointer-events:none}
-#rpLabel{flex:1;font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#rpBar button{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:3px;font-size:13px;min-height:34px;padding:0 10px;white-space:nowrap}
+#rpBar.end{padding:8px 16px;pointer-events:none}
+#rpLabel{flex:1;font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#rpBar button{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:4px;font-size:13px;min-height:34px;padding:0 10px;white-space:nowrap}
 #mapBtns{position:absolute;z-index:4;display:flex;gap:6px}
-#mapBtns button{background:var(--sheet);border:1px solid var(--ink);border-radius:3px;font-size:12.5px;min-height:34px;padding:0 9px}
-.chip.on{border-color:var(--stamp);box-shadow:inset 0 0 0 1px var(--stamp)}
-#legend{position:absolute;z-index:4;left:max(12px,env(safe-area-inset-left,0px));display:flex;align-items:center;gap:6px;font-size:12px;background:var(--sheet);border:1px solid var(--line);padding:3px 8px;border-radius:3px}
+#mapBtns button{background:var(--sheet);border:1px solid var(--ink);border-radius:4px;font-size:12px;min-height:34px;padding:0 8px}
+.chip.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+#legend{position:absolute;z-index:4;left:max(12px,env(safe-area-inset-left,0px));display:flex;align-items:center;gap:6px;font-size:12px;background:var(--sheet);border:1px solid var(--line);padding:4px 8px;border-radius:4px}
 #legend span.bar{width:90px;height:8px;background:linear-gradient(90deg,#ECEFE6,#0E5A63)}
 
 /* 판 내용 */
 .head{display:flex;align-items:flex-start;gap:8px}
 .head h2{margin:0;font-family:var(--display);font-weight:700;font-synthesis:none;font-size:24px;line-height:1.15;text-wrap:balance}
-.head p{margin:2px 0 0;color:var(--mute);font-size:13.5px}
-.dot{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px;border:1px solid rgba(0,0,0,.35)}
-.x{margin-left:auto;background:none;border:1px solid var(--line);border-radius:3px;width:36px;height:36px;font-size:18px;line-height:1;flex:none}
+.head p{margin:2px 0 0;color:var(--mute);font-size:14px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:4px;margin-right:4px;vertical-align:-1px;border:1px solid rgba(0,0,0,.35)}
+.x{margin-left:auto;background:none;border:1px solid var(--line);border-radius:4px;width:36px;height:36px;font-size:17px;line-height:1;flex:none}
 .gauges{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
-.g small{display:flex;justify-content:space-between;font-size:12.5px;color:var(--mute)}
-.g small b{color:var(--ink);font-weight:700}
-.g span{display:block;height:5px;background:#E2E6DC;margin-top:3px}
+.g small{display:flex;justify-content:space-between;font-size:12px;color:var(--mute)}
+.g small b{color:var(--ink);font-weight:500}
+.g span{display:block;height:5px;background:#E2E6DC;margin-top:4px}
 .g span u{display:block;height:100%;background:var(--ink);text-decoration:none}
-.type{margin:8px 0 0;font-size:13.5px;line-height:1.4}
-.type b{font-weight:700}
-.type span{color:var(--mute);font-size:12.5px}
-.type.abil{border-left:3px solid var(--stamp);padding-left:8px}
-.btn.ab{border-color:var(--stamp);color:var(--stamp-dark)}
+.type{margin:8px 0 0;font-size:14px;line-height:1.4}
+.type b{font-weight:500}
+.type span{color:var(--mute);font-size:12px}
+.type.abil{border-left:4px solid var(--ink);padding-left:8px}
+.btn.ab{border-color:var(--ink);color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 .btn.ab:disabled{border-color:#D5DAD0;color:#8B958C}
-.warn{color:var(--stamp-dark);font-weight:700}
-.tip{margin:6px 0 0;font-size:13.5px;font-weight:500}
-.est{margin:6px 0 0;font-size:12.5px;line-height:1.45;color:var(--mute)}
-.guLink{display:flex;justify-content:space-between;gap:8px;width:100%;margin-top:10px;padding:10px 12px;background:var(--paper);border:1px solid var(--line);border-radius:3px;font-weight:500;font-size:14px;text-align:left;min-height:44px;align-items:center}
+.warn{color:#8A2A1C;font-weight:500}
+.tip{margin:6px 0 0;font-size:14px;font-weight:500}
+.est{margin:6px 0 0;font-size:12px;line-height:1.45;color:var(--mute)}
+.guLink{display:flex;justify-content:space-between;gap:8px;width:100%;margin-top:10px;padding:10px 12px;background:var(--paper);border:1px solid var(--line);border-radius:4px;font-weight:500;font-size:14px;text-align:left;min-height:44px;align-items:center}
 .rowBtn{width:100%;background:none;border-width:1px 0 0;border-style:solid;border-color:#E6E9E0;text-align:left;min-height:42px;align-items:center}
 .rowBtn:first-child{border-top:0}
-#govBar{background:#E5EEF6;border:0;border-top:2px solid var(--ink);padding:6px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));font-weight:700;font-size:14px;text-align:left;color:#1B4C78;width:100%;min-height:36px}
-.gov{margin-top:8px;padding:8px 10px;background:#EEF3F8;border-left:3px solid #2F6DB5;font-size:13.5px;line-height:1.45}
-.gov span{color:var(--mute);font-size:12.5px}
-.gov .btn{width:100%;margin-top:6px;min-height:40px;font-size:13.5px}
+#govBar{background:var(--paper);border:0;border-top:2px solid var(--ink);box-shadow:inset 4px 0 0 #2F6DB5;padding:6px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));font-weight:500;font-size:14px;text-align:left;color:var(--ink);width:100%;min-height:36px}
+.gov{margin-top:8px;padding:8px 10px;background:#EEF3F8;border-left:3px solid #2F6DB5;font-size:14px;line-height:1.45}
+.gov span{color:var(--mute);font-size:12px}
+.gov .btn{width:100%;margin-top:6px;min-height:40px;font-size:14px}
 .good{color:var(--good)} b.bad{color:var(--stamp-dark)}
 .gv{text-align:left}
 .gv small{font-weight:400;color:var(--mute)}
-#offerBar{background:#F1E8F7;border:0;border-top:2px solid var(--ink);padding:6px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));font-weight:700;font-size:14px;text-align:left;color:#5B2A7A;width:100%;min-height:36px}
-.plan{border:2px solid var(--stamp,#D4321F);background:#FFF4EF;padding:8px 10px;margin:8px 0;font-size:13.5px;line-height:1.5}.plan b{display:block;color:#A7261A;font-size:14.5px}.plan span{display:block}.plan ul{margin:4px 0 6px 18px;padding:0}.plan small{display:block;color:#6B746D;margin-top:4px}.plan .btn{margin-top:4px;min-height:36px}
-.log li.go{cursor:pointer}.log li .goto{display:inline-block;margin-left:4px;color:#1B4C78;font-weight:700;font-size:12.5px;white-space:nowrap}.row.bt{align-items:center}.row.bt .btn{min-height:34px;padding:0 12px;flex:none}.row.bt small{color:#6B746D}
-.combo{border-left:4px solid #E2A11F;background:#FFF8E6;padding:6px 9px;margin:6px 0;font-size:13.5px;line-height:1.45}.combo b{color:#7A5200}.combo span{color:#6B746D;font-size:12.5px}.combo.on{border-color:#2F9B78;background:#EEF8F3}.combo.on b{color:#1F6B52}
-.pv{display:inline-block;margin-top:3px;color:#1B4C78;font-weight:600}
-#evBar{background:#FBE9E3;border:0;border-top:2px solid var(--ink);padding:6px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));font-weight:700;font-size:14px;text-align:left;color:var(--stamp-dark);width:100%;min-height:36px}
-.linkish{background:none;border:0;padding:0;color:#1B5E8C;text-decoration:underline;font-size:inherit}
+#offerBar{background:var(--paper);border:0;border-top:2px solid var(--ink);box-shadow:inset 4px 0 0 #6E4C8C;padding:6px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));font-weight:500;font-size:14px;text-align:left;color:var(--ink);width:100%;min-height:36px}
+.plan{border:2px solid #8A2A1C;background:var(--paper);padding:8px 10px;margin:8px 0;font-size:14px;line-height:1.5}.plan b{display:block;color:#8A2A1C;font-size:15px}.plan span{display:block}.plan ul{margin:4px 0 6px 16px;padding:0}.plan small{display:block;color:#6B746D;margin-top:4px}.plan .btn{margin-top:4px;min-height:36px}
+.log li.go{cursor:pointer}.log li .goto{display:inline-block;margin-left:4px;color:#1B4C78;font-weight:500;font-size:12px;white-space:nowrap}.row.bt{align-items:center}.row.bt .btn{min-height:34px;padding:0 12px;flex:none}.row.bt small{color:#6B746D}
+.combo{border-left:4px solid #E2A11F;background:#FFF8E6;padding:6px 8px;margin:6px 0;font-size:14px;line-height:1.45}.combo b{color:#7A5200}.combo span{color:#6B746D;font-size:12px}.combo.on{border-color:#2F9B78;background:#EEF8F3}.combo.on b{color:#1F6B52}
+.pv{display:inline-block;margin-top:4px;color:#1B4C78;font-weight:500}
+#evBar{background:var(--paper);border:0;border-top:2px solid var(--ink);box-shadow:inset 4px 0 0 #A4661B;padding:6px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));font-weight:500;font-size:14px;text-align:left;color:var(--ink);width:100%;min-height:36px}
+.linkish{background:none;border:0;padding:0;color:#1B4C78;text-decoration:underline;font-size:inherit}
 .ch{text-align:left;padding:8px 12px}
-.ch small{font-weight:400;font-size:12.5px;color:var(--mute)}
+.ch small{font-weight:400;font-size:12px;color:var(--mute)}
 .ch:disabled small{color:inherit}
 .gd{font-size:14px}
 #resultImg{display:block;width:100%;border:1px solid var(--line);margin-top:10px}
-#expText,#impText{width:100%;height:84px;margin-top:8px;font-size:12.5px;border:1px solid var(--line);border-radius:3px;padding:8px;resize:none;background:#fff}
+#expText,#impText{width:100%;height:84px;margin-top:8px;font-size:12px;border:1px solid var(--line);border-radius:4px;padding:8px;resize:none;background:#fff}
 .facts{margin:8px 0 0;font-size:13px;color:var(--mute);line-height:1.5}
 .facts b{color:var(--ink);font-weight:500}
 .fight{display:flex;gap:12px;align-items:flex-end;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
 .fight>div{min-width:0}
-.fight small{display:block;font-size:12.5px;color:var(--mute)}
-.fight .big{font-size:22px;font-weight:700;line-height:1.15}
+.fight small{display:block;font-size:12px;color:var(--mute)}
+.fight .big{font-size:24px;font-weight:500;line-height:1.15}
 .pct{margin-left:auto;text-align:right}
 .pct .big{font-family:var(--display);font-weight:700;font-synthesis:none;font-size:30px;color:var(--stamp)}
 .via{font-size:13px;color:var(--mute);margin-top:2px}
 .send{display:flex;gap:10px;align-items:center;margin-top:8px}
 .send input[type=range]{flex:1;min-width:0;accent-color:var(--stamp);height:32px}
-.send output{min-width:66px;text-align:right;font-weight:700}
+.send output{min-width:66px;text-align:right;font-weight:500}
 .chips{display:flex;gap:6px;margin-top:4px}
-.chip{flex:1;background:var(--sheet);border:1px solid var(--line);border-radius:3px;min-height:36px;font-size:13.5px}
+.chip{flex:1;background:var(--sheet);border:1px solid var(--line);border-radius:4px;min-height:36px;font-size:14px}
 .chip:disabled{color:#A3ACA3;border-color:#E1E5DC}
 .acts{display:grid;gap:8px;margin-top:10px}
-.btn{min-height:46px;border-radius:3px;border:1px solid var(--ink);background:var(--sheet);font-weight:500;padding:4px 10px;line-height:1.2}
-.btn.red{background:var(--stamp);border-color:var(--stamp);color:#fff;font-weight:700;font-size:16px}
+.btn{min-height:46px;border-radius:4px;border:1px solid var(--ink);background:var(--sheet);font-weight:500;padding:4px 10px;line-height:1.2}
+.btn.red{background:var(--stamp);border-color:var(--stamp);color:#fff;font-weight:500;font-size:17px}
 .btn:disabled{background:#E9ECE3;border-color:#D5DAD0;color:#8B958C}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.why{font-size:12.5px;color:var(--mute);margin:6px 0 0;line-height:1.4}
-.err{color:var(--stamp-dark);font-size:13.5px;font-weight:500;margin:6px 0 0}
+.why{font-size:12px;color:var(--mute);margin:6px 0 0;line-height:1.4}
+.err{color:var(--stamp-dark);font-size:14px;font-weight:500;margin:6px 0 0}
 .mini{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
-.mini small{display:block;font-size:12.5px;color:var(--mute)}
-.mini b{display:block;font-size:15.5px;line-height:1.35;white-space:nowrap}
+.mini small{display:block;font-size:12px;color:var(--mute)}
+.mini b{display:block;font-size:15px;line-height:1.35;white-space:nowrap}
 .dev{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;padding:8px 0;border-top:1px solid #E6E9E0}
 .dev:first-of-type{border-top:0}
-.dev h4{margin:0;font-size:15px;font-weight:700}
+.dev h4{margin:0;font-size:15px;font-weight:500}
 .spOn{color:var(--good);font-weight:500}
 .spOff{color:#9AA39B}
-.dev button{line-height:1.25;font-size:13.5px}
+.dev button{line-height:1.25;font-size:14px}
 .dd{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:1px}
-.dev h4 em{font-style:normal;color:var(--stamp);letter-spacing:1px;margin-left:4px;font-size:12px}
-.dev p{margin:0;font-size:12.5px;color:var(--mute);grid-column:1}
+.dev h4 em{font-style:normal;color:var(--ink);letter-spacing:1px;margin-left:4px;font-size:12px}
+.dev p{margin:0;font-size:12px;color:var(--mute);grid-column:1}
 .dev button{grid-row:1 / span 2;grid-column:2;min-width:92px;min-height:44px}
 .rows{margin-top:8px;display:grid;gap:0}
-.row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid #E6E9E0;font-size:14px;align-items:baseline}
+.row{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid #E6E9E0;font-size:14px;align-items:baseline}
 .row:first-child{border-top:0}
 .row span:first-child{min-width:0}
-.sec{font-weight:700;margin:14px 0 2px;font-size:14px}
+.sec{font-weight:500;margin:16px 0 4px;font-size:15px}
 .bar{height:8px;background:#E2E6DC;position:relative;margin-top:6px}
 .bar u{position:absolute;inset:0 auto 0 0;background:var(--stamp)}
 .bar s{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
 .log{list-style:none;margin:8px 0 0;padding:0}
 .log li{padding:6px 0;border-top:1px solid #E6E9E0;font-size:14px;line-height:1.4}
 .log li small{color:var(--mute);margin-right:6px}
-.log li.riv{font-weight:500;color:#5A3A8C} .log li.ev{font-weight:700}
-.log li.bad{color:var(--stamp-dark)} .log li.good{color:var(--good)} .log li.rank{font-weight:700}
+.log li.riv{font-weight:500;color:#5A3A8C} .log li.ev{font-weight:500}
+.log li.bad{color:var(--stamp-dark)} .log li.good{color:var(--good)} .log li.rank{font-weight:500}
 .prose{font-size:14px;line-height:1.65;margin:8px 0 0;max-width:62ch}
 .prose li{margin-bottom:4px}
-.prose ul{padding-left:18px;margin:6px 0}
+.prose ul{padding-left:16px;margin:6px 0}
 .src{font-size:13px;line-height:1.6;color:var(--mute)}
 details.more{margin-top:10px;border-top:1px dashed var(--line);padding-top:2px}
-details.more>summary{cursor:pointer;font-size:13.5px;font-weight:500;min-height:40px;display:flex;align-items:center;gap:4px;list-style:none}
+details.more>summary{cursor:pointer;font-size:14px;font-weight:500;min-height:40px;display:flex;align-items:center;gap:4px;list-style:none}
 details.more>summary::-webkit-details-marker{display:none}
 details.more>summary::after{content:'▾';margin-left:auto;color:var(--mute)}
 details.more[open]>summary::after{content:'▴'}
-details.more>summary em{font-style:normal;color:var(--good);font-size:12.5px;margin-left:4px}
+details.more>summary em{font-style:normal;color:var(--good);font-size:12px;margin-left:4px}
 details.diplo .acts{margin-top:2px}
-.dev .dmore{grid-column:1 / -1;background:#F3F5EF;border-radius:3px;padding:6px 8px;margin-top:4px}
-.dev .dmore p{font-size:12.5px;line-height:1.55}
+.dev .dmore{grid-column:1 / -1;background:#F3F5EF;border-radius:4px;padding:6px 8px;margin-top:4px}
+.dev .dmore p{font-size:12px;line-height:1.55}
 .dev h4[data-dk]{cursor:pointer}
 .dtog{font-size:13px;font-weight:400;color:var(--mute);margin-left:6px}
-.dev p b{color:var(--ink);font-weight:700}
+.dev p b{color:var(--ink);font-weight:500}
 .dev p b.spNext{color:var(--good)}
 .btn small{display:block;font-size:12px;font-weight:400;margin-top:2px;opacity:.9}
-.btn.red small{font-size:12.5px}
-.keep{color:var(--ink);font-weight:700}
-.lock{display:inline-block;font-size:11.5px;font-weight:500;border:1px solid #B9C0B6;border-radius:2px;padding:0 4px;margin-right:2px;color:var(--mute)}
-#pin{flex:none;background:var(--stamp);color:#fff;border:0;border-radius:3px;padding:0 10px;font-weight:700;font-size:13.5px;white-space:nowrap;min-height:44px;max-width:38%;overflow:hidden;text-overflow:ellipsis}
+.btn.red small{font-size:12px}
+.keep{color:var(--ink);font-weight:500}
+.lock{display:inline-block;font-size:12px;font-weight:500;border:1px solid #B9C0B6;border-radius:4px;padding:0 4px;margin-right:2px;color:var(--mute)}
+#pin{flex:none;background:var(--stamp);color:#fff;border:0;border-radius:4px;padding:0 10px;font-weight:500;font-size:14px;white-space:nowrap;min-height:44px;max-width:38%;overflow:hidden;text-overflow:ellipsis}
 
-.src a{color:#1B5E8C}
+.src a{color:#1B4C78}
 
 /* 시작 화면 */
 #start{position:absolute;inset:0;z-index:8;pointer-events:none;display:flex;flex-direction:column}
@@ -185,41 +217,42 @@ details.diplo .acts{margin-top:2px}
 #brand{padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));pointer-events:none}
 #brand h1{margin:0;font-family:var(--display);font-weight:700;font-synthesis:none;font-size:clamp(38px,10vw,72px);line-height:1;letter-spacing:-.5px;color:var(--ink)}
 #brand h1 em{font-style:normal;color:var(--stamp)}
-#brand p{margin:4px 0 0;font-size:13.5px;font-weight:500;max-width:30em;line-height:1.35}
+#brand p{margin:4px 0 0;font-size:14px;font-weight:500;max-width:30em;line-height:1.35}
 #pick{margin-top:auto;background:var(--sheet);border-top:2px solid var(--ink);max-height:60dvh;overflow:auto;
   padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
-#q{width:100%;height:44px;border:1px solid var(--ink);border-radius:3px;background:#fff;padding:0 12px;font-size:16px}
+#q{width:100%;height:44px;border:1px solid var(--ink);border-radius:4px;background:#fff;padding:0 12px;font-size:16px}
 #results{display:grid;margin-top:4px}
-#results button{background:none;border:0;border-bottom:1px solid #E6E9E0;text-align:left;padding:9px 2px;font-size:14.5px}
-#cities{display:grid;gap:4px;margin-bottom:10px}.cityRow{display:flex;gap:4px;align-items:center}.cityRow small{flex:none;width:28px;font-size:11.5px;color:var(--mute);line-height:1.1}#cities .city{flex:1 1 0;min-width:0;min-height:36px;padding:0 2px;white-space:nowrap;font-size:14px;overflow:hidden;text-overflow:clip}#cities .city.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+#results button{background:none;border:0;border-bottom:1px solid #E6E9E0;text-align:left;padding:8px 2px;font-size:15px}
+#cities{display:grid;gap:4px;margin-bottom:10px}.cityRow{display:flex;gap:4px;align-items:center}.cityRow small{flex:none;width:28px;font-size:12px;color:var(--mute);line-height:1.1}#cities .city{flex:1 1 0;min-width:0;min-height:36px;padding:0 2px;white-space:nowrap;font-size:14px;overflow:hidden;text-overflow:clip}#cities .city.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 #presets{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:6px;margin-top:8px;overflow-x:auto;padding-bottom:2px}
-#presets button{background:var(--sheet);border:1px solid var(--line);border-radius:3px;text-align:left;padding:6px 8px;min-height:44px;line-height:1.25;font-size:13.5px}
+#presets button{background:var(--sheet);border:1px solid var(--line);border-radius:4px;text-align:left;padding:6px 8px;min-height:44px;line-height:1.25;font-size:14px}
 #presets button small{display:block;color:var(--mute);font-size:12px}
-#presets button.on{border-color:var(--stamp);box-shadow:inset 0 0 0 1px var(--stamp)}
-.diff{font-size:12px;border:1px solid currentColor;border-radius:2px;padding:0 5px;margin-left:6px;vertical-align:2px;font-family:var(--body);white-space:nowrap}
+#presets button.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.diff{font-size:12px;border:1px solid currentColor;border-radius:4px;padding:0 4px;margin-left:6px;vertical-align:2px;font-family:var(--body);white-space:nowrap}
 
 /* 직인 */
 #stampLayer{position:absolute;inset:0;z-index:7;pointer-events:none;overflow:hidden}
 .stampMark{position:absolute;width:84px;height:84px;margin:-42px 0 0 -42px;border:4px solid var(--stamp);border-radius:50%;color:var(--stamp);
-  display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:700;font-synthesis:none;font-size:27px;transform:rotate(-12deg);background:rgba(255,255,255,.5);box-shadow:inset 0 0 0 2px #fff,inset 0 0 0 4px var(--stamp);
+  display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:700;font-synthesis:none;font-size:24px;transform:rotate(-12deg);background:rgba(255,255,255,.5);box-shadow:inset 0 0 0 2px #fff,inset 0 0 0 4px var(--stamp);
   animation:stamp .75s cubic-bezier(.2,.9,.3,1) forwards}
 .stampMark.fail{color:#47524A;border-color:#47524A;box-shadow:inset 0 0 0 2px #fff,inset 0 0 0 4px #47524A}
-.stampMark.long{width:112px;height:112px;margin:-56px 0 0 -56px;font-size:23px;line-height:1.05;text-align:center;padding:10px}
+.stampMark.long{width:112px;height:112px;margin:-56px 0 0 -56px;font-size:24px;line-height:1.05;text-align:center;padding:10px}
 @keyframes stamp{0%{transform:scale(2.6) rotate(-4deg);opacity:0}24%{transform:scale(1) rotate(-12deg);opacity:1}78%{transform:scale(1) rotate(-12deg);opacity:1}100%{transform:scale(1) rotate(-12deg);opacity:0}}
 
 /* 전면 카드 */
 #over{position:absolute;inset:0;z-index:20;background:rgba(23,35,28,.55);display:flex;align-items:center;justify-content:center;padding:16px}
 #card{background:var(--sheet);border:2px solid var(--ink);border-radius:4px;max-width:420px;width:100%;padding:20px;max-height:90dvh;overflow:auto;text-align:center}
-#card .seal{width:112px;height:112px;margin:2px auto 12px;border:5px solid var(--stamp);border-radius:50%;color:var(--stamp);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:700;font-synthesis:none;font-size:26px;line-height:1.05;transform:rotate(-9deg);box-shadow:inset 0 0 0 3px #fff,inset 0 0 0 5px var(--stamp);padding:8px}
+#card .seal{width:112px;height:112px;margin:2px auto 12px;border:5px solid var(--stamp);border-radius:50%;color:var(--stamp);display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:700;font-synthesis:none;font-size:24px;line-height:1.05;transform:rotate(-9deg);box-shadow:inset 0 0 0 3px #fff,inset 0 0 0 5px var(--stamp);padding:8px}
 #card .seal.lose{color:#47524A;border-color:#47524A;box-shadow:inset 0 0 0 3px #fff,inset 0 0 0 5px #47524A}
-#card h2{font-family:var(--display);font-weight:700;font-synthesis:none;font-size:26px;margin:0}
+#card h2{font-family:var(--display);font-weight:700;font-synthesis:none;font-size:24px;margin:0}
 #card p{margin:8px 0 0;line-height:1.55}
-#card .acts{margin-top:14px}
-#shareText{width:100%;height:84px;margin-top:10px;font-size:13.5px;border:1px solid var(--line);border-radius:3px;padding:8px;resize:none;background:#fff}
+#card .acts{margin-top:16px}
+#shareText{width:100%;height:84px;margin-top:10px;font-size:14px;border:1px solid var(--line);border-radius:4px;padding:8px;resize:none;background:#fff}
 
 @media (min-width:900px),(orientation:landscape) and (min-width:560px){
   #bottom{left:auto;top:0;width:var(--col);border-left:2px solid var(--ink);background:var(--paper);justify-content:flex-end}
   #sheet{flex:1;max-height:none;border-top:0;padding-top:16px}
+  #todo{order:-1;border-top:0;border-bottom:2px solid var(--ink)}
   #hud{right:var(--col)}
   #pick{position:absolute;right:0;top:0;bottom:0;width:var(--col);max-height:none;border-top:0;border-left:2px solid var(--ink);margin:0}
   #presets{grid-template-columns:1fr 1fr;overflow:visible}
@@ -233,7 +266,7 @@ details.diplo .acts{margin-top:2px}
   <canvas id="map" aria-label="서울 행정동 지도. 동을 누르면 정보가 열립니다."></canvas>
   <div id="stampLayer"></div>
   <div id="rpBlock" hidden></div>
-  <div id="rpBar" hidden role="status" aria-live="polite"><span id="rpLabel">상대 턴</span><button id="rpFast" type="button">빠르게</button><button id="rpSkip" type="button">건너뛰기</button></div>
+  <div id="rpTalk" hidden></div><div id="rpBar" hidden role="status" aria-live="polite"><span id="rpLabel">상대 턴</span><button id="rpFast" type="button">빠르게</button><button id="rpSkip" type="button">건너뛰기</button></div>
   <div id="mapBtns" hidden><button id="toCap" type="button">본거지</button><button id="toAll" type="button">서울 전체</button></div>
   <div id="legend" hidden><span id="legendName"></span><span>낮음</span><span class="bar"></span><span>높음</span></div>
   <header id="hud" hidden>
@@ -247,6 +280,7 @@ details.diplo .acts{margin-top:2px}
   </header>
   <div id="bottom" hidden>
     <section id="sheet" hidden aria-live="polite"></section>
+    <button id="todo" type="button" hidden></button>
     <button id="govBar" type="button" hidden></button>
     <button id="offerBar" type="button" hidden></button>
     <button id="evBar" type="button" hidden></button>
@@ -328,7 +362,7 @@ details.diplo .acts{margin-top:2px}
 var Engine = (function () {
   'use strict';
   var C = {
-    WIN_POP: 0.6,
+    WIN_POP: 0.6, COAL_POP: 0.45, ELECT_WAIT: 3,
     GRACE: 8,            // 처음 몇 달은 AI가 플레이어를 건드리지 않음
     COST: [25, 50, 90, 150, 240],
     RECRUIT: 1.2,        // 예산 1억 = 1.2명 (고정가)
@@ -357,6 +391,32 @@ var Engine = (function () {
     rich: { word: '돈이 많음', tries: 0, rec: 0.7, dev: 0.35, money: 1.25 },
     talk: { word: '협상에 잘 응함', tries: -1, rec: 0.75, dev: 0.35, money: 1, deal: 0.7 }
   };
+  // 정책 카드: 승진할 때와 6달마다 3장 중 1장. 한 판에 같은 카드는 한 번
+  var CARDS = {
+    redev: { n: '재개발 특구', e: '개발비 −30%. 대신 개발한 동 민심 −5', tag: '개발' },
+    patrol: { n: '자율방범대', e: '우리 동 방어 +20%', tag: '방어' },
+    fort: { n: '철벽 본거지', e: '본거지 방어 +60%, 본거지 옆 우리 동 방어 +20%', tag: '방어' },
+    shuttle: { n: '출근 셔틀', e: '강·바다 건너는 공격의 불이익이 사라짐', tag: '공격', need: 'water' },
+    express: { n: '급행 노선', e: '지하철 기습 거리 +40%, 기습 전력 +15%', tag: '공격', need: 'sub' },
+    elite: { n: '정예 기동대', e: '모든 공격 전력 +12%', tag: '공격' },
+    market: { n: '상인회 장악', e: '오피스·번화가·상권 동 세수 +25%', tag: '돈' },
+    coupon: { n: '지역화폐', e: '세수 +10%', tag: '돈' },
+    saving: { n: '관리비 절감', e: '관리비 −20%', tag: '돈' },
+    bond: { n: '주민 채권', e: '지금 바로 월 세수 4달치. 대신 관리비 +10%', tag: '돈' },
+    mom: { n: '부녀회 연대', e: '주택가·대단지·주거 동 동원 +25%', tag: '사람' },
+    hire: { n: '공무원 특채', e: '같은 돈으로 모집 인원 +25%', tag: '사람' },
+    youth: { n: '청년 동원령', e: '동원 +15%. 대신 매달 우리 동 민심 −1', tag: '사람' },
+    festival: { n: '동네 축제', e: '매달 우리 동 민심 +3', tag: '민심' },
+    settle: { n: '빠른 정착', e: '새로 얻은 동이 두 배 빨리 정착', tag: '민심' },
+    talk: { n: '설득의 달인', e: '독립 동 설득 비용 −30%', tag: '외교' },
+    diplo: { n: '외교 특보', e: '불가침 비용 −40%. 우리 세력이 2배만 돼도 통합에 응함', tag: '외교' },
+    paper: { n: '결재 간소화', e: '한 달 결재 +1건', tag: '행정' },
+    intel: { n: '정보망', e: '모든 지역의 안개가 걷힘', tag: '행정' }
+  };
+  function hasCard(s, k) { return !!(s.cards && s.cards.indexOf(k) >= 0); }
+  // 세력 회장: 이름과 얼굴(화면에서 그림)의 씨앗
+  var SUR = ['김', '이', '박', '최', '정', '강', '조', '윤', '장', '임', '한', '오', '서', '신', '권', '황', '안', '송', '류', '홍'];
+  var GIV = ['덕배', '순자', '영수', '말순', '춘자', '상철', '미숙', '용팔', '복남', '정자', '만수', '옥자', '기철', '금순', '동팔', '영자', '봉구', '경숙', '칠성', '점례', '갑수', '명자', '태식', '두리'];
   var GROUP_TRAIT = { '조기축구회': 'fight', '청년회': 'fight', '방범대': 'fight', '자율방재단': 'fight', '학부모회': 'build', '입주자대표회의': 'build', '반상회': 'build', '노인회': 'build', '상인회': 'rich', '번영회': 'rich', '통장협의회': 'talk', '부녀회': 'talk', '산악회': 'talk', '배드민턴클럽': 'talk', '테니스동호회': 'talk' };
   // 시작 동 유형별 대표 능력 (시작 동 유형에만 붙고 한 판 내내 유지)
   // 개발 단계마다 이름 붙은 시설. 3단계·5단계에는 주변까지 미치는 효과가 있다.
@@ -556,7 +616,8 @@ var Engine = (function () {
       f: [], ap: 2, rank: 0, log: [], last: [],
       stat: { took: 0, lost: 0, sent: 0, home: 0, built: 0, merged: 0, biggest: 0, talked: 0, raid: 0, bridge: 0, guop: 0, events: 0 },
       ev: null, evUsed: [], nextEv: 4 + Math.floor((seed >>> 3) % 3), rival: -1, rivalAt: 0,
-      weakAt: -9, gov: { open: null, sites: {}, nextAt: 6, idx: 0 }, abil: abilityOf(data.d[start].type), scoutAt: {}, vote: null, express: -99, rallyAt: -99, stable: {}, exprProj: false, rivalPlan: null, awayLate: 0
+      weakAt: -9, gov: { open: null, sites: {}, nextAt: 6, idx: 0 }, abil: abilityOf(data.d[start].type), scoutAt: {}, vote: null, express: -99, rallyAt: -99, stable: {}, exprProj: false, rivalPlan: null, awayLate: 0,
+      cards: [], cardOffer: null, cardQ: 0, cardNext: 6, coal: null, elect: null
     };
     var me = { id: 0, name: officeOf(data.d[start].n), cap: start, money: Math.max(60, Math.round(30 + data.d[start].E * 2)), troops: Math.max(230, Math.round(130 + data.d[start].P * 1.9)), away: 0, ai: false, alive: true, c: 0, pact: {}, grudge: 0 };
     s.f.push(me);
@@ -586,7 +647,7 @@ var Engine = (function () {
     s.f.forEach(function (x) { if (x.alive) used[x.grp] = (used[x.grp] || 0) + 1; });
     var g = pick(s, C.GROUPS);
     var id = s.f.length;
-    s.f.push({ id: id, name: stem(D.d[cap].n) + ' ' + g, grp: g, cap: cap, money: 50, troops: troops, away: 0, ai: true, alive: true, c: id, grudge: 0, tookMine: 0, lostAt: -9 });
+    s.f.push({ id: id, name: stem(D.d[cap].n) + ' ' + g, grp: g, cap: cap, money: 50, troops: troops, away: 0, ai: true, alive: true, c: id, grudge: 0, tookMine: 0, lostAt: -9, boss: { nm: pick(s, SUR) + pick(s, GIV), face: Math.floor(rnd(s) * 1e6) } });
     s.owner[cap] = id;
     return id;
   }
@@ -601,7 +662,7 @@ var Engine = (function () {
   function lv(s, i, t) { return s.dev[i * 4 + t]; }
   function mood(s, i) { return 0.5 + 0.5 * s.min[i] / 100; }
   // 설득·투표·통합으로 들어온 동: 첫 달 50%에서 매달 +15%p (주거·치안 단계마다 +5%p 더)
-  function settleRate(s, i) { return 0.15 + 0.05 * (lv(s, i, 2) + lv(s, i, 3)); }
+  function settleRate(s, i) { return (0.15 + 0.05 * (lv(s, i, 2) + lv(s, i, 3))) * (s.owner[i] === 0 && hasCard(s, 'settle') ? 2 : 1); }
   function settleF(s, i) {
     if (s.owner[i] !== 0 || !s.settle || s.settle[i] === undefined) return 1;
     var m = Math.max(0, s.month - s.settle[i] - 1);
@@ -705,6 +766,7 @@ var Engine = (function () {
     if (f >= 0 && s.f[f].cap === i) v *= 1.3;
     v *= settleF(s, i);
     if (fullMap && fullMap[d.g]) v *= 1 + D.gu[d.g].f / 100;
+    if (f === 0 && hasCard(s, 'market') && (d.type === 'office' || d.type === 'busy' || hasRole(i, '상권'))) v *= 1.25;
     return v;
   }
   function draftOf(s, i) {
@@ -715,6 +777,7 @@ var Engine = (function () {
     v *= settleF(s, i);
     var gs = govDone(s, i); if (gs && gs.k === 'hospital') v *= 1.15;
     if (f === 0 && comboOn(s, 'jj', i)) v *= 1.2;
+    if (f === 0 && hasCard(s, 'mom') && (d.type === 'home' || d.type === 'town' || hasRole(i, '주거'))) v *= 1.25;
     return v;
   }
   function fullMapOf(s, fid, list) {
@@ -762,6 +825,11 @@ var Engine = (function () {
     });
     var ne = nEff(list), up = upkeep(ne);
     draft *= drafted(ne);
+    if (fid === 0) {
+      if (hasCard(s, 'coupon')) tax *= 1.1;
+      if (hasCard(s, 'youth')) draft *= 1.15;
+      up *= (hasCard(s, 'saving') ? 0.8 : 1) * (hasCard(s, 'bond') ? 1.1 : 1);
+    }
     var aidTax = 0, aidDraft = 0;
     if (fid === 0 && list.length && list.length <= 3) {   // 약소 동 지원금
       aidTax = Math.max(0, 16 - tax); aidDraft = Math.max(0, 12 - draft);
@@ -776,6 +844,10 @@ var Engine = (function () {
     if (o >= 0) {
       var isCap = s.f[o].cap === i;
       if (isCap) base *= 1.35 * (o === 0 ? 1 : 1 + Math.min(1.2, dongsOf(s, o).length * 0.06));   // 큰 세력일수록 본거지가 단단함
+      if (o === 0) {
+        if (hasCard(s, 'patrol')) base *= 1.2;
+        if (hasCard(s, 'fort')) base *= isCap ? 1.6 : D.d[s.f[0].cap].a.indexOf(i) >= 0 ? 1.2 : 1;
+      }
       var alert = o === 0 && !isCap && s.rivalPlan && s.rivalPlan.t === i;   // 예고된 동은 주민들이 대비해 대기 인원을 더 받음
       share = o === 0 ? Math.min(s.f[o].troops * (isCap ? 0.4 : alert ? 0.3 : 0.24), base * (alert ? 8 : 3)) : Math.min(s.f[o].troops * (isCap ? 0.4 : C.SHARE), base * C.SHARE_CAP);
     }
@@ -792,13 +864,15 @@ var Engine = (function () {
     }
     d.a.forEach(function (j) {
       if (s.owner[j] !== fid) return;
-      var free = lv(s, j, 1) >= 2;
+      var free = lv(s, j, 1) >= 2 || (fid === 0 && hasCard(s, 'shuttle'));
       if (d._river[j]) consider(j, free ? 'bridgeOk' : 'bridge', free ? 0 : (TYPES[D.d[j].type].bridge ? -0.15 : -0.3));
       else consider(j, 'land', 0);
     });
     var tOwner = s.owner[t];
-    var exp = fid === 0 && s.express === s.month, net = fid === 0 && s.exprProj ? SUBWAY7 : SUBWAY;
-    if (d.sub > 0 && !(tOwner >= 0 && s.f[tOwner].cap === t)) net[t].forEach(function (j) { if (s.owner[j] === fid) { var tr = fid === 0 && comboOn(s, 'tr', j); consider(j, 'subway', (TYPES[D.d[j].type].subway || tr ? 0 : -0.2) + (exp ? 0.15 : 0) + (tr ? 0.1 : 0)); } });
+    var exp = fid === 0 && s.express === s.month, net = fid === 0 && (s.exprProj || hasCard(s, 'express')) ? SUBWAY7 : SUBWAY;
+    var xc = fid === 0 && hasCard(s, 'express') ? 0.15 : 0;
+    if (d.sub > 0 && !(tOwner >= 0 && s.f[tOwner].cap === t)) net[t].forEach(function (j) { if (s.owner[j] === fid) { var tr = fid === 0 && comboOn(s, 'tr', j); consider(j, 'subway', (TYPES[D.d[j].type].subway || tr ? 0 : -0.2) + (exp ? 0.15 : 0) + (tr ? 0.1 : 0) + xc); } });
+    if (best && fid === 0 && hasCard(s, 'elite')) best = { src: best.src, via: best.via, mult: best.mult + 0.12 };
     return best;
   }
   function winChance(atk, def) {
@@ -983,7 +1057,7 @@ var Engine = (function () {
     return { tax: t1 - t0, draft: (d1 - d0) * drafted(nEff(list)) };
   }
   function collapseText(c) { return c.name + ' 본거지 함락.' + (c.joined ? ' ' + c.joined + '개 동이 우리에게 넘어왔습니다.' : ' 남은 동들은 독립했습니다.'); }
-  function devCost(s, i, t) { var l = lv(s, i, t); if (l >= 5) return null; return t === 0 && s.owner[i] === 0 && comboOn(s, 'mk', i) ? Math.round(C.COST[l] * 0.7) : C.COST[l]; }
+  function devCost(s, i, t) { var l = lv(s, i, t); if (l >= 5) return null; var c = t === 0 && s.owner[i] === 0 && comboOn(s, 'mk', i) ? C.COST[l] * 0.7 : C.COST[l]; if (s.owner[i] === 0 && hasCard(s, 'redev')) c *= 0.7; return Math.round(c); }
   function develop(s, i, t) {
     if (s.owner[i] !== 0) return { err: '우리 동이 아닙니다.' };
     var c = devCost(s, i, t);
@@ -992,17 +1066,18 @@ var Engine = (function () {
     s.f[0].money -= c;
     s.dev[i * 4 + t]++;
     s.stat.built++;
+    if (hasCard(s, 'redev')) s.min[i] = Math.max(10, s.min[i] - 5);
     return { ok: true };
   }
   function recruit(s, money) {
     money = Math.min(Math.floor(money), Math.floor(s.f[0].money));
     if (money <= 0) return { err: '예산이 없습니다.' };
     s.f[0].money -= money;
-    var n = Math.round(money * C.RECRUIT);
+    var n = Math.round(money * C.RECRUIT * (hasCard(s, 'hire') ? 1.25 : 1));
     s.f[0].troops += n;
     return { ok: true, n: n };
   }
-  function persuadeCost(s, i) { return Math.round(D.d[i].base * 0.65 * (1 + 0.35 * lv(s, i, 3))); }
+  function persuadeCost(s, i) { return Math.round(D.d[i].base * 0.65 * (1 + 0.35 * lv(s, i, 3)) * (hasCard(s, 'talk') ? 0.7 : 1)); }
   function persuade(s, i) {
     if (s.owner[i] !== -1) return { err: '독립 동만 설득할 수 있습니다.' };
     var r = route(s, 0, i);
@@ -1018,12 +1093,13 @@ var Engine = (function () {
     return { ok: true };
   }
   function dealX(s, fid) { return traitOf(s, fid).deal || 1; }
-  function pactCost(s, fid) { return Math.round((20 + dongsOf(s, fid).length * 5) * dealX(s, fid)); }
+  function pactCost(s, fid) { return Math.round((20 + dongsOf(s, fid).length * 5) * dealX(s, fid) * (hasCard(s, 'diplo') ? 0.6 : 1)); }
   function grudgeText(s, f) { return (f.grudgeWhy === 'scout' ? '회원을 빼 가서 관계가 나빠졌습니다. 만나 주지 않습니다. ' : '최근에 공격해서 만나 주지 않습니다. ') + (f.grudge - s.month) + '달 뒤 다시 오세요.'; }
   function pactCheck(s, fid) {
     var f = s.f[fid];
     if (!f || !f.alive) return { ok: false, why: '사라진 세력입니다.' };
     if (s.f[0].pact && s.f[0].pact[fid] > s.month) return { ok: false, why: '이미 협정 중입니다.' };
+    if (inCoal(s, fid)) return { ok: false, why: '반동장 연합에 들어가 있어 만나 주지 않습니다.' };
     if (f.grudge > s.month) return { ok: false, why: grudgeText(s, f) };
     return { ok: true };
   }
@@ -1049,7 +1125,9 @@ var Engine = (function () {
   function mergeCheck(s, fid) {
     var f = s.f[fid];
     if (!f || !f.alive) return { ok: false, why: '사라진 세력입니다.' };
-    if (power(s, 0) < power(s, fid) * 3) return { ok: false, why: '우리 세력이 3배는 돼야 응합니다.' };
+    var mx = hasCard(s, 'diplo') ? 2 : 3;
+    if (power(s, 0) < power(s, fid) * mx) return { ok: false, why: '우리 세력이 ' + mx + '배는 돼야 응합니다.' };
+    if (s.coal && s.coal.m.indexOf(fid) >= 0) return { ok: false, why: '반동장 연합에 들어가 있어 만나 주지 않습니다.' };
     if (f.grudge > s.month) return { ok: false, why: grudgeText(s, f) };
     return { ok: true };
   }
@@ -1602,6 +1680,9 @@ var Engine = (function () {
     if (o.weakAt === undefined) o.weakAt = -9;
     if (!o.gov) o.gov = { open: null, sites: {}, nextAt: o.month + 3, idx: 0 };
     if (!o.abil) o.abil = abilityOf(D.d[o.start].type);
+    if (!o.cards) { o.cards = []; o.cardOffer = null; o.cardQ = 0; o.cardNext = o.month + 6; }
+    if (o.coal === undefined) o.coal = null; if (o.elect === undefined) o.elect = null;
+    o.f.forEach(function (f) { if (f.ai && !f.boss) f.boss = { nm: SUR[(f.id * 7) % SUR.length] + GIV[(f.id * 11 + 3) % GIV.length], face: f.id * 7919 % 1000000 }; });
     if (!o.scoutAt) o.scoutAt = {}; if (o.vote === undefined) o.vote = null; if (o.express === undefined || o.express === -1) o.express = -99; if (o.rallyAt === undefined) o.rallyAt = -99;
     if (o.gov && o.gov.sites) Object.keys(o.gov.sites).forEach(function (k) { if (o.gov.sites[k].paid === undefined) o.gov.sites[k].paid = 2; });
     if (o.offer === undefined) o.offer = null;
@@ -1616,6 +1697,63 @@ var Engine = (function () {
   }
 
   // ---- 진급 / 승리 ----
+  function cardPool(s) {
+    return Object.keys(CARDS).filter(function (k) {
+      if (hasCard(s, k)) return false;
+      var nd = CARDS[k].need;
+      if (nd === 'sub' && !D.d.some(function (d) { return d.sub > 0; })) return false;
+      if (nd === 'water' && !D.d.some(function (d) { return d.r.length; })) return false;
+      return true;
+    });
+  }
+  function offerCards(s, why) {
+    if (!s.cards) { s.cards = []; s.cardQ = 0; }
+    if (s.cardOffer) { s.cardQ = (s.cardQ || 0) + 1; return; }
+    var pool = cardPool(s), out = [];
+    while (out.length < 3 && pool.length) { var k = pool.splice(Math.floor(rnd(s) * pool.length), 1)[0]; out.push(k); }
+    if (out.length) { s.cardOffer = out; s.cardWhy = why || ''; }
+  }
+  function chooseCard(s, k) {
+    if (!s.cardOffer || s.cardOffer.indexOf(k) < 0) return { err: '고를 수 없는 카드입니다.' };
+    s.cards.push(k); s.cardOffer = null;
+    if (k === 'bond') { var e = economy(s, 0); s.f[0].money += Math.round(e.tax * 4); }
+    pushLog(s, '정책 카드 시행: ' + CARDS[k].n + '. ' + CARDS[k].e + '.', 'good');
+    if (s.cardQ > 0) { s.cardQ--; offerCards(s, s.cardWhy); }
+    return { ok: true };
+  }
+  // ---- 반동장 연합과 선거 ----
+  function coalForm(s) {
+    var m = s.f.filter(function (f) { return f.ai && f.alive && dongsOf(s, f.id).length; }).map(function (f) { return f.id; });
+    if (m.length < 2) return;
+    s.coal = { at: s.month, m: m };
+    var broke = 0;
+    m.forEach(function (id) { var f = s.f[id]; f.troops *= 1.1; if (s.f[0].pact && s.f[0].pact[id] > s.month) { delete s.f[0].pact[id]; broke++; } });
+    pushLog(s, '남은 세력 ' + m.length + '곳이 반동장 연합을 맺었습니다. 서로 싸우지 않고 우리만 노립니다.' + (broke ? ' 불가침 협정 ' + broke + '건이 깨졌습니다.' : ''), 'bad');
+  }
+  function inCoal(s, fid) { return !!(s.coal && s.coal.m.indexOf(fid) >= 0); }
+  // 예상 득표율: 우리 동은 민심에 따라 55~90%, 독립 동 25%(우리와 맞닿으면 35%), 다른 세력 동 10%(협정 중이면 20%)
+  function voteShare(s) {
+    var v = 0;
+    for (var i = 0; i < s.owner.length; i++) {
+      var o = s.owner[i], p;
+      if (o === 0) p = 0.35 + 0.55 * s.min[i] / 100;
+      else if (o === -1) p = D.d[i].a.some(function (j) { return s.owner[j] === 0; }) ? 0.35 : 0.25;
+      else p = s.f[0].pact && s.f[0].pact[o] > s.month ? 0.2 : 0.1;
+      v += D.d[i].pop * p;
+    }
+    return v / TOTALPOP;
+  }
+  function election(s) {
+    var v = voteShare(s), win = v > 0.5;
+    s.elect.res = { v: v, win: win, m: s.month };
+    if (win) {
+      s.won = true; s.rank = 3; s.promo = 3; s.stat.vote = v;
+      pushLog(s, C.RANKS[3] + ' 선거에서 득표율 ' + (v * 100).toFixed(1) + '%로 당선됐습니다. ' + C.RANKS[3] + '에 취임합니다.', 'rank');
+    } else {
+      s.elect = { at: s.month + 6, n: (s.elect.n || 1) + 1, last: v, res: s.elect.res };
+      pushLog(s, '선거에서 떨어졌습니다. 득표율 ' + (v * 100).toFixed(1) + '%. 6달 뒤 재선거입니다. 우리 동 민심을 올리고 땅을 더 넓히세요.', 'bad');
+    }
+  }
   function guHeld(s, fid) {
     var c = 0;
     GUDONGS.forEach(function (list) {
@@ -1635,7 +1773,7 @@ var Engine = (function () {
   }
   function maxAP(s) {
     var n = dongsOf(s, 0).length;
-    return [2, 3, 5, 5][Math.max(s.rank, rankNow(s))] + Math.min(10, Math.floor(n / 15));
+    return [2, 3, 5, 5][Math.max(s.rank, rankNow(s))] + Math.min(10, Math.floor(n / 15)) + (hasCard(s, 'paper') ? 1 : 0);
   }
   function afterChange(s) {
     if (s.owner && s.f && s.f[0]) checkCombos(s);
@@ -1645,14 +1783,17 @@ var Engine = (function () {
       s.promo = r;
       if (r === 1) s.stat.r1 = s.month;
       if (r === 2) { s.stat.r2 = s.month; if (s.stat.r1 === undefined) s.stat.r1 = s.month; }
+      offerCards(s, 'rank');
       var extra = maxAP(s) - s.ap;
       pushLog(s, (r === 3 ? C.RANKS[3] : r === 1 && C.KIND !== 'metro' ? C.RANKS[1] : C.RANKS[r]) + '에 올랐습니다.', 'rank');
       if (s.rival >= 0 && s.f[s.rival].alive) pushLog(s, s.f[s.rival].name + ': ' + (r === 1 ? '벌써 ' + J(C.RANKS[1], '이라고요', '라고요') + '? 우리 회장님이 가만 안 있습니다.' : J(C.RANKS[2], '이요', '요') + '? 우리 단톡방에서는 아직 동장님입니다.'), 'riv');
     }
     s.stat.biggest = Math.max(s.stat.biggest, dongsOf(s, 0).length);
-    if (!s.won && popShare(s, 0) >= C.WIN_POP) {
-      s.won = true; s.rank = 3; s.promo = 3;
-      pushLog(s, CITY.name + ' 인구의 60%를 장악했습니다. ' + C.RANKS[3] + '에 취임합니다.', 'rank');
+    var sh = popShare(s, 0);
+    if (!s.won && !s.coal && sh >= C.COAL_POP && s.month > 0) coalForm(s);
+    if (!s.won && !s.elect && sh >= C.WIN_POP) {
+      s.elect = { at: s.month + C.ELECT_WAIT, n: 1 };
+      pushLog(s, CITY.name + ' 인구의 60%를 장악했습니다. ' + C.ELECT_WAIT + '달 뒤 ' + C.RANKS[3] + ' 선거입니다. 우리 동 민심이 표가 됩니다.', 'rank');
     }
     if (s.over && !s.endLogged) { s.endLogged = 1; pushLog(s, '마지막 동까지 빼앗겼습니다.', 'bad'); }
   }
@@ -1696,11 +1837,11 @@ var Engine = (function () {
       var wb2 = weakBorder(s, f.id);
       if (wb2 && f.troops * 0.8 >= wb2.need * 1.3) { opp = true; s.rivalHitAt = s.month; tries += 1; pushLog(s, J(f.name, '이', '가') + ' 우리 인원이 비어 있는 틈을 노립니다.', 'riv'); }
     }
-    var hunt = pounce || opp;
+    var hunt = pounce || opp || (inCoal(s, f.id) && touching);
     // 본거지가 위협받으면 확장을 멈추고 지킨다
     var capDef = defense(s, f.cap).total, threat = 0;
     D.d[f.cap].a.forEach(function (j) { var o = s.owner[j]; if (o >= 0 && o !== f.id) threat = Math.max(threat, s.f[o].troops + (o === 0 ? s.f[o].away || 0 : 0)); });
-    if (threat * 0.8 > capDef) { f.troops += Math.max(0, f.money) * C.RECRUIT * 0.5; f.money *= 0.5; tries = 0; }
+    if (threat * 0.8 > capDef) { f.troops += Math.max(0, f.money) * C.RECRUIT * 0.5; f.money *= 0.5; tries = inCoal(s, f.id) && touching ? 1 : 0; }   // 연합은 겁먹지 않고 계속 침
     if (f.lostAt + 1 >= s.month) tries = Math.min(tries, 1);
     // 숙적 작전: 예고한 동을 친다. 본거지가 위협받아 못 나오면 미룸
     if (tries <= 0 && s.rivalPlan && s.rivalPlan.f === f.id && s.owner[s.rivalPlan.t] === 0) {
@@ -1740,6 +1881,7 @@ var Engine = (function () {
           if (seen[t2] || s.owner[t2] === f.id) continue;
           seen[t2] = 1;
           var o = s.owner[t2];
+          if (o > 0 && inCoal(s, f.id) && inCoal(s, o)) continue;
           if (o === 0) {
             if (s.month <= C.GRACE) continue;
             if (s.f[0].pact && s.f[0].pact[f.id] > s.month) continue;
@@ -1808,6 +1950,7 @@ var Engine = (function () {
         if (gi && gi.k === 'hospital') heal += 3;
         else if (D.d[i].a.some(function (j) { var gj = govDone(s, j); return gj && gj.k === 'hospital' && s.owner[j] === s.owner[i] && s.owner[i] >= 0; })) heal += 3;
       }
+      if (s.owner[i] === 0) heal += (hasCard(s, 'festival') ? 3 : 0) - (hasCard(s, 'youth') ? 1 : 0);
       s.min[i] = Math.min(gi && gi.k === 'plant' && !gi.pact ? 70 : 100, s.min[i] + heal);
     }
     RP = { start: s.owner.slice(), ev: [] };
@@ -1857,6 +2000,8 @@ var Engine = (function () {
     if (RP) RP.done = true;
     if (!s.over) { tickEvents(s); tickRival(s); tickOffer(s); }
     afterChange(s);
+    if (!s.over && s.elect && !s.won && s.month >= s.elect.at) election(s);
+    if (!s.over && !s.won && s.month >= (s.cardNext || 6)) { s.cardNext = s.month + 6; offerCards(s, 'half'); }
     s.ap = maxAP(s);
     return s.last;
   }
@@ -1868,7 +2013,7 @@ var Engine = (function () {
   }
 
   return {
-    C: C, setData: setData, setCity: setCity, city: function () { return CITY; }, replay: function () { return RP; }, headOf: headOf, stem: stem, create: create, preview: preview, needFor: needFor, attack: attack, develop: develop, devCost: devCost,
+    C: C, setData: setData, setCity: setCity, city: function () { return CITY; }, replay: function () { return RP; }, CARDS: CARDS, hasCard: hasCard, chooseCard: chooseCard, offerCards: offerCards, voteShare: voteShare, inCoal: inCoal, SUR: SUR, GIV: GIV, headOf: headOf, stem: stem, create: create, preview: preview, needFor: needFor, attack: attack, develop: develop, devCost: devCost,
     recruit: recruit, persuade: persuade, persuadeCost: persuadeCost, pact: pact, pactCost: pactCost, pactCheck: pactCheck, breakPact: breakPact,
     merge: merge, mergeCost: mergeCost, mergeCheck: mergeCheck, endTurn: endTurn, economy: economy, defense: defense, route: route,
     dongsOf: dongsOf, guHeld: guHeld, popShare: popShare, rankNow: rankNow, maxAP: maxAP, factionList: factionList, lv: lv, taxOf: taxOf, draftOf: draftOf, drafted: drafted, nEff: nEff,
@@ -1924,7 +2069,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
   function isWide() { return WIDE.matches; }
   var lastAct = 0, recDong = null, guReserve = 0.25, blinkTimer = 0;
   function guard(fn) { return function () { var n = Date.now(); if (n - lastAct < 300) return; lastAct = n; fn.apply(this, arguments); }; }
-  var lastSheetKey = '', guSel = null, S = null, sel = null, pickSel = null, lens = 0, reach = {}, flash = {}, flashTimer = 0, errMsg = '', sendN = 0, sheetMode = 'none', confirmNew = false;
+  var lastSheetKey = '', peek = false, guSel = null, S = null, sel = null, pickSel = null, lens = 0, reach = {}, flash = {}, flashTimer = 0, errMsg = '', sendN = 0, sheetMode = 'none', confirmNew = false;
   var LENS = ['세력', '인구', '경제', '인프라', '생활'], LKEY = [null, 'P', 'E', 'I', 'L'];
   var PAL = ['#D4321F', '#2F6DB5', '#E2A11F', '#2F9B78', '#8257B8', '#CC5C98', '#6F9426', '#1C9FB8', '#B0713A', '#5468D4', '#74889A', '#8F3F73', '#3F7A55', '#D9812F', '#A5952E', '#3D5A80', '#56B096', '#B57FD0', '#8A6D3B', '#4F9BD9'];
   var REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -2092,7 +2237,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
     });
     return S.month === 0 && S.stat.took === 0 && fresh.length === S.seenGu.filter(Boolean).length ? [] : fresh;
   }
-  function fogged(i) { return !!(S && !lens && S.seenGu && !S.seenGu[D[i].g] && !S.won); }
+  function fogged(i) { return !!(S && !lens && S.seenGu && !S.seenGu[D[i].g] && !S.won && !(S.cards && S.cards.indexOf('intel') >= 0)); }
   function revealNews(gs) {
     if (!gs.length) return '';
     return gs.map(function (g) {
@@ -2121,7 +2266,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
   }
   function frame(now) {
     needs = false;
-    if (S) { var mb = $('mapBtns'), vr = viewRect(), hide = vr.h < 230 || !$('over').hidden || !!RPS; if (mb.hidden !== hide) mb.hidden = hide; if (!hide) { mb.style.top = (vr.y + 8) + 'px'; mb.style.right = (W - vr.x - vr.w + 8) + 'px'; } var rb = $('rpBar'); if (RPS) { rb.style.top = (vr.y + 8) + 'px'; rb.style.left = (vr.x + 8) + 'px'; rb.style.right = (W - vr.x - vr.w + 8) + 'px'; } }
+    if (S) { var mb = $('mapBtns'), vr = viewRect(), hide = vr.h < 230 || !$('over').hidden || !!RPS; if (mb.hidden !== hide) mb.hidden = hide; if (!hide) { mb.style.top = (vr.y + 8) + 'px'; mb.style.right = (W - vr.x - vr.w + 8) + 'px'; } var rb = $('rpBar'); if (RPS) { rb.style.top = (vr.y + 8) + 'px'; rb.style.left = (vr.x + 8) + 'px'; rb.style.right = (W - vr.x - vr.w + 8) + 'px'; var tk = $('rpTalk'); tk.style.top = (vr.y + 56) + 'px'; tk.style.left = (vr.x + 8) + 'px'; tk.style.right = (W - vr.x - vr.w + 8) + 'px'; } }
     if (tween) {
       var k = Math.min(1, (now - tween.t0) / tween.dur), e = 1 - Math.pow(1 - k, 3);
       cam.s = tween.a.s + (tween.b.s - tween.a.s) * e;
@@ -2247,6 +2392,9 @@ if (typeof module !== 'undefined') module.exports = Engine;
     var st = RPS.cur = RPS.steps[RPS.i], e = st.e; RPS.k++;
     st.t0 = performance.now();
     rpText('상대 턴 ' + RPS.k + '/' + RPS.shown);
+    var tk = $('rpTalk');
+    if (e.k === 'atk' && e.o === 0 && e.f > 0 && bossOf(e.f)) { tk.innerHTML = bossHTML(e.f, e.win ? 'win' : 'lose', D[e.t].n); tk.hidden = false; }
+    else tk.hidden = true;
     // 우리 땅 일만 지도를 옮겨 보여 줌
     if (e.o === 0 || e.k === 'rebel') {
       var r = viewRect(), d = D[e.t], sx = d.x * cam.s + cam.x, sy = d.y * cam.s + cam.y;
@@ -2276,7 +2424,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
     if (!RPS) return;
     var R = RPS; RPS = null;
     S.owner = R.real;
-    $('rpBlock').hidden = true;
+    $('rpBlock').hidden = true; $('rpTalk').hidden = true;
     // 끝: '우리 턴'을 잠깐 보여 주고 사라짐
     var rb = $('rpBar'); rb.classList.add('end'); rb.style.right = 'auto'; rpText('우리 턴 · ' + dateOf(S.month));
     clearTimeout(rpEndTimer); rpEndTimer = setTimeout(function () { if (!RPS) { rb.hidden = true; rb.classList.remove('end'); } }, 900);
@@ -2495,7 +2643,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
     var i = dongAt(x, y);
     if (!S) { if (i !== null) choosePick(i); return; }
     if (i === null) { select(null); return; }
-    select(i);
+    select(i, true);
     var bw = Math.max(D[i].b[2] - D[i].b[0], D[i].b[3] - D[i].b[1]) * cam.s;
     if (bw < 30) requestAnimationFrame(function () { var r = viewRect(), ns = Math.min(fitS * ZMAX, cam.s * (70 / Math.max(bw, 1))); tweenTo({ s: ns, x: r.x + r.w / 2 - D[i].x * ns, y: r.y + r.h / 2 - D[i].y * ns }); });
   }
@@ -2669,11 +2817,13 @@ if (typeof module !== 'undefined') module.exports = Engine;
   function goalShort() {
     if (S.rank < 1) return R1S + ' ' + E.guStatus(S, bestGu()).need + '개 더';
     if (S.rank < 2) return R2S + ' ' + Math.max(0, R2 - E.guHeld(S, 0)) + (KIND === 'metro' ? '구' : '곳') + ' 더';
+    if (S.elect && !S.won) return '선거 ' + Math.max(0, S.elect.at - S.month) + '달 · ' + (E.voteShare(S) * 100).toFixed(0) + '%';
     return '인구 ' + (E.popShare(S, 0) * 100).toFixed(1) + '%';
   }
   function goalLong() {
     if (S.rank < 1) { var g = bestGu(); return hd(GU[g].n) + '까지 ' + E.guStatus(S, g).need + '개 ' + UNITN; }
     if (S.rank < 2) return R2S + '까지 ' + GRP + ' ' + Math.max(0, R2 - E.guHeld(S, 0)) + '곳';
+    if (S.elect && !S.won) return MAYOR + ' 선거 ' + Math.max(0, S.elect.at - S.month) + '달 뒤 · 예상 득표 ' + (E.voteShare(S) * 100).toFixed(1) + '% / 과반';
     return CNAME + ' 인구 ' + (E.popShare(S, 0) * 100).toFixed(1) + '% / 60%';
   }
   function firstWinCard(name, before, lost, back) {
@@ -2736,9 +2886,37 @@ if (typeof module !== 'undefined') module.exports = Engine;
     bar.hidden = !S.ev;
     if (S.ev) { var ve = E.eventView(S); bar.textContent = '민원 1건: ' + ve.t + ' · ' + ve.left + '달 안에 처리'; }
     syncPin();
+    syncTodo();
     renderSheet();
     dirty();
     checkOverlay();
+    $('next').innerHTML = S.ap > 0 ? '다음 달<small>결재 ' + S.ap + '건 남음</small>' : '다음 달 ▶';
+  }
+  // 지금 할 수 있는 가장 좋은 한 수: 승률 80%로 칠 수 있는 동 중 인구가 가장 큰 곳 → 없으면 설득 → 모집
+  function recommend() {
+    if (!S || S.over || S.ap <= 0) return null;
+    var me = S.f[0], mine = E.dongsOf(S, 0), seen = {}, best = null, bestP = null, max = Math.floor(me.troops);
+    mine.forEach(function (a) { D[a].a.forEach(function (j) {
+      if (seen[j] || S.owner[j] === 0 || fogged(j)) return; seen[j] = 1;
+      var o = S.owner[j]; if (o > 0 && me.pact && me.pact[o] > S.month) return;
+      var n = E.needFor(S, j, 0.8); if (!n || n > max) return;
+      var pv = E.preview(S, j, n); if (!pv.ok) return;
+      var v = D[j].pop + (D[j].work || 0) * 0.5 + (S.rivalPlan && S.rivalPlan.src === j ? 1e7 : 0);
+      if (!best || v > best.v) best = { t: j, v: v, n: n, pct: pv.pct };
+      if (o === -1 && pv.route && pv.route.via !== 'subway') { var c = E.persuadeCost(S, j); if (c <= me.money && (!bestP || D[j].pop > bestP.v)) bestP = { t: j, v: D[j].pop, c: c }; }
+    }); });
+    if (!best && !bestP) {
+      Object.keys(reach || {}).some(function (k) { var j = +k; if (S.owner[j] === 0 || fogged(j) || S.owner[j] > 0) return false; var pv = E.preview(S, j, 1); if (!pv.route || pv.route.via === 'subway') return false; var c = E.persuadeCost(S, j); if (c <= me.money) { bestP = { t: j, v: D[j].pop, c: c }; return true; } return false; });
+    }
+    if (best) return { k: 'atk', t: best.t, txt: '추천 · ' + D[best.t].n + ' 치기 ' + Math.round(best.pct * 100) + '%' };
+    if (bestP) return { k: 'per', t: bestP.t, txt: '추천 · ' + D[bestP.t].n + ' 설득 ' + money(bestP.c) };
+    if (me.money >= 100 && max < 200) return { k: 'rec', txt: '추천 · 인원 모집 (' + money(me.money) + ' 있음)' };
+    return null;
+  }
+  function syncTodo() {
+    var el = $('todo'), r = recommend();
+    el.hidden = !r || S.won || S.over || (sel !== null && r.t === sel);
+    if (!el.hidden) { el.innerHTML = '<span>' + esc(tx(r.txt)) + '</span><b>›</b>'; el.dataset.k = r.k; el.dataset.t = r.t === undefined ? '' : r.t; }
   }
   // 이번 달 잃은 동은 소식 줄 옆에 고정 (다른 소식이 덮어도 남음). 누르면 그 동으로, 여러 건이면 전투 결과 다시 보기
   function lostNow() { var mk = S && S.marks && S.marks.m === S.month ? S.marks : null; return mk ? mk.list.filter(function (x) { return x.k === 'lost' && D[x.t]; }) : []; }
@@ -2771,8 +2949,9 @@ if (typeof module !== 'undefined') module.exports = Engine;
   }
 
   // ---- 시트 ----
-  function select(i) {
+  function select(i, quick) {
     if (i !== sel) { diploOpen = false; devOpen = {}; }
+    peek = !!quick && i !== null && !isWide();
     sel = i; errMsg = '';
     sheetMode = i === null ? 'none' : 'dong';
     $('sheet').scrollTop = 0;
@@ -2784,12 +2963,19 @@ if (typeof module !== 'undefined') module.exports = Engine;
     dirty();
     if (i !== null) requestAnimationFrame(function () { ensureVisible(i); });
   }
+  $('todo').addEventListener('click', function () {
+    var el = $('todo'); if (el.dataset.k === 'rec') { sel = null; sheetMode = 'realm'; renderSheet(); return; }
+    var t = +el.dataset.t; select(t, true); requestAnimationFrame(function () { ensureVisible(t); });
+  });
   function closeSheet() { sel = null; sheetMode = 'none'; errMsg = ''; confirmNew = false; renderSheet(); dirty(); }
   function renderSheet() {
     var sh = $('sheet'), key = sheetMode + ':' + sel + ':' + guSel;
+    if (S) syncTodo();
     if (key !== lastSheetKey) { lastSheetKey = key; requestAnimationFrame(function () { sh.scrollTop = 0; }); }
-    if (sheetMode === 'none') { sh.hidden = true; if (isWide()) idleColumn(); return; }
+    if (sheetMode === 'none') { sh.hidden = true; sh.classList.remove('peek'); if (isWide()) idleColumn(); return; }
     sh.hidden = false;
+    if (sheetMode !== 'dong' || isWide()) peek = false;
+    sh.classList.toggle('peek', peek);
     if (sheetMode === 'dong') { if (sel === null) { sh.hidden = true; return; } if (S.owner[sel] === 0) ownSheet(sh); else enemySheet(sh); }
     else if (sheetMode === 'realm') realmSheet(sh);
     else if (sheetMode === 'log') logSheet(sh);
@@ -2800,7 +2986,9 @@ if (typeof module !== 'undefined') module.exports = Engine;
     else if (sheetMode === 'offer') offerSheet(sh);
     var x = sh.querySelector('.x');
     if (x) x.addEventListener('click', closeSheet);
+    bind('qMore', function () { peek = false; renderSheet(); sfx('page'); });
   }
+  function moreBtn(label) { return '<button class="btn qmore" id="qMore" type="button">' + (label || '자세히') + ' ▾</button>'; }
   function idleColumn() {
     var sh = $('sheet');
     sh.hidden = false;
@@ -2863,12 +3051,36 @@ if (typeof module !== 'undefined') module.exports = Engine;
     }
     var sub = GU[d.g].n + ' · ';
     if (o === -1) sub += '독립 동';
-    else sub += '<span class="dot" style="background:' + fCol(o) + '"></span>' + esc(S.f[o].name) + (S.f[o].cap === sel ? ' 본거지' : '') + (o === S.rival ? ' · 숙적' : '') + ' · ' + E.traitOf(S, o).word;
+    else sub += '<span class="dot" style="background:' + fCol(o) + '"></span>' + esc(S.f[o].name) + (S.f[o].cap === sel ? ' 본거지' : '') + (o === S.rival ? ' · 숙적' : '') + (E.inCoal(S, o) ? ' · 연합' : '') + ' · ' + E.traitOf(S, o).word;
     var max = Math.floor(me.troops);
     sendN = Math.max(max > 0 ? 1 : 0, Math.min(max, sendN));
     var p = E.preview(S, sel, sendN), pacted = o > 0 && me.pact && me.pact[o] > S.month;
-    var html = headHTML(d, sub) + typeLine(d) + govBadge(sel) + comboHTML(sel);
     var per = o === -1 && p.route && p.route.via !== 'subway', c = per ? E.persuadeCost(S, sel) : 0;
+    if (peek) {
+      // 간단 보기: 판단에 필요한 한 줄 + 바로 누를 버튼. 나머지는 '자세히'
+      var q = headHTML(d, sub) + '<div class="quick">';
+      if (!p.route) q += '<p class="qstat">' + esc(p.reason) + ' 근처 동을 먼저 차지하세요.</p><div class="qrow">' + moreBtn() + '</div>';
+      else if (pacted) q += '<p class="qstat">불가침 협정 ' + (me.pact[o] - S.month) + '달 남음 · 지금은 못 칩니다.</p><div class="qrow">' + moreBtn('협정·외교 보기') + '</div>';
+      else {
+        var cp = E.comboPreview(S, sel);
+        q += '<p class="qstat num">상대 방어 <b>' + people(p.def.total) + '</b> · ' + esc(viaText(p.route)) + (cp.length ? '<br><b class="good">' + esc(cp[0].n) + ' 완성</b> · ' + esc(cp[0].gain) : '') + '</p>';
+        q += '<div class="qrow' + (per ? ' two' : '') + '">';
+        var weak = p.ok && p.pct < 0.5;
+        q += '<button class="btn' + (weak ? '' : ' red') + '" id="atk" type="button"' + (p.ok ? '' : ' disabled') + '>쳐들어가기 <span class="pct num" id="pctV">' + Math.round(p.pct * 100) + '%</span><small>결재 1건 · <span id="atkN">' + people(sendN) + '</span> 보냄</small></button>';
+        if (per) q += '<button class="btn" id="per" type="button"' + (me.money >= c && S.ap > 0 ? '' : ' disabled') + '>돈으로 설득<small>결재 1건 · ' + money(c) + '</small></button>';
+        q += '</div>';
+        var why = p.reason ? esc(p.reason) : max < 1 ? '보낼 인원이 없습니다. 출동한 인원은 다음 달 돌아옵니다.' : S.ap <= 0 ? '이번 달 결재를 다 썼습니다. 다음 달에 치세요.' : weak ? '인원이 모자라 승률이 낮습니다. 위쪽 숫자판을 눌러 모집하거나, 출동 인원이 돌아오는 다음 달에 치세요.' : '';
+        if (why) q += '<p class="qstat warn">' + why + '</p>';
+        else if (S.stat.took === 0) q += '<p class="tip">승률 80%가 되게 인원을 맞춰 놨습니다. 인원·승률을 바꾸려면 자세히를 누르세요.</p>';
+        q += '<div class="qrow">' + moreBtn('인원 조절 · 외교 · 통계') + '</div>';
+      }
+      if (errMsg) q += '<p class="err">' + esc(errMsg) + '</p>';
+      sh.innerHTML = tx(q + '</div>');
+      bind('atk', guard(doAttack));
+      bind('per', guard(persuadeNow));
+      return;
+    }
+    var html = headHTML(d, sub) + (o > 0 ? bossHTML(o, 'meet') : '') + typeLine(d) + govBadge(sel) + comboHTML(sel);
     if (!p.route) {
       html += '<p class="why" style="margin-top:10px">' + esc(p.reason) + ' 근처 동을 먼저 차지하세요.' + (o > 0 && S.f[o].cap === sel ? ' 본거지는 지하철로 칠 수 없습니다.' : ' 역이 있는 우리 동에서 4km 안이면 지하철로 칠 수 있습니다.') + '</p>';
     } else if (pacted) {
@@ -2925,11 +3137,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
       });
     }
     bind('atk', guard(doAttack));
-    bind('per', guard(function () {
-      var t = sel, before = E.economy(S, 0), r = E.persuade(S, t);
-      act(r, true);
-      if (!r.err) { stampAt(t, true); if (!S.won && !S.firstWinShown) { firstWinCard(D[t].n, before, 0, 0); save(); } }
-    }));
+    bind('per', guard(persuadeNow));
     bind('pact', function () { act(E.pact(S, o)); });
     bind('merge', guard(function () { act(E.merge(S, o), true); }));
     bind('scout', guard(function () { var r = E.scout(S, sel); act(r); if (!r.err) setNews(S.log[0].t); }));
@@ -2937,11 +3145,16 @@ if (typeof module !== 'undefined') module.exports = Engine;
     bind('bp', function () { act(E.breakPact(S, o)); });
     bind('guLink', function () { openGu(d.g); });
   }
+  function persuadeNow() {
+    var t = sel, before = E.economy(S, 0), r = E.persuade(S, t);
+    act(r, true);
+    if (!r.err) { stampAt(t, true); if (!S.won && !S.firstWinShown) { firstWinCard(D[t].n, before, 0, 0); save(); } }
+  }
   function updateFight() {
     var p = E.preview(S, sel, sendN);
     $('pctV').textContent = Math.round(p.pct * 100) + '%';
-    $('sendV').textContent = people(sendN);
-    $('estV').innerHTML = estHTML(p);
+    if ($('sendV')) $('sendV').textContent = people(sendN);
+    if ($('estV')) $('estV').innerHTML = estHTML(p);
     var an = $('atkN'); if (an) an.textContent = people(sendN);
     var b = $('atk'); if (b) b.disabled = !p.ok;
   }
@@ -2954,7 +3167,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
     save(); sync();
   }
   function doAttack() {
-    var t = sel, mark = S.last.length, before = E.economy(S, 0), res = E.attack(S, t, sendN);
+    var t = sel, mark = S.last.length, before = E.economy(S, 0), o0 = S.owner[t], res = E.attack(S, t, sendN);
     if (res.err) { errMsg = res.err; renderSheet(); return; }
     var after = E.economy(S, 0);
     setNews(res.win ? D[t].n + ' 접수. ' + res.lost + '명 귀가, 세수 ' + signed(after.tax - before.tax, money) + '/월.' + (res.collapse ? ' ' + E.collapseText(res.collapse) : '') + (res.quick ? ' 급행으로 바로 복귀.' : '') : D[t].n + ' 공격 실패. ' + res.lost + '명 귀가.', !res.win);
@@ -2966,6 +3179,10 @@ if (typeof module !== 'undefined') module.exports = Engine;
       setNews(res.collapse.name + ' 회장이 마지막 회의를 열었습니다. 안건은 해산입니다.');
     } else stampAt(t, res.win);
     if (res.win && !S.won) firstWinCard(D[t].n, before, res.lost, res.back);
+    if (res.collapse && o0 > 0 && $('over').hidden && res.collapse.joined + res.collapse.freed >= 3) {
+      showCard('<div class="seal">해체</div><h2>' + esc(res.collapse.name) + ' 해체</h2>' + bossHTML(o0, 'fall') + '<p>' + esc(E.collapseText(res.collapse)) + '</p><div class="acts"><button class="btn red" id="cardOk" type="button">계속</button></div>');
+      bind('cardOk', function () { hideCard(); sync(); });
+    }
     save();
     sync();
   }
@@ -2985,8 +3202,27 @@ if (typeof module !== 'undefined') module.exports = Engine;
     var d = D[sel], me = S.f[0], list = E.dongsOf(S, 0), fm = E.fullMapOf(S, 0, list), dk = E.drafted(E.nEff(list));
     var def = E.defense(S, sel);
     var capt = me.cap === sel;
-    var html = headHTML(d, GU[d.g].n + ' · 우리 동' + (capt ? ' · 본거지' : '')) + typeLine(d) + govBadge(sel) + comboHTML(sel);
     var gtx = E.govTaxOf(S, sel), base = E.taxOf(S, sel, fm), nowTax = base + gtx, nowDr = E.draftOf(S, sel) * dk, nowDef = def.total;
+    if (peek) {
+      var q = headHTML(d, GU[d.g].n + ' · 우리 동' + (capt ? ' · 본거지' : '')) + '<div class="quick">';
+      q += '<p class="qstat num">월수입 <b>+' + money(nowTax) + '</b> · 동원 <b>+' + people(nowDr) + '</b> · 방어 <b>' + people(nowDef) + '</b> · 민심 <b>' + Math.round(S.min[sel]) + '</b></p>';
+      if (S.rivalPlan && S.rivalPlan.t === sel) { var pi = E.planInfo(S); q += '<p class="qstat warn"><b>' + esc(pi.name) + '</b>이(가) 다음 달 이 동을 노립니다 · ' + people(S.rivalPlan.n) + '. 대기 인원을 남겨 두면 방어가 올라갑니다.</p>'; }
+      else if (S.min[sel] < 40 && !capt) q += '<p class="qstat warn">민심 40 아래 · 독립할 수 있습니다. 치안을 올리세요.</p>';
+      var stf = E.settleF(S, sel);
+      if (stf < 1) q += '<p class="qstat">정착 중 · 세수·동원의 ' + Math.round(stf * 100) + '% · ' + E.settleLeft(S, sel) + '달 뒤 정상</p>';
+      q += '<p class="qlbl">개발 · 한 번 누르면 바로 짓습니다</p><div class="qdevs">';
+      E.C.TRACKS.forEach(function (t, k) {
+        var l = E.lv(S, sel, k), c = E.devCost(S, sel, k);
+        q += '<button class="qdev" type="button" data-k="' + k + '"' + (c !== null && me.money >= c ? '' : ' disabled') + '><i class="dd" style="background:' + DEV_COL[k] + '"></i>' + t + '<em>' + '●'.repeat(l) + '○'.repeat(5 - l) + '</em><b class="num">' + (c === null ? '완성' : money(c)) + '</b></button>';
+      });
+      q += '</div>';
+      if (errMsg) q += '<p class="err">' + esc(errMsg) + '</p>';
+      q += '<div class="qrow">' + moreBtn('효과 · 통계') + '</div></div>';
+      sh.innerHTML = tx(q);
+      bindDev(sh);
+      return;
+    }
+    var html = headHTML(d, GU[d.g].n + ' · 우리 동' + (capt ? ' · 본거지' : '')) + typeLine(d) + govBadge(sel) + comboHTML(sel);
     var one = function (v) { return (Math.round(v * 10) / 10).toLocaleString('ko-KR'); };
     html += '<div class="mini num"><div><small>월수입</small><b>+' + money(nowTax) + '</b></div><div><small>동원</small><b>+' + people(nowDr) + '</b></div><div><small>방어</small><b>' + people(nowDef) + '</b></div><div><small>민심</small><b>' + Math.round(S.min[sel]) + '</b></div></div>';
     if (gtx) html += '<p class="why num">월수입 ' + money(nowTax) + ' = 기본 ' + money(base) + (gtx > 0 ? ' + 정부 사업 ' + money(gtx) : ' − 정부 사업 부담 ' + money(-gtx)) + '</p>';
@@ -3024,7 +3260,10 @@ if (typeof module !== 'undefined') module.exports = Engine;
       var tog = function () { var k = +h.dataset.dk, box = h.parentNode.querySelector('.dmore'); devOpen[k] = !devOpen[k]; box.hidden = !devOpen[k]; h.setAttribute('aria-expanded', devOpen[k]); h.querySelector('.dtog').textContent = devOpen[k] ? '▴' : '▾'; };
       h.addEventListener('click', tog); h.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog(); } });
     });
-    Array.prototype.forEach.call(sh.querySelectorAll('.dev button'), function (b) {
+    bindDev(sh);
+  }
+  function bindDev(sh) {
+    Array.prototype.forEach.call(sh.querySelectorAll('.dev button, .qdev'), function (b) {
       b.addEventListener('click', function () { var k = +b.dataset.k, r = E.develop(S, sel, k); if (r.err) { errMsg = r.err; } else { errMsg = ''; sfx('coin'); var l = E.lv(S, sel, k); setNews(D[sel].n + ' ' + E.facName(S, sel, k, l) + (l === 1 ? ' 창설.' : ' 완공.') + (E.FAC_SP[k][l] ? ' ' + E.FAC_SP[k][l] + '.' : '')); if (E.FAC_SP[k][l]) stampAt(sel, true, l === 5 ? '완공' : '창설'); } save(); sync(); });
     });
   }
@@ -3109,7 +3348,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
   // 예고된 공격: 저쪽 전력과 지금 방어, 기존 수단으로 막는 방법
   function planHTML() {
     var pi = E.planInfo(S); if (!pi) return '';
-    var h = '<div class="plan"><b>' + esc(E.J(pi.name, '이', '가')) + ' 다음 달 이 동을 노립니다' + (pi.why ? ' · ' + esc(pi.why) : '') + '</b>';
+    var h = '<div class="plan">' + (S.rivalPlan ? bossHTML(S.rivalPlan.f, 'plan', D[S.rivalPlan.t].n) : '') + '<b>' + esc(E.J(pi.name, '이', '가')) + ' 다음 달 이 동을 노립니다' + (pi.why ? ' · ' + esc(pi.why) : '') + '</b>';
     h += '<span class="num">저쪽 예상 전력 약 ' + people(pi.atk) + ' · 지금 방어 ' + people(pi.def) + ' · 저쪽 승률 ' + Math.round(pi.p * 100) + '%</span>';
     if (pi.cons) h += '<span>' + esc(pi.cons) + '.</span>';
     var opt = [];
@@ -3180,7 +3419,16 @@ if (typeof module !== 'undefined') module.exports = Engine;
     var me = S.f[0], e = E.economy(S, 0), held = E.guHeld(S, 0);
     var html = '<div class="head"><div><h2>' + esc(title()) + '</h2><p>' + esc(me.name) + ' · 본거지 ' + esc(D[me.cap].n) + '</p></div><button class="x" type="button" aria-label="닫기">×</button></div>';
     var share = E.popShare(S, 0);
-    html += '<div class="sec">' + MAYOR + '까지</div><div class="bar"><u style="width:' + Math.min(100, share * 100) + '%"></u><s style="left:60%"></s></div><p class="why num">' + CNAME + ' 인구 ' + (share * 100).toFixed(1) + '% 장악. 60%가 되면 ' + MAYOR + '에 취임합니다.</p>';
+    html += '<div class="sec">' + MAYOR + '까지</div><div class="bar"><u style="width:' + Math.min(100, share * 100) + '%"></u><s style="left:60%"></s></div><p class="why num">' + CNAME + ' 인구 ' + (share * 100).toFixed(1) + '% 장악. 60%를 넘기면 ' + E.C.ELECT_WAIT + '달 뒤 ' + MAYOR + ' 선거가 열리고, 과반을 얻으면 취임합니다.' + (!S.coal && !S.won ? ' 45%를 넘기면 남은 세력이 반동장 연합을 맺습니다.' : '') + '</p>';
+    if (S.elect && !S.won) {
+      var vs = E.voteShare(S);
+      html += '<div class="sec">선거 예측 · ' + Math.max(0, S.elect.at - S.month) + '달 뒤' + (S.elect.n > 1 ? ' (재선거)' : '') + '</div><div class="bar"><u style="width:' + Math.min(100, vs * 100) + '%"></u><s style="left:50%"></s></div><p class="why num">지금 치르면 득표율 ' + (vs * 100).toFixed(1) + '%' + (vs > 0.5 ? ', 당선권입니다.' : ', 과반에 ' + (50 - vs * 100).toFixed(1) + '%p 모자랍니다.') + ' 우리 동 민심이 높을수록, 인구가 많을수록 표가 늘어납니다. 우리 동 민심 평균 ' + Math.round(E.avgMood(S)) + '.</p>';
+    }
+    if (S.coal && !S.won) {
+      var cm = S.coal.m.filter(function (id) { return S.f[id].alive; });
+      html += '<div class="sec">반동장 연합 · ' + cm.length + '개 세력</div><div class="faces sm">' + cm.slice(0, 10).map(function (id) { return faceImg(id, 30); }).join('') + '</div><p class="why num">연합 전체 ' + people(cm.reduce(function (x, id) { return x + S.f[id].troops + (S.f[id].away || 0); }, 0)) + '. 서로 싸우지 않고 우리만 노립니다. 연합 세력과는 협정·통합이 안 됩니다.</p>';
+    }
+    html += '<div class="sec">시행 중인 정책 · ' + (S.cards || []).length + '장</div>' + ((S.cards || []).length ? '<div class="pcards own">' + S.cards.map(function (k) { return cardHTML(k, false); }).join('') + '</div>' : '<p class="why">아직 없습니다. 승진할 때와 반년마다 정책 카드를 하나씩 고릅니다.' + (S.cardNext ? ' 다음 정책 회의는 ' + Math.max(0, S.cardNext - S.month) + '달 뒤.' : '') + '</p>');
     if (S.rank < 1) { var g = bestGu(), st = E.guStatus(S, g); html += '<p class="why num">' + R1N + ': 한 ' + GRP + '의 ' + UNITN + '을 절반 이상 차지. ' + GU[g].n + ' ' + st.have + '/' + st.total + '개.</p>'; }
     else if (S.rank < 2) html += '<p class="why num">' + RANK2 + ': ' + R2 + '개 ' + GRP + '에서 각각 ' + UNITN + '을 절반 이상 차지. 지금 ' + held + '개 ' + GRP + '.</p>';
     html += '<div class="sec">일당 주고 인원 모으기 (1억 = 1.2명)</div><div class="chips">' + [100, 300].map(function (v) {
@@ -3212,7 +3460,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
     var fl = E.factionList(S), nbF = {}, big = null;
     E.dongsOf(S, 0).forEach(function (i) { D[i].a.forEach(function (j) { var o = S.owner[j]; if (o > 0) nbF[o] = 1; }); });
     Object.keys(nbF).forEach(function (o) { var f = S.f[o]; if (f.alive && (!big || f.troops + (f.away || 0) > big.troops + (big.away || 0))) big = f; });
-    if (big) html += '<div class="sec">맞닿은 세력 중 가장 큰 곳</div><p class="why num"><span class="dot" style="background:' + fCol(big.id) + '"></span><b>' + esc(big.name) + '</b>' + (big.id === S.rival ? ' · 숙적' : '') + ' · ' + E.dongsOf(S, big.id).length + '개 동 · ' + people(big.troops + (big.away || 0)) + (me.pact && me.pact[big.id] > S.month ? ' · 협정 ' + (me.pact[big.id] - S.month) + '달' : '') + '</p>';
+    if (big) html += '<div class="sec">맞닿은 세력 중 가장 큰 곳</div>' + bossHTML(big.id, 'meet') + '<p class="why num"><span class="dot" style="background:' + fCol(big.id) + '"></span><b>' + esc(big.name) + '</b>' + (big.id === S.rival ? ' · 숙적' : '') + (E.inCoal(S, big.id) ? ' · 연합' : '') + ' · ' + E.dongsOf(S, big.id).length + '개 동 · ' + people(big.troops + (big.away || 0)) + (me.pact && me.pact[big.id] > S.month ? ' · 협정 ' + (me.pact[big.id] - S.month) + '달' : '') + '</p>';
     html += '<details class="more"><summary>세력 순위 보기</summary><div class="rows num">' + fl.slice(0, 7).map(function (f) {
       var pct = me.pact && me.pact[f.id] > S.month ? ' · 협정 ' + (me.pact[f.id] - S.month) + '달' : '';
       var hid = f.id !== 0 && S.seenGu && !S.seenGu[D[f.cap].g];
@@ -3243,7 +3491,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
   }
   function menuSheet(sh) {
     var html = '<div class="head"><div><h2>메뉴</h2></div><button class="x" type="button" aria-label="닫기">×</button></div>';
-    html += '<div class="sec">게임 방법</div><ul class="prose"><li>빨간 테두리 동을 눌러 인원을 보내면 공격합니다. 공격과 설득은 결재를 씁니다.</li><li>보낸 인원은 다음 달에 돌아옵니다. 그동안 우리 동 방어가 약해지니 나눠서 쓰세요.</li><li>세수는 실제 직장인 수(주민 수 일부 포함), 동원은 실제 주민 수, 방어는 낮 인구(주민 + 직장인 절반)에 거의 비례합니다. 규모가 4배면 약 2.8배, 10배면 약 5.6배입니다. 작은 동은 관리비도 적게 듭니다. 동네 유형마다 특성이 있습니다.</li><li>우리 동을 누르면 개발합니다. 값은 어느 동이나 같고, 버튼 옆에 실제로 늘어나는 양이 나옵니다. 우리 동이 3개 이하일 때는 지원금이 나옵니다.</li><li>한 ' + GRP + '의 동을 절반 이상 차지하면 ' + R1N + ', 그런 ' + Jm(GRP, '이', '가') + ' ' + R2 + '개면 ' + R2S + ', ' + CNAME + ' 인구 60%면 ' + MAYOR + '입니다. 인구는 통계 기준으로 고정이라 개발해도 늘지 않습니다.</li><li>' + Jm(GRP, '을', '를') + ' 통째로 먹으면 그 ' + GRP + '의 재정자립도만큼 세수가 늘어납니다.' + (SEOUL ? '' : ' (' + (CITY_ID === 'busan' ? '부산은 보도된 수치, 중구만 추정' : '상가·직장인 밀도로 만든 게임용 추정치' + (KIND !== 'metro' && KIND !== 'nation' && /부산/.test(DATA.full) ? ', 부산 구는 보도된 수치' : '')) + ')') + '</li><li>' + R1N + '부터는 ' + GRP + ' 현황에서 한꺼번에 공격·설득·개발할 수 있습니다.</li><li>처음에는 우리 ' + Jm(GRP, '과', '와') + ' 맞닿은 ' + GRP + '만 보입니다. 땅을 넓히면 안개가 걷힙니다. 동네 통계는 안개 속에서도 볼 수 있습니다.</li><li>개발은 단계마다 이름 붙은 시설이 생깁니다. 3단계·5단계 시설은 옆 우리 동까지 효과가 미칩니다. 예: 자치경찰대(치안 3단계)는 옆 우리 동 방어 +15%, 자치소방서(치안 5단계)는 그 일대 독립을 막습니다.</li><li>동네 조합: 일터 동과 맞닿은 주거 동 둘(직주근접, 동원 +20%), 이어진 상권 동 셋(골목상권, 상권 개발비 −30%), 지하철로 이어진 역세권 셋(환승, 기습 불이익 없음)을 모으면 그 동들에만 보너스가 붙습니다. 종류마다 한 판에 한 번입니다.</li><li>시설의 옆 동 효과는 같은 종류끼리 2곳까지만 겹칩니다(세수·동원 최대 +20%, 방어 최대 +30%). 자치소방서는 독립만 막고, 민심이 낮아 줄어드는 세수·동원은 그대로입니다. 시설이 있는 동을 빼앗기면 그 효과는 그 즉시 사라집니다.</li><li>몇 달마다 정부 공모가 열립니다. 공공기관은 오래 벌고, 공공병원은 민심을 지키고, 자원회수시설은 지원금을 착공·준공 두 번에 나눠 주는 대신 민심을 깎습니다. 후반에는 바로 효과가 나는 안전센터 공모가 섞입니다. 다른 세력도 조건과 부담금을 채워야 신청할 수 있고, 아무도 없으면 유찰됩니다. 효과는 게임용으로 지어낸 것입니다.</li><li>숙적은 우리가 크게 진 직후, 우리 인원이 대부분 나가 있을 때, 공사 중이거나 많이 키운 동이 국경에 있을 때 움직입니다. 힘이 다 빠진 숙적은 본거지만 남겨 달라며 협상을 걸어옵니다. ' + R2S + '부터는 작은 세력도 협상을 제안합니다.</li><li>지도의 작은 색 점은 우리 동의 개발 단계입니다. 노랑 상권, 파랑 교통, 초록 주거, 회색 치안. ' + (SEOUL ? '산 무늬는 산을 낀 동네를 대략 표시한 것입니다.' : '') + '</li><li>시작한 동의 유형에 따라 한 판 내내 대표 능력 하나를 씁니다. 점령한 동은 특성 보너스만 줍니다.</li><li>설득·주민투표·통합·협상으로 들어온 동은 민심이 높지만 첫 달 수입이 50%이고 매달 15%p씩 늘어 약 4달 뒤 정상이 됩니다. 주거·치안을 올리면 더 빨라집니다. 공격으로 뺏은 동은 대신 민심 35에서 시작합니다.</li><li>숙적은 공격하기 한 달 전에 어느 동 앞에 모이는지, 몇 명인지 알려 줍니다. 그 동을 누르면 막는 방법(인원 남기기, 치안, 협정, 선제공격)이 나옵니다. 대비가 돼 있으면 저쪽이 공격을 접습니다.</li><li>민심이 40 아래인 동은 독립할 수 있습니다. ' + R1N + '부터 주민 화합 사업으로 막을 수 있습니다.</li><li>세력의 본거지(검은 점)를 빼앗으면 그 세력은 무너지고 동 일부가 따라옵니다. 큰 세력일수록 본거지가 단단하고, 본거지는 지하철로 칠 수 없습니다.</li><li>새로 얻은 동은 그달 말부터 수입에 들어오지만, 민심이 회복될 때까지는 적게 들어옵니다.</li><li>' + Jm(MAYOR, '이', '가') + ' 된 뒤에도 남은 동까지 계속 먹을 수 있습니다.</li></ul>';
+    html += '<div class="sec">게임 방법</div><ul class="prose"><li>빨간 테두리 동을 눌러 인원을 보내면 공격합니다. 공격과 설득은 결재를 씁니다.</li><li>보낸 인원은 다음 달에 돌아옵니다. 그동안 우리 동 방어가 약해지니 나눠서 쓰세요.</li><li>세수는 실제 직장인 수(주민 수 일부 포함), 동원은 실제 주민 수, 방어는 낮 인구(주민 + 직장인 절반)에 거의 비례합니다. 규모가 4배면 약 2.8배, 10배면 약 5.6배입니다. 작은 동은 관리비도 적게 듭니다. 동네 유형마다 특성이 있습니다.</li><li>우리 동을 누르면 개발합니다. 값은 어느 동이나 같고, 버튼 옆에 실제로 늘어나는 양이 나옵니다. 우리 동이 3개 이하일 때는 지원금이 나옵니다.</li><li>한 ' + GRP + '의 동을 절반 이상 차지하면 ' + R1N + ', 그런 ' + Jm(GRP, '이', '가') + ' ' + R2 + '개면 ' + R2S + ', ' + CNAME + ' 인구 60%면 ' + MAYOR + '입니다. 인구는 통계 기준으로 고정이라 개발해도 늘지 않습니다.</li><li>' + Jm(GRP, '을', '를') + ' 통째로 먹으면 그 ' + GRP + '의 재정자립도만큼 세수가 늘어납니다.' + (SEOUL ? '' : ' (' + (CITY_ID === 'busan' ? '부산은 보도된 수치, 중구만 추정' : '상가·직장인 밀도로 만든 게임용 추정치' + (KIND !== 'metro' && KIND !== 'nation' && /부산/.test(DATA.full) ? ', 부산 구는 보도된 수치' : '')) + ')') + '</li><li>' + R1N + '부터는 ' + GRP + ' 현황에서 한꺼번에 공격·설득·개발할 수 있습니다.</li><li>처음에는 우리 ' + Jm(GRP, '과', '와') + ' 맞닿은 ' + GRP + '만 보입니다. 땅을 넓히면 안개가 걷힙니다. 동네 통계는 안개 속에서도 볼 수 있습니다.</li><li>개발은 단계마다 이름 붙은 시설이 생깁니다. 3단계·5단계 시설은 옆 우리 동까지 효과가 미칩니다. 예: 자치경찰대(치안 3단계)는 옆 우리 동 방어 +15%, 자치소방서(치안 5단계)는 그 일대 독립을 막습니다.</li><li>동네 조합: 일터 동과 맞닿은 주거 동 둘(직주근접, 동원 +20%), 이어진 상권 동 셋(골목상권, 상권 개발비 −30%), 지하철로 이어진 역세권 셋(환승, 기습 불이익 없음)을 모으면 그 동들에만 보너스가 붙습니다. 종류마다 한 판에 한 번입니다.</li><li>시설의 옆 동 효과는 같은 종류끼리 2곳까지만 겹칩니다(세수·동원 최대 +20%, 방어 최대 +30%). 자치소방서는 독립만 막고, 민심이 낮아 줄어드는 세수·동원은 그대로입니다. 시설이 있는 동을 빼앗기면 그 효과는 그 즉시 사라집니다.</li><li>몇 달마다 정부 공모가 열립니다. 공공기관은 오래 벌고, 공공병원은 민심을 지키고, 자원회수시설은 지원금을 착공·준공 두 번에 나눠 주는 대신 민심을 깎습니다. 후반에는 바로 효과가 나는 안전센터 공모가 섞입니다. 다른 세력도 조건과 부담금을 채워야 신청할 수 있고, 아무도 없으면 유찰됩니다. 효과는 게임용으로 지어낸 것입니다.</li><li>숙적은 우리가 크게 진 직후, 우리 인원이 대부분 나가 있을 때, 공사 중이거나 많이 키운 동이 국경에 있을 때 움직입니다. 힘이 다 빠진 숙적은 본거지만 남겨 달라며 협상을 걸어옵니다. ' + R2S + '부터는 작은 세력도 협상을 제안합니다.</li><li>지도의 작은 색 점은 우리 동의 개발 단계입니다. 노랑 상권, 파랑 교통, 초록 주거, 회색 치안. ' + (SEOUL ? '산 무늬는 산을 낀 동네를 대략 표시한 것입니다.' : '') + '</li><li>시작한 동의 유형에 따라 한 판 내내 대표 능력 하나를 씁니다. 점령한 동은 특성 보너스만 줍니다.</li><li>설득·주민투표·통합·협상으로 들어온 동은 민심이 높지만 첫 달 수입이 50%이고 매달 15%p씩 늘어 약 4달 뒤 정상이 됩니다. 주거·치안을 올리면 더 빨라집니다. 공격으로 뺏은 동은 대신 민심 35에서 시작합니다.</li><li>숙적은 공격하기 한 달 전에 어느 동 앞에 모이는지, 몇 명인지 알려 줍니다. 그 동을 누르면 막는 방법(인원 남기기, 치안, 협정, 선제공격)이 나옵니다. 대비가 돼 있으면 저쪽이 공격을 접습니다.</li><li>민심이 40 아래인 동은 독립할 수 있습니다. ' + R1N + '부터 주민 화합 사업으로 막을 수 있습니다.</li><li>세력의 본거지(검은 점)를 빼앗으면 그 세력은 무너지고 동 일부가 따라옵니다. 큰 세력일수록 본거지가 단단하고, 본거지는 지하철로 칠 수 없습니다.</li><li>새로 얻은 동은 그달 말부터 수입에 들어오지만, 민심이 회복될 때까지는 적게 들어옵니다.</li><li>승진할 때와 반년마다 정책 카드 세 장 중 하나를 고릅니다. 고른 카드는 한 판 내내 적용됩니다.</li><li>' + CNAME + ' 인구 45%를 넘기면 남은 세력이 반동장 연합을 맺습니다. 연합 세력은 서로 싸우지 않고 우리만 노리며, 협정·통합을 받지 않습니다.</li><li>인구 60%를 넘기면 ' + E.C.ELECT_WAIT + '달 뒤 ' + MAYOR + ' 선거가 열립니다. 우리 동 주민은 민심에 따라 35~90%, 맞닿은 독립 동은 35%, 그 밖의 독립 동은 25%, 다른 세력 동은 10%(협정 중이면 20%)가 우리를 찍습니다. 과반이면 취임, 못 넘기면 6달 뒤 재선거입니다.</li><li>세력마다 회장이 있습니다. 얼굴과 대사는 지어낸 것입니다.</li><li>' + Jm(MAYOR, '이', '가') + ' 된 뒤에도 남은 동까지 계속 먹을 수 있습니다.</li></ul>';
     html += '<div class="sec">소리</div><div class="acts"><button class="btn" id="sndBtn" type="button">' + (soundOn ? '효과음 켜짐 · 끄기' : '효과음 꺼짐 · 켜기') + '</button></div>';
     html += '<div class="sec">상대 턴 보기</div><div class="chips" id="rpMode">' + [['normal', '보통'], ['fast', '빠르게'], ['off', '끄기']].map(function (m) { return '<button class="chip' + (RPM === m[0] ? ' on' : '') + '" type="button" data-m="' + m[0] + '"' + (RPM === m[0] ? ' aria-pressed="true"' : '') + '>' + m[1] + '</button>'; }).join('') + '</div><p class="why">다음 달을 누르면 다른 세력이 한 일을 하나씩 보여 줍니다. 우리 땅에서 난 일은 항상, 우리 근처 다툼은 몇 건만 보여 주고 나머지는 지도에 바로 반영합니다. 보는 중에 화면을 누르면 빨라지고, 한 번 더 누르면 건너뜁니다.</p>';
     html += '<div class="sec">저장</div><p class="why">진행 상황은 이 기기의 브라우저에 자동 저장됩니다. 기기를 바꾸거나 브라우저 기록을 지울 때는 저장 코드를 복사해 두세요.</p><div class="two" style="margin-top:6px"><button class="btn" id="expBtn" type="button">저장 코드 복사</button><button class="btn" id="impBtn" type="button">코드 불러오기</button></div><textarea id="expText" readonly hidden></textarea>';
@@ -3285,19 +3533,132 @@ if (typeof module !== 'undefined') module.exports = Engine;
       resumeGame(o); save();
     });
   }
+  // ---- 세력 회장: 코드로 그리는 16×16 도트 얼굴 + 성격별 대사 ----
+  var FACE = {};
+  function bossOf(fid) {
+    var f = S && S.f[fid]; if (!f || !f.ai) return null;
+    var b = f.boss || { nm: E.SUR[(fid * 7) % E.SUR.length] + E.GIV[(fid * 11 + 3) % E.GIV.length], face: fid * 7919 % 1000000 };
+    var tr = { '조기축구회': 'fight', '청년회': 'fight', '방범대': 'fight', '자율방재단': 'fight', '학부모회': 'build', '입주자대표회의': 'build', '반상회': 'build', '노인회': 'build', '상인회': 'rich', '번영회': 'rich' }[f.grp] || 'talk';
+    return { nm: b.nm + ' 회장', face: b.face, tr: tr, grp: f.grp, name: f.name };
+  }
+  function faceURL(fid) {
+    var b = bossOf(fid); if (!b) return '';
+    var key = fid + ':' + b.face; if (FACE[key]) return FACE[key];
+    var seed = b.face >>> 0 || 1, r = function () { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+    var k = document.createElement('canvas'); k.width = k.height = 16; var c = k.getContext('2d');
+    var px = function (x, y, w, h, col) { c.fillStyle = col; c.fillRect(x, y, w, h); };
+    var skin = ['#F2CDA8', '#EBBE95', '#DDAA80', '#C99169'][Math.floor(r() * 4)];
+    var hairC = ['#1F1B18', '#3A2E25', '#5E5E5E', '#9C9C9C', '#E4E4E4'][Math.floor(r() * 5)];
+    var shirt = fCol(fid);
+    px(0, 0, 16, 16, '#F3F1E7');
+    // 몸·옷
+    px(2, 13, 12, 3, shirt); px(6, 13, 4, 1, skin);
+    if (b.tr === 'rich') { px(7, 13, 2, 3, '#B8322A'); px(5, 13, 1, 3, '#fff'); px(10, 13, 1, 3, '#fff'); }
+    // 얼굴
+    px(4, 4, 8, 9, skin); px(3, 7, 1, 3, skin); px(12, 7, 1, 3, skin); px(5, 12, 6, 1, skin);
+    // 머리 모양
+    var hs = Math.floor(r() * 5);
+    if (b.grp === '산악회') { px(3, 2, 10, 3, '#C8402E'); px(2, 4, 12, 1, '#C8402E'); px(4, 1, 8, 1, '#C8402E'); }
+    else if (b.grp === '방범대' || b.grp === '자율방재단') { px(3, 2, 10, 3, '#24406B'); px(3, 4, 12, 1, '#24406B'); px(7, 2, 2, 1, '#E7C24A'); }
+    else if (b.grp === '조기축구회') { px(4, 3, 8, 2, hairC); px(3, 4, 10, 1, '#fff'); px(3, 4, 1, 3, hairC); px(12, 4, 1, 3, hairC); }
+    else if (hs === 0) { px(4, 2, 8, 3, hairC); px(3, 3, 1, 3, hairC); px(12, 3, 1, 3, hairC); }
+    else if (hs === 1) { for (var q = 0; q < 6; q++) { px(3 + q * 2, 1 + (q % 2), 2, 2, hairC); } px(3, 3, 10, 2, hairC); px(2, 4, 1, 4, hairC); px(13, 4, 1, 4, hairC); }
+    else if (hs === 2) { px(3, 5, 1, 3, hairC); px(12, 5, 1, 3, hairC); px(4, 4, 1, 1, hairC); px(11, 4, 1, 1, hairC); }
+    else if (hs === 3) { px(4, 2, 8, 2, hairC); px(4, 4, 3, 1, hairC); px(9, 4, 3, 1, hairC); px(3, 3, 1, 4, hairC); px(12, 3, 1, 4, hairC); px(7, 2, 1, 2, skin); }
+    else { px(3, 2, 10, 3, hairC); px(2, 4, 2, 7, hairC); px(12, 4, 2, 7, hairC); }
+    // 눈썹·눈
+    var ang = b.tr === 'fight';
+    if (ang) { px(5, 6, 1, 1, '#2A211B'); px(6, 7, 1, 1, '#2A211B'); px(10, 6, 1, 1, '#2A211B'); px(9, 7, 1, 1, '#2A211B'); }
+    else { px(5, 6, 2, 1, '#2A211B'); px(9, 6, 2, 1, '#2A211B'); }
+    var gl = r();
+    px(5, 8, 1, 1, '#2A211B'); px(10, 8, 1, 1, '#2A211B');
+    if (gl < 0.1) { px(4, 7, 3, 2, '#1A1A1A'); px(9, 7, 3, 2, '#1A1A1A'); px(7, 7, 2, 1, '#1A1A1A'); }
+    else if (gl < 0.32) { var gc = '#9A8468'; px(4, 7, 3, 1, gc); px(9, 7, 3, 1, gc); px(4, 9, 3, 1, gc); px(9, 9, 3, 1, gc); px(4, 8, 1, 1, gc); px(6, 8, 1, 1, gc); px(9, 8, 1, 1, gc); px(11, 8, 1, 1, gc); px(7, 8, 2, 1, gc); }
+    px(7, 9, 2, 1, '#C98E6B');
+    // 입·수염
+    var m = r();
+    if (r() < 0.25) px(6, 10, 4, 1, hairC === '#E4E4E4' ? '#BDBDBD' : hairC);
+    if (m < 0.4) { px(6, 11, 4, 1, '#8A3B2E'); px(5, 10, 1, 1, '#8A3B2E'); px(10, 10, 1, 1, '#8A3B2E'); }
+    else if (m < 0.7) px(6, 11, 4, 1, '#7A3A2C');
+    else { px(6, 11, 4, 1, '#fff'); px(6, 12, 4, 0.5, '#7A3A2C'); }
+    // 볼
+    px(4, 10, 1, 1, '#E79A86'); px(11, 10, 1, 1, '#E79A86');
+    return (FACE[key] = k.toDataURL());
+  }
+  function faceImg(fid, sz) { var u = faceURL(fid); return u ? '<img class="face" src="' + u + '" width="' + (sz || 40) + '" height="' + (sz || 40) + '" alt="">' : ''; }
+  var LINES = {
+    plan: { fight: ['다음 달 {t}, 우리가 접수합니다. 문 단단히 잠그세요.', '{t} 사람들 벌써 우리 편입니다. 인사나 하러 갈게요.'], build: ['{t}에 놀이터 하나 놔 드리려고요. 우리 손으로.', '{t} 재개발 설명회, 다음 달에 우리가 엽니다.'], rich: ['{t} 상가 번영회비, 다음 달부터 우리가 받습니다.', '{t}? 돈이면 다 됩니다. 다음 달에 봅시다.'], talk: ['{t} 반상회에서 우리 얘기 많이 나온답니다. 다음 달에 갈게요.', '{t} 단톡방 방장이 바뀔 겁니다. 다음 달에.'] },
+    win: { fight: ['{t} 잘 받았습니다. 답례 떡은 없습니다.', '{t}? 생각보다 쉽던데요.'], build: ['{t}는 이제 우리가 가꿉니다.', '{t} 주민센터 현판, 내일 바꿔 답니다.'], rich: ['{t} 임대료 계산서는 우리 앞으로 오겠네요.', '{t}, 계약 끝났습니다.'], talk: ['{t} 주민들이 우리 손을 잡아 주셨습니다.', '{t} 단톡방, 오늘부터 우리 방입니다.'] },
+    lose: { fight: ['{t}… 다음엔 이렇게 안 끝납니다.', '오늘은 봐 드립니다. {t}.'], build: ['{t}은 다음 계획에 넣어 두겠습니다.', '공사 일정이 좀 밀렸을 뿐입니다.'], rich: ['{t}, 값을 잘못 매겼네요.', '돈으로 안 되는 데도 있군요. 일단은.'], talk: ['{t} 분들, 아직 마음의 준비가 안 되셨네요.', '대화로 다시 찾아뵙겠습니다.'] },
+    fall: { fight: ['이걸로 끝난 줄 아십니까… 회원들은 기억합니다.', '졌습니다. 깔끔하게 인정하죠.'], build: ['우리가 깔아 둔 보도블록은 잘 써 주세요.', '동네만은 잘 부탁드립니다.'], rich: ['장부는 넘겨 드리죠. 적자입니다.', '투자 실패군요.'], talk: ['언젠가 같은 단톡방에서 뵙겠습니다.', '말로 했어야 했는데요.'] },
+    coal: { fight: ['혼자서는 못 막는다는 거, 다들 알았습니다. 이제 한 팀입니다.'], build: ['동네를 지키려면 손을 잡을 수밖에요.'], rich: ['돈을 모았습니다. 이제 끝을 보죠.'], talk: ['다 같이 모여 얘기해 봤는데요, 답은 하나더군요.'] },
+    meet: { fight: ['붙어 보시겠습니까?', '우리 회원들 요즘 몸이 근질근질합니다.'], build: ['우리 동네 좋아진 거 보이시죠?', '공원부터 짓고 이야기합시다.'], rich: ['계산서 들고 오셨나요?', '좋은 조건이면 듣겠습니다.'], talk: ['차 한잔 하시죠.', '얘기로 풀 수 있는 건 얘기로 풉시다.'] }
+  };
+  function bossLine(fid, k, t) {
+    var b = bossOf(fid); if (!b) return '';
+    var a = (LINES[k] && LINES[k][b.tr]) || []; if (!a.length) return '';
+    return a[(fid * 7 + S.month) % a.length].replace(/\{t\}(은|는)/g, function () { return Jm(t || '', '은', '는'); }).replace(/\{t\}(을|를)/g, function () { return Jm(t || '', '을', '를'); }).replace(/\{t\}/g, t || '');
+  }
+  function bossHTML(fid, k, t) {
+    var b = bossOf(fid); if (!b) return '';
+    var ln = bossLine(fid, k, t);
+    return '<div class="boss">' + faceImg(fid, 44) + '<div><b>' + esc(b.nm) + '</b><span> · ' + esc(b.name) + '</span>' + (ln ? '<q>' + esc(ln) + '</q>' : '') + '</div></div>';
+  }
+  // ---- 정책 카드 고르기 ----
+  var TAGC = { '개발': '#2E7D57', '방어': '#24406B', '공격': '#B8322A', '돈': '#9A6A12', '사람': '#7A3E9D', '민심': '#C2577A', '외교': '#1D7A8C', '행정': '#47524A' };
+  function cardHTML(k, btn) {
+    var c = E.CARDS[k]; if (!c) return '';
+    var e = tx(c.e.replace('강·바다', WATER ? WATER.split('·').join('·') : '강'));
+    return (btn ? '<button type="button" class="pcard" data-k="' + k + '">' : '<div class="pcard own">') + '<i style="--c:' + (TAGC[c.tag] || '#47524A') + '">' + c.tag + '</i><b>' + c.n + '</b><span>' + esc(e) + '</span>' + (btn ? '</button>' : '</div>');
+  }
+  function showCardPick() {
+    var why = S.cardWhy === 'rank' ? '승진 기념으로 새 정책을 하나 시행합니다.' : '반년마다 여는 정책 회의입니다. 하나만 고르세요.';
+    sfx('page');
+    showCard('<div class="seal">정책</div><h2>정책 카드</h2><p class="why">' + why + ' 고른 카드는 이번 판 내내 적용됩니다.' + (S.cards.length ? ' 지금 ' + S.cards.length + '장 시행 중.' : '') + '</p><div class="pcards">' + S.cardOffer.map(function (k) { return cardHTML(k, true); }).join('') + '</div>');
+    Array.prototype.forEach.call($('card').querySelectorAll('.pcard'), function (b) {
+      b.addEventListener('click', function () { var r = E.chooseCard(S, b.dataset.k); if (r.err) return; sfx('stamp'); $('over').hidden = true; save(); sync(); });
+    });
+  }
+  // ---- 연합·선거 카드 ----
+  function showCoal() {
+    S.coalShown = 1; sfx('warn');
+    var m = S.coal.m.filter(function (id) { return S.f[id].alive; }), big = m.slice().sort(function (a, b) { return S.f[b].troops - S.f[a].troops; });
+    var tot = m.reduce(function (x, id) { return x + S.f[id].troops + (S.f[id].away || 0); }, 0);
+    showCard('<div class="seal lose">연합</div><h2>반동장 연합 결성</h2><p>남은 세력 ' + m.length + '곳이 손을 잡았습니다. 서로 싸우지 않고 우리 땅만 노립니다. 연합에 든 세력은 불가침 협정과 통합을 받지 않습니다.</p><div class="faces">' + big.slice(0, 8).map(function (id) { return faceImg(id, 40); }).join('') + '</div>' + (big.length ? bossHTML(big[0], 'coal') : '') + '<div class="rows num"><div class="row"><span>연합 전체 인원</span><span>' + people(tot) + '</span></div><div class="row"><span>우리 대기 인원</span><span>' + people(S.f[0].troops) + '</span></div><div class="row"><span>지금 인구</span><span>' + (E.popShare(S, 0) * 100).toFixed(1) + '% · 60%면 ' + E.C.ELECT_WAIT + '달 뒤 선거</span></div></div><p class="why">맞닿은 동에 대기 인원을 남기고, 치안을 올려 버티세요. 민심이 표가 됩니다.</p><div class="acts"><button class="btn red" id="cardOk" type="button">맞서기</button></div>');
+    bind('cardOk', function () { hideCard(); sync(); });
+  }
+  function electTerm() { return MAYOR + ' 선거'; }
+  function showElectNotice() {
+    S.electShown = S.elect.n; sfx('fanfare');
+    var v = E.voteShare(S);
+    showCard('<div class="seal">선거</div><h2>' + esc(electTerm()) + (S.elect.n > 1 ? ' (재선거)' : '') + ' ' + (S.elect.at - S.month) + '달 뒤</h2><p>' + (S.elect.n > 1 ? '지난 선거 득표율 ' + (S.elect.last * 100).toFixed(1) + '%. 이번엔 과반을 넘겨야 합니다.' : CNAME + ' 인구의 60%를 장악했습니다. 이제 표를 얻어야 ' + Jm(MAYOR, '이', '가') + ' 됩니다.') + '</p><div class="rows num"><div class="row"><span>지금 예상 득표율</span><span><b>' + (v * 100).toFixed(1) + '%</b></span></div></div><p class="why">우리 동 주민은 민심에 따라 35~90%가 우리를 찍습니다. 독립 동은 25%(우리와 맞닿으면 35%), 다른 세력 동은 10%(협정 중이면 20%). 민원 처리·치안·주민 화합 사업으로 민심을 올리고, 땅을 지키세요.</p><div class="acts"><button class="btn red" id="cardOk" type="button">선거 준비</button></div>');
+    bind('cardOk', function () { hideCard(); sync(); });
+  }
+  function showElectLost() {
+    var r = S.elect.res; S.electLostShown = r.m; sfx('fail');
+    showCard('<div class="seal lose">낙선</div><h2>득표율 ' + (r.v * 100).toFixed(1) + '%</h2><p>과반에 ' + (50 - r.v * 100).toFixed(1) + '%p 모자랐습니다. 6달 뒤 재선거입니다.</p><p class="why">민심이 낮은 우리 동부터 챙기고, 인구 많은 동을 더 가져오세요. 맞닿은 독립 동도 표에 조금 보탬이 됩니다.</p><div class="acts"><button class="btn" id="cardOk" type="button">다시 뛰기</button></div>');
+    bind('cardOk', function () { hideCard(); sync(); });
+  }
   // ---- 전면 카드 ----
+  var holdOv = false;   // 달 넘김 결과 카드가 먼저 나오도록 잠깐 미룸
   function checkOverlay() {
-    if (!S || !$('over').hidden) return;
+    if (!S || !$('over').hidden || holdOv) return;
     if (S.over) return showEnd(false);
     if (S.won && !S.keepPlaying && !S.endShown) { S.endShown = 1; return showEnd(true); }
     if (S.promo && S.promo < 3) {
       var r = S.promo; S.promo = 0; sfx('fanfare');
       var name = title();
-      showCard('<div class="seal">' + E.C.RANKS[r] + '</div><h2>' + esc(name) + '</h2><p>' + (r === 1 ? '한 달 기본 결재가 3건으로 늘었습니다. 이제 ' + GRP + ' 현황에서 한꺼번에 공격·설득·개발할 수 있습니다. 다음 목표는 ' + GRP + ' ' + R2 + '곳입니다.' : '한 달 기본 결재가 5건으로 늘었고, ' + GRP + ' 작전은 결재 3건에 5개 동까지 됩니다. 이제 ' + CNAME + ' 인구 60%만 남았습니다.') + '</p><div class="acts"><button class="btn red" id="cardOk" type="button">계속</button></div>');
-      bind('cardOk', hideCard);
+      showCard('<div class="seal">' + E.C.RANKS[r] + '</div><h2>' + esc(name) + '</h2><p>' + (r === 1 ? '한 달 기본 결재가 3건으로 늘었습니다. 이제 ' + GRP + ' 현황에서 한꺼번에 공격·설득·개발할 수 있습니다. 다음 목표는 ' + GRP + ' ' + R2 + '곳입니다.' : '한 달 기본 결재가 5건으로 늘었고, ' + GRP + ' 작전은 결재 3건에 5개 동까지 됩니다. 이제 ' + CNAME + ' 인구 60%를 모아 선거에서 이기면 됩니다.') + '</p><div class="acts"><button class="btn red" id="cardOk" type="button">계속</button></div>');
+      bind('cardOk', function () { hideCard(); checkOverlay(); });
+      return;
     }
+    if (S.won) return;
+    if (S.cardOffer && S.cardOffer.length) return showCardPick();
+    if (S.coal && !S.coalShown) return showCoal();
+    if (S.elect && S.elect.res && !S.elect.res.win && S.electLostShown !== S.elect.res.m) { S.electShown = S.elect.n; return showElectLost(); }
+    if (S.elect && S.electShown !== S.elect.n) return showElectNotice();
   }
-  function showCard(html) { $('card').innerHTML = tx(html); $('over').hidden = false; var b = $('card').querySelector('button'); if (b) b.focus(); }
+  function showCard(html) { $('card').innerHTML = tx(html); $('over').hidden = false; var b = $('card').querySelector('button'); if (b) { try { b.focus({ preventScroll: true }); } catch (e) { b.focus(); } } $('card').scrollTop = 0; }
   function hideCard() { $('over').hidden = true; save(); dirty(); }
   function nickOf(win) {
     var st = S.stat, gu = GU[D[S.start].g].n;
@@ -3323,7 +3684,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
     c.restore();
     c.textAlign = 'left'; c.fillStyle = win ? '#D4321F' : '#47524A'; c.font = '700 66px ' + disp; c.fillText(win ? MAYOR + ' 취임' : '동네에서 쫓겨남', 56, 740);
     c.fillStyle = '#17231C'; c.font = '700 40px ' + bod; c.fillText(GU[D[S.start].g].n + ' ' + D[S.start].n + ' 출신 · ' + nick, 56, 806);
-    var rows = [['걸린 시간', span], ['장악 인구', (E.popShare(S, 0) * 100).toFixed(1) + '%'], ['접수한 동', n + ' / ' + D.length], ['돈으로 설득한 동', S.stat.talked + '개'], ['대표 능력 사용', (S.stat.abil || 0) + '회'], ['집에 돌아간 주민', S.stat.home.toLocaleString('ko-KR') + '명'], ['가장 크게 진 싸움', S.stat.worst ? S.stat.worst.name + ' ' + S.stat.worst.n.toLocaleString('ko-KR') + '명 귀가' : '없음'], ['최대 라이벌', nem || '없음'], ['시설이 번 돈 · 지킨 싸움', money(S.stat.facMoney || 0) + ' · ' + (S.stat.facSaved || 0) + '번']];
+    var rows = [['걸린 시간', span], ['장악 인구', (E.popShare(S, 0) * 100).toFixed(1) + '%' + (win && S.stat.vote ? ' · 득표 ' + (S.stat.vote * 100).toFixed(1) + '%' : '')], ['접수한 동', n + ' / ' + D.length], ['돈으로 설득한 동', S.stat.talked + '개'], ['대표 능력 사용', (S.stat.abil || 0) + '회'], ['집에 돌아간 주민', S.stat.home.toLocaleString('ko-KR') + '명'], ['가장 크게 진 싸움', S.stat.worst ? S.stat.worst.name + ' ' + S.stat.worst.n.toLocaleString('ko-KR') + '명 귀가' : '없음'], ['최대 라이벌', nem || '없음'], ['시설이 번 돈 · 지킨 싸움', money(S.stat.facMoney || 0) + ' · ' + (S.stat.facSaved || 0) + '번']];
     rows.forEach(function (r, i) {
       var y = 862 + i * 45;
       c.textAlign = 'left'; c.fillStyle = '#5D6A60'; c.font = '500 33px ' + bod; c.fillText(tx(r[0]), 56, y);
@@ -3339,10 +3700,10 @@ if (typeof module !== 'undefined') module.exports = Engine;
     var span = ((yr ? yr + '년 ' : '') + (mo ? mo + '개월' : (yr ? '' : '0개월'))).trim();
     var nick = nickOf(win), nem = E.nemesis(S);
     var txt = win
-      ? gu + ' ' + hd(name) + '으로 시작해 ' + span + ' 만에 ' + Jm(MAYOR, '이', '가') + ' 됐습니다. ' + CNAME + ' ' + D.length + '개 동 중 ' + n + '개 접수, 별명은 ' + nick + '. 당신의 동네로도 될까요? #동장의난'
+      ? gu + ' ' + hd(name) + '으로 시작해 ' + span + ' 만에 ' + Jm(MAYOR, '이', '가') + ' 됐습니다' + (st.vote ? '(득표율 ' + (st.vote * 100).toFixed(1) + '%)' : '') + '. ' + CNAME + ' ' + D.length + '개 동 중 ' + n + '개 접수, 별명은 ' + nick + '. 당신의 동네로도 될까요? #동장의난'
       : gu + ' ' + hd(name) + '으로 시작해 ' + span + ' 만에 동네에서 쫓겨났습니다. 한때 ' + st.biggest + '개 동을 거느렸습니다. #동장의난';
     var img = resultImage(win, span, win ? n : st.biggest, nick, nem);
-    showCard('<h2>' + (win ? MAYOR + ' 취임' : '동네에서 쫓겨났습니다') + '</h2>' + (img ? '<img id="resultImg" src="' + img + '" alt="' + esc(txt) + '"><p class="why">이미지를 길게 누르거나 우클릭해서 저장하세요.</p>' : '<div class="seal' + (win ? '' : ' lose') + '">' + (win ? (KIND === 'metro' ? CNAME + '<br>시장' : esc(MAYOR).replace(' ', '<br>')) : '해임') + '</div>') + '<div class="rows num" style="text-align:left;margin-top:6px"><div class="row"><span>' + R1S + ' / ' + R2S + '</span><span>' + (st.r1 !== undefined ? st.r1 + '개월' : '못 함') + ' / ' + (st.r2 !== undefined ? st.r2 + '개월' : '못 함') + '</span></div><div class="row"><span>공격으로 / 설득으로</span><span>' + Math.max(0, st.took - st.talked) + '개 / ' + st.talked + '개</span></div></div><textarea id="shareText" readonly>' + esc(txt) + '</textarea><div class="acts"><button class="btn" id="copy" type="button">문구 복사</button>' + (win ? '<button class="btn" id="cont" type="button">남은 동까지 마저 먹기</button>' : '') + '<button class="btn" id="retry" type="button">같은 조건으로 다시</button><button class="btn red" id="again" type="button">새 동으로 시작</button></div>');
+    showCard('<h2>' + (win ? MAYOR + ' 취임' : '동네에서 쫓겨났습니다') + '</h2>' + (img ? '<img id="resultImg" src="' + img + '" alt="' + esc(txt) + '"><p class="why">이미지를 길게 누르거나 우클릭해서 저장하세요.</p>' : '<div class="seal' + (win ? '' : ' lose') + '">' + (win ? (KIND === 'metro' ? CNAME + '<br>시장' : esc(MAYOR).replace(' ', '<br>')) : '해임') + '</div>') + '<div class="rows num" style="text-align:left;margin-top:6px"><div class="row"><span>' + R1S + ' / ' + R2S + '</span><span>' + (st.r1 !== undefined ? st.r1 + '개월' : '못 함') + ' / ' + (st.r2 !== undefined ? st.r2 + '개월' : '못 함') + '</span></div><div class="row"><span>공격으로 / 설득으로</span><span>' + Math.max(0, st.took - st.talked) + '개 / ' + st.talked + '개</span></div>' + (win && st.vote ? '<div class="row"><span>' + esc(MAYOR) + ' 선거 득표율</span><span>' + (st.vote * 100).toFixed(1) + '%' + (S.elect && S.elect.n > 1 ? ' (' + S.elect.n + '번째 도전)' : '') + '</span></div>' : '') + '</div><textarea id="shareText" readonly>' + esc(txt) + '</textarea><div class="acts"><button class="btn" id="copy" type="button">문구 복사</button>' + (win ? '<button class="btn" id="cont" type="button">남은 동까지 마저 먹기</button>' : '') + '<button class="btn" id="retry" type="button">같은 조건으로 다시</button><button class="btn red" id="again" type="button">새 동으로 시작</button></div>');
     if (win) saveBest(S.start, S.month);
     bind('retry', function () { var st0 = S.start, sd = S.seed0; $('over').hidden = true; beginGame(st0, sd !== undefined ? sd : Date.now() & 0x7fffffff); });
     bind('copy', function () { copyText(txt, $('copy'), $('shareText')); });
@@ -3380,7 +3741,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
     if (lostList.length) {
       var lb = battles.filter(function (b) { return !b.held && b.t === lostList[0]; })[0];
       setNews((capHit ? '본거지 ' : '') + D[lostList[0]].n + ' 함락 · ' + (lb ? S.f[lb.f].name : '주민 독립') + (lostList.length > 1 ? ' 외 ' + (lostList.length - 1) + '곳' : '') + ' · 전투 ' + nb + '건' + (plan.length ? ' · 예고: ' + D[S.rivalPlan.t].n : ''), true);
-    } else if (plan.length && S.rivalPlan.t === S.f[0].cap) { setNews('본거지 위기! ' + plan[0].t + (held.length ? ' (이번 달 방어 성공 ' + held.length + '건)' : ''), true); setTimeout(function () { sfx('warn'); }, 350); }
+    } else if (plan.length && S.rivalPlan.t === S.f[0].cap) { setNews('본거지 위기 · ' + plan[0].t + (held.length ? ' (이번 달 방어 성공 ' + held.length + '건)' : ''), true); setTimeout(function () { sfx('warn'); }, 350); }
     else if (held.length) { setNews(D[held[0].t].n + ' 방어 성공 · ' + S.f[held[0].f].name + (held.length > 1 ? ' 외 ' + (held.length - 1) + '곳' : '') + (plan.length ? ' · 예고: ' + D[S.rivalPlan.t].n : ''), !!plan.length); if (plan.length) setTimeout(function () { sfx('warn'); }, 350); }
     else if (plan.length) { setNews(plan[0].t + ' 그 동을 누르면 막는 방법이 나옵니다.', true); setTimeout(function () { sfx('warn'); }, 350); }
     else if (bad.length) setNews(bad[0].t + (ev.length > 1 ? ' 외 ' + (ev.length - 1) + '건' : ''), true);
@@ -3397,10 +3758,11 @@ if (typeof module !== 'undefined') module.exports = Engine;
     if (sel !== null && sheetMode === 'dong' && S.owner[sel] !== 0) { var n = E.needFor(S, sel, 0.8); sendN = Math.max(1, Math.min(Math.floor(S.f[0].troops), n)); }
     errMsg = '';
     save();
-    sync();
+    holdOv = true; sync(); holdOv = false;
     // 잃은 동이 있으면(후반엔 본거지가 아니고 한 곳뿐이면 소식 줄로만) 결과 카드 하나로 묶어 보여 줌
     var big = lostList.length ? (S.rank < 2 || lostList.length > 1 || capHit) : (held.length && S.rank === 0);
     if (big && !S.over && $('over').hidden) battleCard(lostList, held, battles, nBefore, capHit);
+    else checkOverlay();
   }
   function battleCard(lostList, held, battles, nBefore, capHit) {
     var rows = [];
@@ -3412,8 +3774,10 @@ if (typeof module !== 'undefined') module.exports = Engine;
     var more = rows.length > 6 ? rows.length - 6 : 0; rows = rows.slice(0, 6);
     var nNow = E.dongsOf(S, 0).length;
     var win = !lostList.length;
-    var head = win ? (held.length > 1 ? '공격 ' + held.length + '건을 모두 막았습니다' : D[held[0].t].n + ' 방어 성공!') : capHit ? '본거지를 빼앗겼습니다' : lostList.length > 1 ? '동 ' + lostList.length + '곳을 빼앗겼습니다' : GU[D[lostList[0]].g].n + ' ' + E.J(D[lostList[0]].n, '을', '를') + ' 빼앗겼습니다';
-    showCard('<div class="seal' + (win ? '' : ' lose') + '">' + (win ? '방어' : '함락') + '</div><h2>' + esc(head) + '</h2><div class="rows" style="text-align:left;margin-top:8px">' + rows.map(function (r) { return '<div class="row bt"><span>' + r.h + '<br><small>' + r.s + '</small></span><button class="btn" type="button" data-go="' + r.i + '">보기</button></div>'; }).join('') + (more ? '<div class="row"><span>외 ' + more + '곳</span><span></span></div>' : '') + '<div class="row"><span>우리 동</span><span class="num">' + nBefore + '개 → ' + nNow + '개</span></div>' + (capHit ? '<div class="row"><span>새 본거지</span><span>' + esc(D[S.f[0].cap].n) + '</span></div>' : '') + '</div><p class="why">지도에 이번 달 동안 함락·방어 표시가 남습니다. 소식을 눌러도 그 동으로 갑니다.</p><div class="acts"><button class="btn' + (win ? '' : ' red') + '" id="cardOk" type="button">확인</button></div>');
+    var head = win ? (held.length > 1 ? '공격 ' + held.length + '건을 모두 막았습니다' : D[held[0].t].n + ' 방어 성공') : capHit ? '본거지를 빼앗겼습니다' : lostList.length > 1 ? '동 ' + lostList.length + '곳을 빼앗겼습니다' : GU[D[lostList[0]].g].n + ' ' + E.J(D[lostList[0]].n, '을', '를') + ' 빼앗겼습니다';
+    var mb = lostList.length ? battles.filter(function (x) { return x.t === lostList[0] && !x.held; })[0] : held[0];
+    var bq = mb && mb.f > 0 ? bossHTML(mb.f, win ? 'lose' : 'win', D[mb.t].n) : '';
+    showCard('<div class="seal' + (win ? '' : ' lose') + '">' + (win ? '방어' : '함락') + '</div><h2>' + esc(head) + '</h2>' + bq + '<div class="rows" style="text-align:left;margin-top:8px">' + rows.map(function (r) { return '<div class="row bt"><span>' + r.h + '<br><small>' + r.s + '</small></span><button class="btn" type="button" data-go="' + r.i + '">보기</button></div>'; }).join('') + (more ? '<div class="row"><span>외 ' + more + '곳</span><span></span></div>' : '') + '<div class="row"><span>우리 동</span><span class="num">' + nBefore + '개 → ' + nNow + '개</span></div>' + (capHit ? '<div class="row"><span>새 본거지</span><span>' + esc(D[S.f[0].cap].n) + '</span></div>' : '') + '</div><p class="why">지도에 이번 달 동안 함락·방어 표시가 남습니다. 소식을 눌러도 그 동으로 갑니다.</p><div class="acts"><button class="btn' + (win ? '' : ' red') + '" id="cardOk" type="button">확인</button></div>');
     sfx(win ? 'stamp' : 'fail');
     bind('cardOk', function () { hideCard(); sync(); });
     Array.prototype.forEach.call($('card').querySelectorAll('[data-go]'), function (b) { b.addEventListener('click', function () { hideCard(); goDong(+b.dataset.go); sync(); }); });

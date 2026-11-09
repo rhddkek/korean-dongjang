@@ -1579,7 +1579,7 @@
   function cardHTML(k, btn) {
     var c = E.CARDS[k]; if (!c) return '';
     var e = tx(c.e.replace('강·바다', WATER ? WATER.split('·').join('·') : '강'));
-    return (btn ? '<button type="button" class="pcard" data-k="' + k + '">' : '<div class="pcard own">') + '<i style="background:' + (TAGC[c.tag] || '#47524A') + '">' + c.tag + '</i><b>' + c.n + '</b><span>' + esc(e) + '</span>' + (btn ? '</button>' : '</div>');
+    return (btn ? '<button type="button" class="pcard" data-k="' + k + '">' : '<div class="pcard own">') + '<i style="--c:' + (TAGC[c.tag] || '#47524A') + '">' + c.tag + '</i><b>' + c.n + '</b><span>' + esc(e) + '</span>' + (btn ? '</button>' : '</div>');
   }
   function showCardPick() {
     var why = S.cardWhy === 'rank' ? '승진 기념으로 새 정책을 하나 시행합니다.' : '반년마다 여는 정책 회의입니다. 하나만 고르세요.';
@@ -1711,7 +1711,7 @@
     if (lostList.length) {
       var lb = battles.filter(function (b) { return !b.held && b.t === lostList[0]; })[0];
       setNews((capHit ? '본거지 ' : '') + D[lostList[0]].n + ' 함락 · ' + (lb ? S.f[lb.f].name : '주민 독립') + (lostList.length > 1 ? ' 외 ' + (lostList.length - 1) + '곳' : '') + ' · 전투 ' + nb + '건' + (plan.length ? ' · 예고: ' + D[S.rivalPlan.t].n : ''), true);
-    } else if (plan.length && S.rivalPlan.t === S.f[0].cap) { setNews('본거지 위기! ' + plan[0].t + (held.length ? ' (이번 달 방어 성공 ' + held.length + '건)' : ''), true); setTimeout(function () { sfx('warn'); }, 350); }
+    } else if (plan.length && S.rivalPlan.t === S.f[0].cap) { setNews('본거지 위기 · ' + plan[0].t + (held.length ? ' (이번 달 방어 성공 ' + held.length + '건)' : ''), true); setTimeout(function () { sfx('warn'); }, 350); }
     else if (held.length) { setNews(D[held[0].t].n + ' 방어 성공 · ' + S.f[held[0].f].name + (held.length > 1 ? ' 외 ' + (held.length - 1) + '곳' : '') + (plan.length ? ' · 예고: ' + D[S.rivalPlan.t].n : ''), !!plan.length); if (plan.length) setTimeout(function () { sfx('warn'); }, 350); }
     else if (plan.length) { setNews(plan[0].t + ' 그 동을 누르면 막는 방법이 나옵니다.', true); setTimeout(function () { sfx('warn'); }, 350); }
     else if (bad.length) setNews(bad[0].t + (ev.length > 1 ? ' 외 ' + (ev.length - 1) + '건' : ''), true);
@@ -1744,7 +1744,7 @@
     var more = rows.length > 6 ? rows.length - 6 : 0; rows = rows.slice(0, 6);
     var nNow = E.dongsOf(S, 0).length;
     var win = !lostList.length;
-    var head = win ? (held.length > 1 ? '공격 ' + held.length + '건을 모두 막았습니다' : D[held[0].t].n + ' 방어 성공!') : capHit ? '본거지를 빼앗겼습니다' : lostList.length > 1 ? '동 ' + lostList.length + '곳을 빼앗겼습니다' : GU[D[lostList[0]].g].n + ' ' + E.J(D[lostList[0]].n, '을', '를') + ' 빼앗겼습니다';
+    var head = win ? (held.length > 1 ? '공격 ' + held.length + '건을 모두 막았습니다' : D[held[0].t].n + ' 방어 성공') : capHit ? '본거지를 빼앗겼습니다' : lostList.length > 1 ? '동 ' + lostList.length + '곳을 빼앗겼습니다' : GU[D[lostList[0]].g].n + ' ' + E.J(D[lostList[0]].n, '을', '를') + ' 빼앗겼습니다';
     var mb = lostList.length ? battles.filter(function (x) { return x.t === lostList[0] && !x.held; })[0] : held[0];
     var bq = mb && mb.f > 0 ? bossHTML(mb.f, win ? 'lose' : 'win', D[mb.t].n) : '';
     showCard('<div class="seal' + (win ? '' : ' lose') + '">' + (win ? '방어' : '함락') + '</div><h2>' + esc(head) + '</h2>' + bq + '<div class="rows" style="text-align:left;margin-top:8px">' + rows.map(function (r) { return '<div class="row bt"><span>' + r.h + '<br><small>' + r.s + '</small></span><button class="btn" type="button" data-go="' + r.i + '">보기</button></div>'; }).join('') + (more ? '<div class="row"><span>외 ' + more + '곳</span><span></span></div>' : '') + '<div class="row"><span>우리 동</span><span class="num">' + nBefore + '개 → ' + nNow + '개</span></div>' + (capHit ? '<div class="row"><span>새 본거지</span><span>' + esc(D[S.f[0].cap].n) + '</span></div>' : '') + '</div><p class="why">지도에 이번 달 동안 함락·방어 표시가 남습니다. 소식을 눌러도 그 동으로 갑니다.</p><div class="acts"><button class="btn' + (win ? '' : ' red') + '" id="cardOk" type="button">확인</button></div>');
