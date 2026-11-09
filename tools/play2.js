@@ -12,6 +12,7 @@ const ok=(c,m)=>console.log((c?'PASS ':'FAIL ')+m);
  const tgt=async()=>G(()=>{const g=__game,S=g.S,D=g.D,c=g.cam();let best=null;const r=document.getElementById('hud').getBoundingClientRect().bottom,bt=document.getElementById('bottom').getBoundingClientRect().top;for(const i of g.E.dongsOf(S,0))for(const j of D[i].a){if(S.owner[j]===0)continue;const x=D[j].x*c.s+c.x,y=D[j].y*c.s+c.y;if(x>20&&x<innerWidth-20&&y>r+20&&y<bt-20){const n=g.E.needFor(S,j,.8);if(!best||n<best.n)best={x,y,n,name:D[j].n}}}return best});
  let t=await tgt(); await p.touchscreen.tap(t.x,t.y); await p.waitForTimeout(350); await p.screenshot({path:OUT+'/52_sheet.png'});
  ok(await p.isVisible('.tip'),'첫 공격 추천 문구');
+ const qm=await p.$('#qMore');if(qm){await qm.tap();await p.waitForTimeout(150)}
  const chip80=await p.$$('.chip'); await chip80[0].tap();await p.waitForTimeout(50);await (await p.$$('.chip'))[3].tap(); await p.waitForTimeout(50);
  let captured=false;for(let k=0;k<12&&!captured;k++){const a=await p.$('#atk:not([disabled])');if(a){await a.tap();await p.waitForTimeout(250)}
   captured=await G(()=>__game.S.stat.took>0);

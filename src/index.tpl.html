@@ -50,6 +50,25 @@ button{cursor:pointer;touch-action:manipulation}
 #next{background:var(--ink);color:#fff;border:0;border-radius:3px;padding:0 16px;font-weight:700;white-space:nowrap;min-height:44px;font-size:15px}
 #next:active{transform:translateY(1px)}
 #next.go{background:var(--stamp)}
+#next small{display:block;font-size:11px;font-weight:500;opacity:.85;line-height:1.1;margin-top:1px}
+#next.go{animation:nextGo 1.6s ease-in-out infinite}
+@keyframes nextGo{0%,100%{box-shadow:0 0 0 0 rgba(200,64,46,.0)}50%{box-shadow:0 0 0 5px rgba(200,64,46,.28)}}
+#todo{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:#FFF7D6;border:0;border-top:2px solid var(--ink);padding:9px max(16px,env(safe-area-inset-right,0px)) 9px max(16px,env(safe-area-inset-left,0px));font-size:14px;font-weight:600;min-height:40px}
+#todo span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#todo b{font-size:18px;line-height:1}
+#todo[hidden]{display:none}
+/* 간단 보기 */
+#sheet.peek{max-height:none;overflow:visible;padding-bottom:10px}
+.quick{margin-top:6px}.quick .qstat{margin:4px 0 0;font-size:13.5px;color:var(--mute);line-height:1.4}.quick .qstat b{color:var(--ink)}.quick .qstat.warn{color:var(--stamp-dark)}
+.quick .qstat .good{color:var(--good)}
+.quick .qrow{display:grid;gap:8px;margin-top:10px}.quick .qrow.two{grid-template-columns:1.3fr 1fr}
+.quick .btn{min-height:50px}.quick .btn .pct{font-size:17px;margin-left:4px}
+.quick .qmore{background:none;border:1px solid var(--line);color:var(--mute);font-weight:500;min-height:38px}
+.quick .tip{margin:8px 0 0}
+.quick .qlbl{margin:10px 0 0;font-size:12.5px;color:var(--mute)}
+.qdevs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
+.qdev{display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:#fff;border:1px solid var(--ink);border-radius:3px;padding:7px 8px;font:inherit;font-size:13px;color:inherit;min-height:56px;text-align:left}
+.qdev:disabled{opacity:.45}.qdev em{font-style:normal;font-size:9px;letter-spacing:-1px;color:var(--mute)}.qdev b{font-size:13.5px}
+.qdev .dd{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:1px}
 #rpBlock{position:fixed;inset:0;z-index:30;background:transparent;cursor:pointer}
 #rpBar{position:absolute;z-index:31;display:flex;align-items:center;gap:6px;background:#17231C;color:#fff;border-radius:4px;padding:5px 6px 5px 12px;box-shadow:0 2px 10px rgba(0,0,0,.18)}
 #rpBar[hidden]{display:none}
@@ -234,6 +253,7 @@ details.diplo .acts{margin-top:2px}
 @media (min-width:900px),(orientation:landscape) and (min-width:560px){
   #bottom{left:auto;top:0;width:var(--col);border-left:2px solid var(--ink);background:var(--paper);justify-content:flex-end}
   #sheet{flex:1;max-height:none;border-top:0;padding-top:16px}
+  #todo{order:-1;border-top:0;border-bottom:2px solid var(--ink)}
   #hud{right:var(--col)}
   #pick{position:absolute;right:0;top:0;bottom:0;width:var(--col);max-height:none;border-top:0;border-left:2px solid var(--ink);margin:0}
   #presets{grid-template-columns:1fr 1fr;overflow:visible}
@@ -261,6 +281,7 @@ details.diplo .acts{margin-top:2px}
   </header>
   <div id="bottom" hidden>
     <section id="sheet" hidden aria-live="polite"></section>
+    <button id="todo" type="button" hidden></button>
     <button id="govBar" type="button" hidden></button>
     <button id="offerBar" type="button" hidden></button>
     <button id="evBar" type="button" hidden></button>
