@@ -1,7 +1,7 @@
 // v7: 시설 예정 효과, 생존 협상, 빈집 경고, 급행 바로 복귀 3번, 안전센터, 숙적의 시설 노림·빈집 노림
 const { chromium, devices } = require('playwright'); const http=require('http'), fs=require('fs');
 const OUT=process.argv[2]||'.';
-const html='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light}body{margin:0;font:14px system-ui}[hidden]{display:none!important}img{max-width:100%}</style></head><body><script>new MutationObserver(function(){var b=document.querySelector("#card button.pcard");if(b&&!b.dataset.ap){b.dataset.ap=1;setTimeout(function(){b.click()},0)}}).observe(document.documentElement,{childList:true,subtree:true})</script><script>try{localStorage.getItem("dongjang-replay")||localStorage.setItem("dongjang-replay","off")}catch(e){}</script>'+fs.readFileSync('dongjang.html','utf8')+'</body></html>';
+const html='<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light}body{margin:0;font:14px system-ui}[hidden]{display:none!important}img{max-width:100%}</style></head><body><script>new MutationObserver(function(){var c=document.querySelector("#card");if(!c)return;var b=c.querySelector("button.pcard:not(.pl)");if(b&&!b.dataset.ap){b.dataset.ap=1;setTimeout(function(){b.click()},0);return}var ok=c.querySelector("#plOk");if(ok&&!ok.dataset.ap){ok.dataset.ap=1;setTimeout(function(){var on=document.querySelectorAll("#card .pl.on").length;var q=document.querySelectorAll("#card .pl:not(.on)");for(var i=0;i<2-on&&i<q.length;i++)q[i].click();var o2=document.querySelector("#plOk");if(o2&&!o2.disabled)o2.click()},0)}}).observe(document.documentElement,{childList:true,subtree:true})</script><script>try{localStorage.getItem("dongjang-replay")||localStorage.setItem("dongjang-replay","off")}catch(e){}</script>'+fs.readFileSync('dongjang.html','utf8')+'</body></html>';
 const srv=http.createServer((q,r)=>{r.setHeader('content-type','text/html;charset=utf-8');r.end(html)}).listen(8129);
 const ok=(c,m)=>console.log((c?'PASS ':'FAIL ')+m);
 (async()=>{
@@ -28,7 +28,7 @@ const ok=(c,m)=>console.log((c?'PASS ':'FAIL ')+m);
  ok(sf.r.ok&&sf.lv===3&&sf.mood===60,'광역 안전센터: 치안 +1단계, 민심 +10');
  // 생존 협상
  const of=await G(()=>{const g=__game,S=g.S,E=g.E;const f=S.f.find(f=>f.ai&&f.alive);
-   g.D[f.cap].a.slice(0,3).forEach(j=>{if(S.owner[j]!==0)S.owner[j]=f.id});
+   g.D[f.cap].a.slice(0,3).forEach(j=>{if(j!==S.f[0].cap)S.owner[j]=f.id});
    // 숙적을 약하게 만들고 우리와 맞닿게
    const ds=E.dongsOf(S,f.id);S.rival=f.id;f.troops=10;f.offered=false;S.offerAt=-99;S.offer=null;S.f[0].troops=5000;
    const nb=g.D[ds[0]].a.find(j=>S.owner[j]!==f.id);if(nb!==undefined)S.owner[nb]=0;

@@ -7,7 +7,7 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
 (async () => {
   const b = await chromium.launch(); const ctx = await b.newContext({ ...devices['iPhone 13'] }); const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message));
   const G = (f, ...a) => p.evaluate(f, ...a);
-  const dismiss = async () => { for (let k = 0; k < 8; k++) { const c = await p.$('#over:not([hidden]) #cardOk'); if (!c) break; await c.tap(); await p.waitForTimeout(200); } };
+  const dismiss = async () => { for (let k = 0; k < 8; k++) { const pl = await p.$('#over:not([hidden]) #plOk'); if (pl) { const on = await p.$$eval('#card .pl.on', x => x.length); for (let i = 0; i < 2 - on; i++) { await p.tap('#card .pl:not(.on)'); await p.waitForTimeout(80); } await p.tap('#plOk'); await p.waitForTimeout(200); continue; } const c = await p.$('#over:not([hidden]) #cardOk'); if (!c) break; await c.tap(); await p.waitForTimeout(200); } };
   await p.goto('http://localhost:8138', { waitUntil: 'load' }); await p.waitForTimeout(400);
   await p.fill('#q', '역삼1'); await p.waitForTimeout(80); await p.tap('#results button'); await p.waitForTimeout(150); await p.tap('#begin'); await p.waitForTimeout(400);
   // 1) 6달째 정책 회의 → 카드 세 장
