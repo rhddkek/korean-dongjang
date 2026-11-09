@@ -1,0 +1,33 @@
+// v13.1: 달 넘김 달력, 새해, 탭 건너뛰기, 연출 중 저장은 진짜 상태, 카드는 달력 뒤에, '우리 차례' 띠
+const { chromium, devices } = require('playwright'); const http = require('http'), fs = require('fs');
+const OUT = process.argv[2] || '.';
+const html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light}body{margin:0;font:14px system-ui}[hidden]{display:none!important}img{max-width:100%}</style></head><body><script>try{localStorage.setItem("dongjang-replay","normal")}catch(e){}</script>' + fs.readFileSync('dongjang.html', 'utf8') + '</body></html>';
+const srv = http.createServer((q, r) => { r.setHeader('content-type', 'text/html;charset=utf-8'); r.end(html); }).listen(8145);
+const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
+(async () => {
+  const b = await chromium.launch(); const p = await (await b.newContext({ ...devices['iPhone 13'] })).newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message));
+  const G = (f, ...a) => p.evaluate(f, ...a);
+  await p.goto('http://localhost:8145', { waitUntil: 'load' }); await p.waitForTimeout(400);
+  await p.fill('#q', '소공'); await p.waitForTimeout(80); await p.tap('#results button'); await p.waitForTimeout(150); await p.tap('#begin'); await p.waitForTimeout(400);
+  await G(() => { const S = __game.S; S.month = 5; S.cardNext = 6; S.seenFoe = 1; __game.sync(); });
+  await p.tap('#next'); await p.waitForTimeout(150);
+  const c1 = await G(() => { const el = document.getElementById('turnCal'); const k = Object.keys(localStorage).find(x => /dongjang-save/.test(x) && !/prev/.test(x)); return { vis: !el.hidden, back: el.querySelector('.back b').textContent, front: el.querySelector('.front b').textContent, saved: JSON.parse(localStorage.getItem(k)).month, m: __game.S.month, card: !document.getElementById('over').hidden }; });
+  ok(c1.vis && c1.front === '6월' && c1.back === '7월', '다음 달 → 달력 6월→7월');
+  ok(c1.saved === c1.m, '연출 중 저장본은 다음 달 상태');
+  ok(!c1.card, '정책 카드는 달력이 끝난 뒤에');
+  await p.screenshot({ path: OUT + '/c1.png' });
+  await p.waitForFunction(() => document.getElementById('turnCal').hidden && document.getElementById('rpBlock').hidden, null, { timeout: 30000 });
+  await p.waitForTimeout(300);
+  const c2 = await G(() => ({ card: !document.getElementById('over').hidden && !!document.querySelector('#card .pcard'), ban: document.getElementById('turnBanner').innerText }));
+  ok(c2.card, '달력 끝 → 정책 카드');
+  ok(/7월 · 우리 차례/.test(c2.ban) && /결재 \d+건/.test(c2.ban), '우리 차례 띠: ' + c2.ban.replace(/\n/g, ' '));
+  await p.tap('#card .pcard'); await p.waitForTimeout(200);
+  await G(() => { __game.S.month = 11; __game.S.cardNext = 99; });
+  await p.tap('#next'); await p.waitForTimeout(150);
+  const c3 = await G(() => ({ ny: !!document.querySelector('#turnCal .ny'), t: document.getElementById('turnCal').innerText }));
+  ok(c3.ny && /2028년/.test(c3.t) && /새해/.test(c3.t), '해가 바뀌면 새해 달력');
+  await p.screenshot({ path: OUT + '/c3.png' });
+  await p.tap('#turnCal'); await p.waitForTimeout(250);
+  ok(await G(() => document.getElementById('turnCal').hidden), '달력 누르면 바로 넘어감');
+  console.log('errors', errs); await b.close(); srv.close();
+})().catch(e => { console.error(e); process.exit(1); });

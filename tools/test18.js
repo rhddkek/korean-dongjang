@@ -27,7 +27,7 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
     const g = __game, S = g.S, E = g.E, D = g.D; S.month = 20; S.seenFoe = 1; S.seenGu = null;
     const f = S.f.find(x => x.ai && x.alive); const cap = S.f[0].cap;
     const ring = D[cap].a.filter(j => j !== cap).slice(0, 3); ring.forEach(j => S.owner[j] = f.id);
-    f.hate = 50; g.sync();
+    f.hate = 60; g.sync();
     const f2 = S.f.find(x => x.ai && x.alive && x.id !== f.id); const t2 = D[cap].a.find(j => !ring.includes(j) && j !== cap); if (t2 !== undefined) S.owner[t2] = f2.id;
     f2.adv = { nm: '홍길동', face: 12345, grp: '조기축구회', from: '가짜 조기축구회', fromId: f.id, at: 19 }; f2.hate = 30;
     g.sync(); return { t: ring[0], t2, f: f.id, f2: f2.id };

@@ -307,7 +307,7 @@ var Engine = (function () {
     f.hate = Math.max(0, Math.min(100, (f.hate || 0) + (dh || 0)));
     f.warm = Math.max(0, Math.min(100, (f.warm || 0) + (dw || 0) - (dh > 0 ? dh : 0)));
   }
-  function moodOf(s, fid) { var f = s.f[fid]; if (!f || !f.ai) return ''; return (f.hate || 0) >= 45 ? 'grudge' : (f.hate || 0) >= 20 ? 'wary' : (f.warm || 0) >= 40 ? 'warm' : ''; }
+  function moodOf(s, fid) { var f = s.f[fid]; if (!f || !f.ai) return ''; return (f.hate || 0) >= 55 ? 'grudge' : (f.hate || 0) >= 25 ? 'wary' : (f.warm || 0) >= 40 ? 'warm' : ''; }
   function pushLog(s, t, kind, at) {
     var e = { m: s.month, t: t, k: kind || 'n' };
     if (at !== undefined) e.at = at;   // 누르면 이동할 동
@@ -633,7 +633,7 @@ var Engine = (function () {
       s.battles = s.battles || [];
       s.battles.push({ t: t, f: fid, held: !win, mine: Math.round(win ? def.share * 0.55 : Math.min(def.share, a * 0.3)), theirs: res.lost, cap: !!res.movedCap || s.f[0].cap === t, fac: res.facNote || '' });
     }
-    if (o >= 0 && s.f[o].alive && fid === 0) { s.f[o].grudge = s.month + 6; s.f[o].grudgeWhy = 'atk'; feel(s, o, win ? 8 : 4, 0); }
+    if (o >= 0 && s.f[o].alive && fid === 0) { s.f[o].grudge = s.month + 6; s.f[o].grudgeWhy = 'atk'; feel(s, o, win ? 5 : 3, 0); }
     if (b0) rpPush(s, { k: 'atk', f: fid, o: o, t: t, src: r.src, via: r.via, win: win, plan: !!plan, col: res.collapse ? res.collapse.name : null, n: Math.round(n) }, b0);
     return res;
   }
@@ -1712,7 +1712,7 @@ var Engine = (function () {
       if (wb2 && f.troops * 0.8 >= wb2.need * 1.3) { opp = true; s.rivalHitAt = s.month; tries += 1; pushLog(s, J(f.name, '이', '가') + ' 우리 인원이 비어 있는 틈을 노립니다.', 'riv'); }
     }
     var meP = !!(s.f[0].pact && s.f[0].pact[f.id] > s.month);
-    var grudge = touching && !meP && s.month > C.GRACE + 2 && ((f.hate || 0) >= 45 || (f.adv && (f.hate || 0) >= 25));
+    var grudge = touching && !meP && s.month > C.GRACE + 2 && ((f.hate || 0) >= 55 || (f.adv && (f.hate || 0) >= 35));
     if (grudge && !f.hateSaid) { f.hateSaid = 1; pushLog(s, (f.adv ? f.adv.nm + ' 고문' : f.boss.nm + ' 회장') + '(' + f.name + ')이 우리 이름만 들어도 이를 갑니다. 먼저 노릴 겁니다.', 'riv'); }
     if ((f.hate || 0) < 30) f.hateSaid = 0;
     var hunt = pounce || opp || (inCoal(s, f.id) && touching) || grudge;
@@ -1878,7 +1878,7 @@ var Engine = (function () {
       if (me.pact[fid] === s.month + 1 && s.f[fid].alive) pushLog(s, J(s.f[fid].name, '과', '와') + '의 협정이 다음 달 끝납니다.');
       if (me.pact[fid] === s.month && s.f[fid].alive) { feel(s, +fid, 0, 20); pushLog(s, J(s.f[fid].name, '과', '와') + '의 협정을 끝까지 지켰습니다. ' + s.f[fid].boss.nm + ' 회장이 고마워합니다.', 'good'); }
     });
-    s.f.forEach(function (f) { if (f.ai && f.alive) { f.hate = Math.max(0, (f.hate || 0) - 1); f.warm = Math.max(0, (f.warm || 0) - 0.5); } });
+    s.f.forEach(function (f) { if (f.ai && f.alive) { f.hate = Math.max(0, (f.hate || 0) - 1.5); f.warm = Math.max(0, (f.warm || 0) - 0.5); } });
     counterCamp(s);
     if (RP) RP.done = true;
     if (!s.over) { tickEvents(s); tickRival(s); tickOffer(s); }

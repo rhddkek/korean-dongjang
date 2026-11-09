@@ -19,7 +19,7 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
     g.sync(); return { t, name: D[t].n, f: f.name };
   });
   const st = await setup();
-  await p.tap('#next'); await p.waitForTimeout(250);
+  await p.tap('#next'); await p.waitForFunction(() => document.getElementById('turnCal').hidden, null, { timeout: 5000 }); await p.waitForTimeout(250);
   const r1 = await G(() => ({ bar: !document.getElementById('rpBar').hidden, label: document.getElementById('rpLabel').textContent }));
   ok(r1.bar && /상대 턴/.test(r1.label), '다음 달 → 상대 턴 재생 시작: ' + r1.label);
   await p.waitForTimeout(500); await p.screenshot({ path: OUT + '/r1_replay.png' });
@@ -33,14 +33,14 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   await p.screenshot({ path: OUT + '/r2_after.png' });
   await p.tap('#cardOk').catch(() => {}); await p.waitForTimeout(200);
   // 건너뛰기
-  await setup(); await p.tap('#next'); await p.waitForTimeout(200);
+  await setup(); await p.tap('#next'); await p.waitForFunction(() => document.getElementById('turnCal').hidden, null, { timeout: 5000 }); await p.waitForTimeout(200);
   const on = await G(() => !document.getElementById('rpBar').hidden);
   if (on) { await p.tap('#rpSkip'); await p.waitForTimeout(250); }
   const r3 = await G(() => ({ bar: document.getElementById('rpBar').hidden, eq: (() => { const g = __game; return JSON.stringify(g.S.owner) === JSON.stringify(g.E.replay() ? g.S.owner : g.S.owner); })() }));
   ok(on && (r3.bar || await G(() => document.getElementById('rpBar').classList.contains('end'))), '건너뛰기 → 바로 우리 턴');
   await p.tap('#cardOk').catch(() => {}); await p.waitForTimeout(200);
   // 화면 누르기: 첫 번째는 빠르게, 두 번째는 건너뛰기
-  await setup(); await p.tap('#next'); await p.waitForTimeout(150);
+  await setup(); await p.tap('#next'); await p.waitForFunction(() => document.getElementById('turnCal').hidden, null, { timeout: 5000 }); await p.waitForTimeout(150);
   await p.mouse.click(200, 500); await p.waitForTimeout(100); const fast = await G(() => document.getElementById('rpBar').hidden === false);
   await p.mouse.click(200, 500); await p.waitForTimeout(250); const gone = await G(() => document.getElementById('rpBar').hidden || document.getElementById('rpBar').classList.contains('end'));
   ok(fast && gone, '화면 누르기: 빠르게 → 건너뛰기');
@@ -48,7 +48,7 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   // 메뉴에서 끄기
   await p.tap('#menuBtn'); await p.waitForTimeout(200); await p.tap('#rpMode .chip[data-m="off"]'); await p.waitForTimeout(100);
   ok(await G(() => localStorage.getItem('dongjang-replay') === 'off'), '메뉴: 상대 턴 보기 끄기'); await p.tap('.x');
-  await setup(); await p.tap('#next'); await p.waitForTimeout(150);
+  await setup(); await p.tap('#next'); await p.waitForFunction(() => document.getElementById('turnCal').hidden, null, { timeout: 5000 }); await p.waitForTimeout(150);
   ok(await G(() => document.getElementById('rpBlock').hidden && document.getElementById('rpLabel').textContent.indexOf('상대') < 0 || document.getElementById('rpBar').hidden), '끄면 재생 없이 바로');
   console.log('errors', errs); await b.close(); srv.close();
 })().catch(e => { console.error(e); process.exit(1); });

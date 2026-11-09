@@ -39,7 +39,7 @@
   function isWide() { return WIDE.matches; }
   var lastAct = 0, recDong = null, guReserve = 0.25, blinkTimer = 0;
   function guard(fn) { return function () { var n = Date.now(); if (n - lastAct < 300) return; lastAct = n; fn.apply(this, arguments); }; }
-  var lastSheetKey = '', peek = false, zoneSel = null, zp = null, TLS = null, guSel = null, S = null, sel = null, pickSel = null, lens = 0, reach = {}, flash = {}, flashTimer = 0, errMsg = '', sendN = 0, sheetMode = 'none', confirmNew = false;
+  var lastSheetKey = '', peek = false, zoneSel = null, zp = null, TLS = null, CAL = null, guSel = null, S = null, sel = null, pickSel = null, lens = 0, reach = {}, flash = {}, flashTimer = 0, errMsg = '', sendN = 0, sheetMode = 'none', confirmNew = false;
   var LENS = ['세력', '인구', '경제', '인프라', '생활'], LKEY = [null, 'P', 'E', 'I', 'L'];
   var PAL = ['#D4321F', '#2F6DB5', '#E2A11F', '#2F9B78', '#8257B8', '#CC5C98', '#6F9426', '#1C9FB8', '#B0713A', '#5468D4', '#74889A', '#8F3F73', '#3F7A55', '#D9812F', '#A5952E', '#3D5A80', '#56B096', '#B57FD0', '#8A6D3B', '#4F9BD9'];
   var REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -82,7 +82,7 @@
   function dateOf(m) { var t = 2027 * 12 + m; return Math.floor(t / 12) + '년 ' + (t % 12 + 1) + '월'; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function fCol(id) { return id === 0 ? PAL[0] : PAL[1 + (id - 1) % (PAL.length - 1)]; }
-  function save() { try { if (S) { var o = S.owner; if (RPS) S.owner = RPS.real; if (TLS) S.owner = TLS.real; localStorage.setItem(SAVE_KEY, JSON.stringify(S)); S.owner = o; } } catch (e) {} }
+  function save() { try { if (S) { var o = S.owner; if (RPS) S.owner = RPS.real; if (TLS) S.owner = TLS.real; if (CAL) S.owner = CAL.real; localStorage.setItem(SAVE_KEY, JSON.stringify(S)); S.owner = o; } } catch (e) {} }
   function backup() { try { var t = localStorage.getItem(SAVE_KEY); if (t) localStorage.setItem(SAVE_KEY + '-prev', t); } catch (e) {} }
   function bests() { try { return JSON.parse(localStorage.getItem(BEST_KEY)) || {}; } catch (e) { return {}; } }
   function saveBest(i, m) { try { var b = bests(); if (!b[i] || m < b[i]) { b[i] = m; localStorage.setItem(BEST_KEY, JSON.stringify(b)); } } catch (e) {} }
@@ -1752,7 +1752,7 @@
   // ---- 전면 카드 ----
   var holdOv = false;   // 달 넘김 결과 카드가 먼저 나오도록 잠깐 미룸
   function checkOverlay() {
-    if (!S || !$('over').hidden || holdOv) return;
+    if (!S || !$('over').hidden || holdOv || CAL) return;
     if (S.over) return showEnd(false);
     if (S.won && !S.keepPlaying && !S.endShown) { S.endShown = 1; return showEnd(true); }
     if (S.promo && S.promo < 3) {
@@ -1823,6 +1823,38 @@
     bind('again', toStart);
     save();
   }
+  // ---- 달 넘김 연출: 탁상 달력이 한 장 넘어가고, 상대 턴이 끝나면 '우리 차례' 띠 ----
+  function ym(m) { var t = 2027 * 12 + m; return { y: Math.floor(t / 12), m: t % 12 + 1 }; }
+  function calFlip(m0, m1, before, foes, done) {
+    if (RPM === 'off' || REDUCED) { done(); return; }
+    var a = ym(m0), b = ym(m1), newYear = b.y !== a.y, el = $('turnCal');
+    CAL = { real: S.owner, done: done, timer: 0 };
+    S.owner = before.slice(); dirty();
+    el.innerHTML = '<div class="cal' + (newYear ? ' ny' : '') + '"><div class="ring"><i></i><i></i></div><div class="pg back"><small>' + b.y + '년</small><b>' + b.m + '월</b>' + (newYear ? '<em>새해</em>' : '') + '<span>' + (foes ? '상대 세력이 움직입니다' : '조용한 달') + '</span></div><div class="pg front"><small>' + a.y + '년</small><b>' + a.m + '월</b></div></div>';
+    el.hidden = false; el.classList.remove('go', 'out');
+    void el.offsetWidth; el.classList.add('go');
+    sfx('page');
+    var dur = RPM === 'fast' ? 700 : 1150;
+    CAL.timer = setTimeout(calEnd, dur);
+  }
+  function calEnd() {
+    if (!CAL) return;
+    var c = CAL; CAL = null; clearTimeout(c.timer);
+    S.owner = c.real;
+    var el = $('turnCal'); el.classList.add('out');
+    setTimeout(function () { el.hidden = true; el.classList.remove('go', 'out'); }, 180);
+    dirty(); c.done();
+  }
+  $('turnCal').addEventListener('click', calEnd);
+  var bannerTimer = 0;
+  function turnBanner() {
+    if (!S || S.over || REDUCED) return;
+    var el = $('turnBanner'), e = E.economy(S, 0), d = ym(S.month);
+    el.innerHTML = '<b>' + d.m + '월 · 우리 차례</b><span class="num">결재 ' + S.ap + '건 · 예산 ' + signed(e.net, money) + '</span>';
+    var vr = viewRect(); el.style.top = (vr.y + 8) + 'px'; el.style.left = (vr.x + 8) + 'px';
+    el.hidden = false; el.classList.remove('go'); void el.offsetWidth; el.classList.add('go');
+    clearTimeout(bannerTimer); bannerTimer = setTimeout(function () { el.hidden = true; el.classList.remove('go'); }, 2000);
+  }
   // ---- 타임랩스: 첫 달부터 지금까지 땅이 바뀐 기록을 빠르게 다시 그림 ----
   function playTL(done) {
     if (!S.hist) { done(); return; }
@@ -1859,10 +1891,13 @@
     backup();
     var before = S.owner.slice();
     var nBefore = before.filter(function (o) { return o === 0; }).length, capBefore = S.f[0].cap;
-    var ev = E.endTurn(S);
+    var m0 = S.month, ev = E.endTurn(S);
     save();
     if (sel !== null) { sel = null; sheetMode = 'none'; renderSheet(); }
-    startReplay(before, E.replay(), function (quick) { afterTurn(before, nBefore, capBefore, ev, quick); });
+    var R = E.replay();
+    calFlip(m0, S.month, before, !!(R && R.ev && R.ev.length) && RPM !== 'off', function () {
+      startReplay(before, R, function (quick) { afterTurn(before, nBefore, capBefore, ev, quick); turnBanner(); });
+    });
   }));
   function afterTurn(before, nBefore, capBefore, ev, quick) {
     var lost = 0, lostList = []; flash = {};

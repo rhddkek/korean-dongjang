@@ -51,7 +51,7 @@ const ok=(c,m)=>console.log((c?'PASS ':'FAIL ')+m);
  const r1=await G(()=>({n:__game.E.dongsOf(__game.S,0).length,ap:__game.S.ap}));ok(r1.ap===ap0-2&&r1.n>=n0,'구 일괄 공격 '+n0+'→'+r1.n+' / 결재 '+ap0+'→'+r1.ap);console.log(' news',await p.textContent('#news'));
  await p.waitForTimeout(800);
  const per=await p.$('#guPer:not([disabled])'); if(per){const m0=await G(()=>__game.S.f[0].money);await per.tap();await p.waitForTimeout(100);ok(await G(m=>__game.S.f[0].money<m,m0),'구 일괄 설득')}else console.log(' 설득 대상 없음');
- const gd=await p.$('.gd:not([disabled])'); if(gd){const m0=await G(()=>__game.S.stat.built);await gd.tap();await p.waitForTimeout(100);ok(await G(m=>__game.S.stat.built>m,m0),'구 일괄 개발')}
+ const gd=await p.$('.gd:not([disabled])'); if(gd){const m0=await G(()=>__game.S.stat.built);await p.locator('.gd:not([disabled])').first().tap();await p.waitForTimeout(100);ok(await G(m=>__game.S.stat.built>m,m0),'구 일괄 개발')}
  await p.tap('.x');
  // 저장 코드 왕복
  await p.tap('#menuBtn');await p.waitForTimeout(100);await p.screenshot({path:OUT+'/45_menu.png'});await p.tap('#expBtn');await p.waitForTimeout(150);
