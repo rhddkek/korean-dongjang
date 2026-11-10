@@ -35,3 +35,13 @@ head = ('<!doctype html><html lang="ko"><head><meta charset="utf-8">'
         '<style>html,body{margin:0;height:100%;background:#CFD8CF}</style></head><body>')
 open('index.html', 'w', encoding='utf-8').write(head + t + '</body></html>')
 print('built KB', len(t.encode()) // 1024)
+# GPT·가벼운 공유용: 서울만, 효과음 파일 없이(합성음), 완전한 문서
+lite = open('src/index.tpl.html', encoding='utf-8').read()
+lite = re.sub(r'<script type="(?:application/json|text/plain)" id="data-(?!seoul")[a-z]+"[^>]*>/\*DATA_[a-z]+\*/</script>\n?', '', lite)
+ui_lite = open('src/ui.js', encoding='utf-8').read()
+lite = lite.replace('/*DATA_seoul*/', data).replace('/*PRESETS*/', pre).replace('/*ENGINE*/', eng).replace('/*UI*/', ui_lite)
+assert '/*DATA_' not in lite
+lite = ('<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
+        '<title>동장의 난 (서울판)</title><style>html,body{margin:0;height:100%;background:#CFD8CF}</style></head><body>' + lite + '</body></html>')
+open('dongjang-seoul-lite.html', 'w', encoding='utf-8').write(lite)
+print('lite KB', len(lite.encode()) // 1024)

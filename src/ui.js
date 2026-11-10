@@ -4,6 +4,8 @@
   var CITY_GROUPS = [['광역', [['seoul', '서울'], ['busan', '부산'], ['daegu', '대구'], ['incheon', '인천'], ['gwangju', '광주'], ['daejeon', '대전'], ['ulsan', '울산']]],
     ['도', [['gyeonggi', '경기'], ['gangwon', '강원'], ['chungbuk', '충북'], ['chungnam', '충남'], ['jeonbuk', '전북'], ['gyeongbuk', '경북'], ['gyeongnam', '경남'], ['jeju', '제주']]],
     ['통합', [['daegyeong', '대구경북'], ['gyeongsang', '경상도'], ['jeonnam', '전남광주'], ['jeolla', '전라도'], ['korea', '전국']]]];
+  // 가벼운 판(서울만 담은 파일)에서는 데이터가 든 지도만 보여 줌
+  CITY_GROUPS = CITY_GROUPS.map(function (g) { return [g[0], g[1].filter(function (c) { return document.getElementById('data-' + c[0]); })]; }).filter(function (g) { return g[1].length; });
   var CITY_LIST = [].concat.apply([], CITY_GROUPS.map(function (g) { return g[1]; }));
   function cityPref() {
     var m = /city=(\w+)/.exec(location.hash || '');
