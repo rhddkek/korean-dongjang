@@ -23,4 +23,15 @@ t = t.replace('/*DATA_seoul*/', data).replace('/*PRESETS*/', pre)
 for c, v in cities.items(): t = t.replace('/*DATA_%s*/' % c, v)
 t = t.replace('/*ENGINE*/', eng).replace('/*UI*/', ui)
 open('dongjang.html', 'w', encoding='utf-8').write(t)
+# GitHub Pages용 완전한 문서 (카톡·SNS 미리보기 포함)
+SITE = 'https://rhddkek.github.io/dongjang/'
+head = ('<!doctype html><html lang="ko"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
+        '<meta name="description" content="내가 사는 동에서 동장으로 시작해 시장·도지사·대통령까지. 실제 행정동 지도와 인구·상권 통계로 하는 턴제 땅따먹기 웹게임.">'
+        '<meta property="og:type" content="website"><meta property="og:title" content="동장의 난">'
+        '<meta property="og:description" content="우리 동네에서 동장으로 시작해 시장까지. 실제 행정동 지도로 하는 땅따먹기.">'
+        '<meta property="og:image" content="' + SITE + 'og.png"><meta property="og:url" content="' + SITE + '">'
+        '<meta name="twitter:card" content="summary_large_image"><meta name="theme-color" content="#17231C">'
+        '<style>html,body{margin:0;height:100%;background:#CFD8CF}</style></head><body>')
+open('index.html', 'w', encoding='utf-8').write(head + t + '</body></html>')
 print('built KB', len(t.encode()) // 1024)
