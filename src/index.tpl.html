@@ -72,6 +72,12 @@ button{cursor:pointer;touch-action:manipulation}
 #rpBlock{position:fixed;inset:0;z-index:30;background:transparent;cursor:pointer}
 #rpBar{position:absolute;z-index:31;display:flex;align-items:center;gap:6px;background:#17231C;color:#fff;border-radius:4px;padding:4px 6px 4px 12px;box-shadow:0 2px 10px rgba(0,0,0,.18)}
 #rpBar[hidden]{display:none}
+#rpDots{display:flex;gap:4px;margin:0 4px}#rpDots:empty{display:none}#rpDots i{width:7px;height:7px;border-radius:50%;border:1.5px solid rgba(255,255,255,.8)}#rpDots i.on{background:#fff;border-color:#fff}#rpBar.end #rpDots{display:none}
+.seg{display:flex;gap:2px;height:4px;margin-top:3px}.seg:empty{display:none}.seg i{flex:1;background:var(--line);border-radius:1px}.seg i.on{background:var(--good)}
+.pcard em.now{display:block;font-style:normal;font-size:13px;font-weight:500;color:var(--good);margin-top:4px}
+.row .nw{white-space:nowrap;flex:none;padding-left:8px}
+@media (max-width:379px){.cell i{font-size:11px;letter-spacing:-.2px}}
+.chips.qp{margin:0 0 6px}.chips.qp .chip{min-height:36px}.chips.qp .chip.qm{flex:1.15;border-color:var(--ink)}
 #turnCal{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(23,35,28,0);cursor:pointer;transition:background .18s}
 #turnCal[hidden]{display:none}#turnCal.go{background:rgba(23,35,28,.28)}#turnCal.out{opacity:0;transition:opacity .18s}
 #turnCal .cal{position:relative;width:176px;height:196px;perspective:600px;transform:translateY(8px) scale(.96);opacity:0;transition:transform .22s cubic-bezier(.22,1,.36,1),opacity .22s}
@@ -295,7 +301,7 @@ details.diplo .acts{margin-top:2px}
   <canvas id="map" aria-label="서울 행정동 지도. 동을 누르면 정보가 열립니다."></canvas>
   <div id="stampLayer"></div>
   <div id="rpBlock" hidden></div>
-  <div id="turnBanner" hidden aria-live="polite"></div><div id="turnCal" hidden role="status" aria-live="polite"></div><div id="rpTalk" hidden></div><div id="rpBar" hidden role="status" aria-live="polite"><span id="rpLabel">상대 턴</span><button id="rpFast" type="button">빠르게</button><button id="rpSkip" type="button">건너뛰기</button></div>
+  <div id="turnBanner" hidden aria-live="polite"></div><div id="turnCal" hidden role="status" aria-live="polite"></div><div id="rpTalk" hidden></div><div id="rpBar" hidden role="status" aria-live="polite"><span id="rpLabel">상대 턴</span><span id="rpDots" aria-hidden="true"></span><button id="rpFast" type="button">빠르게</button><button id="rpSkip" type="button">건너뛰기</button></div>
   <div id="mapBtns" hidden><button id="toCap" type="button">본거지</button><button id="toAll" type="button">서울 전체</button></div>
   <div id="legend" hidden><span id="legendName"></span><span>낮음</span><span class="bar"></span><span>높음</span></div>
   <header id="hud" hidden>
@@ -304,7 +310,7 @@ details.diplo .acts{margin-top:2px}
       <div class="cell"><small>예산·순수입</small><b id="cMoney" class="num"></b><i id="cMoneyD" class="num"></i></div>
       <div class="cell"><small>대기 인원</small><b id="cTroops" class="num"></b><i id="cTroopsD" class="num"></i></div>
       <div class="cell"><small>남은 결재</small><b id="cAp" class="num"></b><i id="cApD">이번 달</i></div>
-      <div class="cell"><small>우리 동</small><b id="cN" class="num"></b><i id="cPop" class="num"></i></div>
+      <div class="cell"><small>우리 동</small><b id="cN" class="num"></b><i id="cPop" class="num"></i><span id="cSeg" class="seg" aria-hidden="true"></span></div>
     </button>
   </header>
   <div id="bottom" hidden>

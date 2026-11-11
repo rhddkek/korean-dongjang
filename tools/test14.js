@@ -12,7 +12,7 @@ const MODES = [['gyeonggi', '경기', '경기도지사'], ['gangwon', '강원', 
   const b = await chromium.launch(); const ctx = await b.newContext({ ...devices['iPhone 13'] }); const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message));
   const G = (f, ...a) => p.evaluate(f, ...a);
   const ready = () => p.waitForFunction(() => window.__game && __game.D && document.querySelector('#begin'), null, { timeout: 20000 });
-  const dismiss = async () => { for (let k = 0; k < 8; k++) { const w = await p.$('#over:not([hidden]) #cont'); if (w) { await w.tap(); await p.waitForTimeout(200); continue; } const c = await p.$('#over:not([hidden]) #cardOk'); if (!c) break; await c.tap(); await p.waitForTimeout(200); } };
+  const dismiss = async () => { for (let k = 0; k < 8; k++) { if (await p.$('#over:not([hidden]) button.pcard, #over:not([hidden]) #plOk')) { await p.waitForTimeout(300); continue; } const w = await p.$('#over:not([hidden]) #cont'); if (w) { await w.tap(); await p.waitForTimeout(200); continue; } const c = await p.$('#over:not([hidden]) #cardOk'); if (!c) break; await c.tap(); await p.waitForTimeout(200); } };
   await p.goto('http://localhost:8136', { waitUntil: 'load' }); await ready();
   for (const [id, nm, mayor] of MODES) {
     const t0 = Date.now();
