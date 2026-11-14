@@ -53,8 +53,10 @@ button{cursor:pointer;touch-action:manipulation}
 #next:active{transform:translateY(1px)}
 #next.go{background:var(--ink)}
 #next small{display:block;font-size:11px;font-weight:500;opacity:.85;line-height:1.1;margin-top:1px}
-#todo{display:flex;align-items:center;gap:8px;width:100%;text-align:left;background:#FFF7D6;border:0;border-top:2px solid var(--ink);padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));font-size:14px;font-weight:500;min-height:40px}
-#todo span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#todo b{font-size:17px;line-height:1}
+#dock{flex-wrap:wrap}#newsRow{flex:0 0 100%;display:flex;gap:8px;align-items:center;min-width:0}
+#todo{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:4px;text-align:left;background:#FFF7D6;border:1px solid var(--ink);border-radius:4px;padding:2px 8px 2px 10px;font-size:13px;font-weight:500;min-height:44px;line-height:1.25}
+#todo[hidden]~#lens{margin-left:auto}
+#todo span{flex:1;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}#todo b{font-size:17px;line-height:1}
 #todo[hidden]{display:none}
 /* 간단 보기 */
 #sheet.peek{max-height:none;overflow:visible;padding-bottom:10px}
@@ -72,12 +74,22 @@ button{cursor:pointer;touch-action:manipulation}
 #rpBlock{position:fixed;inset:0;z-index:30;background:transparent;cursor:pointer}
 #rpBar{position:absolute;z-index:31;display:flex;align-items:center;gap:6px;background:#17231C;color:#fff;border-radius:4px;padding:4px 6px 4px 12px;box-shadow:0 2px 10px rgba(0,0,0,.18)}
 #rpBar[hidden]{display:none}
+#menuBtn,#mapBtns button{position:relative}#menuBtn::after,#mapBtns button::after{content:'';position:absolute;left:-4px;right:-4px;top:-8px;bottom:-8px}
+.q{position:relative;margin-left:6px;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--mute);font-size:12px;line-height:1;padding:0;vertical-align:1px}
+.q::after{content:'';position:absolute;inset:-11px}.q[aria-expanded="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.hp{background:#F1F3EC;border-radius:4px;padding:8px 10px;margin-top:4px}.hpi{opacity:.8}
+.tabs{display:flex;gap:0;margin:10px 0 2px;border:1px solid var(--ink);border-radius:4px;overflow:hidden}
+.tab{flex:1;min-height:44px;background:var(--sheet);border:0;border-left:1px solid var(--ink);font-size:14px;font-weight:500}.tab:first-child{border-left:0}.tab.on{background:var(--ink);color:#fff}
+.tabp[hidden]{display:none}.tabp>.sec:first-child{margin-top:12px}
+.acts.stick{position:sticky;bottom:-16px;background:var(--sheet);padding:8px 0 12px;margin-bottom:-4px;z-index:2;box-shadow:0 -8px 8px -8px rgba(23,35,28,.18)}
+details.rule{border-top:1px solid #E6E9E0;margin:0}details.rule summary{min-height:44px;display:flex;align-items:center;font-weight:500;font-size:14px;cursor:pointer}details.rule summary em{font-style:normal;color:var(--mute);font-weight:400;margin-left:6px;font-size:12px}
+.dev h4{min-height:28px;display:flex;align-items:center;flex-wrap:wrap}.dev p .side{color:var(--stamp-dark)}
 #rpDots{display:flex;gap:4px;margin:0 4px}#rpDots:empty{display:none}#rpDots i{width:7px;height:7px;border-radius:50%;border:1.5px solid rgba(255,255,255,.8)}#rpDots i.on{background:#fff;border-color:#fff}#rpBar.end #rpDots{display:none}
 .seg{display:flex;gap:2px;height:4px;margin-top:3px}.seg:empty{display:none}.seg i{flex:1;background:var(--line);border-radius:1px}.seg i.on{background:var(--good)}
 .pcard em.now{display:block;font-style:normal;font-size:13px;font-weight:500;color:var(--good);margin-top:4px}
 .row .nw{white-space:nowrap;flex:none;padding-left:8px}
 @media (max-width:379px){.cell i{font-size:11px;letter-spacing:-.2px}}
-.chips.qp{margin:0 0 6px}.chips.qp .chip{min-height:36px}.chips.qp .chip.qm{flex:1.15;border-color:var(--ink)}
+.chips.qp{margin:0 0 6px}.chips.qp .chip{min-height:44px}.chips.qp .chip.qm{flex:1.15;border-color:var(--ink)}
 #turnCal{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(23,35,28,0);cursor:pointer;transition:background .18s}
 #turnCal[hidden]{display:none}#turnCal.go{background:rgba(23,35,28,.28)}#turnCal.out{opacity:0;transition:opacity .18s}
 #turnCal .cal{position:relative;width:176px;height:196px;perspective:600px;transform:translateY(8px) scale(.96);opacity:0;transition:transform .22s cubic-bezier(.22,1,.36,1),opacity .22s}
@@ -135,7 +147,7 @@ button.pcard:active{transform:translateY(1px)}button.pcard:hover{border-color:va
 .head h2{margin:0;font-family:var(--display);font-weight:700;font-synthesis:none;font-size:24px;line-height:1.15;text-wrap:balance}
 .head p{margin:2px 0 0;color:var(--mute);font-size:14px}
 .dot{display:inline-block;width:10px;height:10px;border-radius:4px;margin-right:4px;vertical-align:-1px;border:1px solid rgba(0,0,0,.35)}
-.x{margin-left:auto;background:none;border:1px solid var(--line);border-radius:4px;width:36px;height:36px;font-size:17px;line-height:1;flex:none}
+.x{margin-left:auto;background:none;border:1px solid var(--line);border-radius:4px;width:44px;height:44px;font-size:17px;line-height:1;flex:none}
 .gauges{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
 .g small{display:flex;justify-content:space-between;font-size:12px;color:var(--mute)}
 .g small b{color:var(--ink);font-weight:500}
@@ -186,7 +198,7 @@ button.pcard:active{transform:translateY(1px)}button.pcard:hover{border-color:va
 .send input[type=range]{flex:1;min-width:0;accent-color:var(--stamp);height:32px}
 .send output{min-width:66px;text-align:right;font-weight:500}
 .chips{display:flex;gap:6px;margin-top:4px}
-.chip{flex:1;background:var(--sheet);border:1px solid var(--line);border-radius:4px;min-height:36px;font-size:14px}
+.chip{flex:1;background:var(--sheet);border:1px solid var(--line);border-radius:4px;min-height:44px;font-size:14px}
 .chip:disabled{color:#A3ACA3;border-color:#E1E5DC}
 .acts{display:grid;gap:8px;margin-top:10px}
 .btn{min-height:46px;border-radius:4px;border:1px solid var(--ink);background:var(--sheet);font-weight:500;padding:4px 10px;line-height:1.2}
@@ -242,7 +254,7 @@ details.diplo .acts{margin-top:2px}
 .btn.red small{font-size:12px}
 .keep{color:var(--ink);font-weight:500}
 .lock{display:inline-block;font-size:12px;font-weight:500;border:1px solid #B9C0B6;border-radius:4px;padding:0 4px;margin-right:2px;color:var(--mute)}
-#pin{flex:none;background:var(--stamp);color:#fff;border:0;border-radius:4px;padding:0 10px;font-weight:500;font-size:14px;white-space:nowrap;min-height:44px;max-width:38%;overflow:hidden;text-overflow:ellipsis}
+#pin{flex:none;background:var(--stamp);color:#fff;border:0;border-radius:4px;padding:0 10px;font-weight:500;font-size:14px;white-space:nowrap;min-height:36px;max-width:38%;overflow:hidden;text-overflow:ellipsis}
 
 .src a{color:#1B4C78}
 
@@ -258,7 +270,7 @@ details.diplo .acts{margin-top:2px}
 #q{width:100%;height:44px;border:1px solid var(--ink);border-radius:4px;background:#fff;padding:0 12px;font-size:16px}
 #results{display:grid;margin-top:4px}
 #results button{background:none;border:0;border-bottom:1px solid #E6E9E0;text-align:left;padding:8px 2px;font-size:15px}
-#cities{display:grid;gap:4px;margin-bottom:10px}.cityRow{display:flex;gap:4px;align-items:center}.cityRow small{flex:none;width:28px;font-size:12px;color:var(--mute);line-height:1.1}#cities .city{flex:1 1 0;min-width:0;min-height:36px;padding:0 2px;white-space:nowrap;font-size:14px;overflow:hidden;text-overflow:clip}#cities .city.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+#cities{display:grid;gap:4px;margin-bottom:10px}.cityRow{display:flex;gap:4px;align-items:center}.cityRow small{flex:none;width:28px;font-size:12px;color:var(--mute);line-height:1.1}#cities .city{flex:1 1 0;min-width:0;min-height:44px;padding:0 2px;white-space:nowrap;font-size:14px;overflow:hidden;text-overflow:clip}#cities .city.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 #presets{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:6px;margin-top:8px;overflow-x:auto;padding-bottom:2px}
 #presets button{background:var(--sheet);border:1px solid var(--line);border-radius:4px;text-align:left;padding:6px 8px;min-height:44px;line-height:1.25;font-size:14px}
 #presets button small{display:block;color:var(--mute);font-size:12px}
@@ -287,7 +299,6 @@ details.diplo .acts{margin-top:2px}
 @media (min-width:900px),(orientation:landscape) and (min-width:560px){
   #bottom{left:auto;top:0;width:var(--col);border-left:2px solid var(--ink);background:var(--paper);justify-content:flex-end}
   #sheet{flex:1;max-height:none;border-top:0;padding-top:16px}
-  #todo{order:-1;border-top:0;border-bottom:2px solid var(--ink)}
   #hud{right:var(--col)}
   #pick{position:absolute;right:0;top:0;bottom:0;width:var(--col);max-height:none;border-top:0;border-left:2px solid var(--ink);margin:0}
   #presets{grid-template-columns:1fr 1fr;overflow:visible}
@@ -307,7 +318,7 @@ details.diplo .acts{margin-top:2px}
   <header id="hud" hidden>
     <div id="hudTop"><div id="who"></div><div id="when" class="num"></div><button id="menuBtn" type="button">메뉴</button></div>
     <button id="cells" type="button" aria-label="우리 세력 현황 열기">
-      <div class="cell"><small>예산·순수입</small><b id="cMoney" class="num"></b><i id="cMoneyD" class="num"></i></div>
+      <div class="cell"><small>예산·월수입</small><b id="cMoney" class="num"></b><i id="cMoneyD" class="num"></i></div>
       <div class="cell"><small>대기 인원</small><b id="cTroops" class="num"></b><i id="cTroopsD" class="num"></i></div>
       <div class="cell"><small>남은 결재</small><b id="cAp" class="num"></b><i id="cApD">이번 달</i></div>
       <div class="cell"><small>우리 동</small><b id="cN" class="num"></b><i id="cPop" class="num"></i><span id="cSeg" class="seg" aria-hidden="true"></span></div>
@@ -315,13 +326,12 @@ details.diplo .acts{margin-top:2px}
   </header>
   <div id="bottom" hidden>
     <section id="sheet" hidden aria-live="polite"></section>
-    <button id="todo" type="button" hidden></button>
     <button id="govBar" type="button" hidden></button>
     <button id="offerBar" type="button" hidden></button>
     <button id="evBar" type="button" hidden></button>
     <div id="dock">
-      <button id="pin" type="button" hidden></button>
-      <button id="news" type="button" aria-label="지역 소식 열기"></button>
+      <div id="newsRow"><button id="pin" type="button" hidden></button><button id="news" type="button" aria-label="지역 소식 열기"></button></div>
+      <button id="todo" type="button" hidden></button>
       <button id="lens" type="button"></button>
       <button id="next" type="button">다음 달</button>
     </div>

@@ -30,6 +30,6 @@ const ok=(c,m)=>console.log((c?'PASS ':'FAIL ')+m);
  // 민원 민심 효과 표시
  await G(()=>{const S=__game.S;S.ev={id:4,exp:S.month+3}});await p.tap('#next').catch(()=>{});await p.waitForTimeout(400);
  await G(()=>{const S=__game.S;S.ev={id:4,exp:S.month+3}});await G(()=>{document.getElementById('evBar').hidden=false});await p.tap('#evBar');await p.waitForTimeout(300);
- const evt=await p.textContent('#sheet');ok(/세수 [+−]/.test(evt),'민원 민심 효과에 세수 환산 표시');await p.screenshot({path:OUT+'/91_event.png'});
+ const evt=await p.textContent('#sheet');ok(/수입 [+−]/.test(evt),'민원 민심 효과에 수입 환산 표시');await p.screenshot({path:OUT+'/91_event.png'});
  console.log('errors',errs);await b.close();srv.close();
 })().catch(e=>{console.error(e);process.exit(1)});

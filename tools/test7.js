@@ -16,7 +16,7 @@ const ok=(c,m)=>console.log((c?'PASS ':'FAIL ')+m);
  const pick=await G(()=>+document.querySelector('.gv').dataset.i);await p.tap('.gv');await p.waitForTimeout(300);
  ok(await G(i=>!!__game.S.gov.sites[i],pick),k1+' 유치: '+await p.textContent('#news'));
  for(let m=0;m<4;m++){await p.waitForTimeout(320);await p.tap('#next');await p.waitForTimeout(150)}
- const t1=await G(()=>__game.E.economy(__game.S,0).tax);ok(k1!=='agency'||t1>t0+15,'공공기관 완공 후 세수 증가 '+Math.round(t0)+'→'+Math.round(t1));
+ const t1=await G(()=>__game.E.economy(__game.S,0).tax);ok(k1!=='agency'||t1>t0+15,'공공기관 완공 후 수입 증가 '+Math.round(t0)+'→'+Math.round(t1));
  await G(i=>__game.select(i),pick);await p.waitForTimeout(350);ok((await p.textContent('#sheet')).includes('정부 사업'),'동 화면 정부 사업 표시');await p.screenshot({path:OUT+'/96_badge.png'});await p.tap('.x');
  // 자원회수시설: 지원금과 민심
  const pr=await G(()=>{const g=__game,S=g.S,E=g.E;S.gov.open={k:'plant',until:S.month+3};S.ap=3;const i=E.govInfo(S).ok[0];const m0=S.f[0].money,mo0=S.min[i];const r=E.govApply(S,i);const m1=S.f[0].money;return{r,dm:m1-m0,mood:[mo0,S.min[i]],i}});

@@ -16,7 +16,7 @@ const ok=(c,m)=>console.log((c?'PASS ':'FAIL ')+m);
  // 출동 묶임
  const t=await G(()=>{const g=__game,S=g.S;let j=-1;for(const i of g.D[S.f[0].cap].a)if(S.owner[i]!==0){j=i;break}return j});
  await G(i=>__game.select(i),t); await p.waitForTimeout(250); await p.screenshot({path:OUT+'/41_enemy.png'});
- const est=await p.textContent('#estV'); ok(/이기면 \d+~\d+명/.test(est),'예상 손실 표시: '+est.slice(0,40));
+ const est=await p.textContent('#estV'); ok(/승 \d+~\d+명/.test(est),'예상 손실 표시: '+est.slice(0,40));
  const before=await G(()=>__game.S.f[0].troops); const n=await p.$eval('#send',e=>+e.value);
  await p.tap('#atk'); await p.waitForTimeout(100);
  const cw=await p.$('#over:not([hidden]) #cardOk'); if(cw){await cw.tap();await p.waitForTimeout(50)}
@@ -62,7 +62,7 @@ const ok=(c,m)=>console.log((c?'PASS ':'FAIL ')+m);
  await p.fill('#impText',code);await p.tap('#impGo');await p.waitForTimeout(200);
  ok(await G(()=>JSON.stringify(__game.S.owner))===st0,'저장 코드 복원');
  // 라이벌: 시간 경과
- for(let i=0;i<14;i++){await p.tap('#next');await p.waitForTimeout(25);const o=await p.$('#cardOk');if(o)await o.tap();if(await p.$('#over:not([hidden]) #again'))break}
+ for(let i=0;i<14;i++){await p.tap('#next');await p.waitForTimeout(25);const o=await p.$('#cardOk');if(o)await o.tap({timeout:2000}).catch(()=>{});if(await p.$('#over:not([hidden]) #again'))break}
  const riv=await G(()=>({r:__game.S.rival,lines:__game.S.log.filter(l=>l.k==='riv').map(l=>l.t).slice(0,3)}));ok(riv.r>=0||riv.lines.length>0,'숙적 등장 '+JSON.stringify(riv.lines));
  await p.tap('#news');await p.waitForTimeout(100);await p.screenshot({path:OUT+'/46_log.png'});await p.tap('.x');
  // 승리 → 결과 이미지

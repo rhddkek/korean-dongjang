@@ -25,8 +25,8 @@ const ok=(c,m)=>console.log((c?'PASS ':'FAIL ')+m);
  await G(()=>localStorage.clear());await start('상계8동');ok(await G(()=>__game.S.abil==='other'),'상계8동 = 반상회');
  await G(()=>{const S=__game.S;__game.E.dongsOf(S,0).forEach(i=>S.min[i]=50);S.f[0].money=3000});await p.tap('#cells');await p.waitForTimeout(150);await p.tap('#rally');await p.waitForTimeout(100);ok(await G(()=>__game.S.min[__game.S.f[0].cap]===70),'반상회 민심 +20');
  await G(()=>{const g=__game,S=g.S,gu=g.D[S.f[0].cap].g;g.E.guDongs()[gu].slice(0,12).forEach(i=>S.owner[i]=0);S.rank=1;S.promo=0;g.E.dongsOf(S,0).forEach(i=>S.min[i]=30)});await p.tap('.x');await p.tap('#cells');await p.waitForTimeout(150);await p.screenshot({path:OUT+'/74_projects.png'});
- await p.tap('#unity');await p.waitForTimeout(400);ok(await G(()=>__game.S.min[__game.S.f[0].cap]===100&&Object.keys(__game.S.stable).length===1),'구민 화합 사업');
- await p.tap('#exprProj');await p.waitForTimeout(100);ok(await G(()=>__game.S.exprProj===true),'광역 급행 사업');await p.tap('.x');
+ await p.evaluate(()=>__game.tab('pol')); await p.tap('#unity');await p.waitForTimeout(400);ok(await G(()=>__game.S.min[__game.S.f[0].cap]===100&&Object.keys(__game.S.stable).length===1),'구민 화합 사업');
+ await p.evaluate(()=>__game.tab('pol')); await p.tap('#exprProj');await p.waitForTimeout(100);ok(await G(()=>__game.S.exprProj===true),'광역 급행 사업');await p.tap('.x');
  // 숙적 예고 → 실제 작전
  await G(()=>{const g=__game,S=g.S;S.month=12;let f=S.f.find(x=>x.ai&&x.alive);S.rival=f.id;f.troops=5000;const mine=g.E.dongsOf(S,0);const b=mine.find(i=>g.D[i].a.some(j=>S.owner[j]===-1));S.owner[g.D[b].a.find(j=>S.owner[j]===-1)]=f.id;});
  await p.waitForTimeout(400);await p.tap('#next');await p.waitForTimeout(250);const plan=await G(()=>__game.S.rivalPlan);ok(!!plan,'숙적 집결 예고: '+await p.textContent('#news'));await p.screenshot({path:OUT+'/75_rival.png'});

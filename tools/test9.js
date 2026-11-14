@@ -11,7 +11,7 @@ const ok=(c,m)=>console.log((c?'PASS ':'FAIL ')+m);
  await p.goto('http://localhost:8130',{waitUntil:'load'});await p.waitForTimeout(300);await p.fill('#q','소공');await p.waitForTimeout(80);await p.tap('#results button');await p.waitForTimeout(150);await p.tap('#begin');await p.waitForTimeout(400);
  // 설득 화면 안내
  const tg=await G(()=>{const g=__game,S=g.S;const t=g.D.findIndex(d=>d.n==='명동');S.owner[t]=-1;S.f[0].money=500;S.ap=3;g.select(t);return t});await p.waitForTimeout(350);
- let st=await p.textContent('#sheet');ok(/첫 달 세수·동원은 50%/.test(st)&&/달이면 회수/.test(st),'설득 버튼 정착·회수 안내');
+ let st=await p.textContent('#sheet');ok(/첫 달 수입·동원 50%/.test(st)&&/달 회수/.test(st),'설득 버튼 정착·회수 안내');
  await p.tap('#per');await p.waitForTimeout(400);await dismiss();
  const s1=await G(t=>({f:__game.E.settleF(__game.S,t)}),tg);ok(Math.abs(s1.f-0.5)<1e-9,'설득 직후 수입 50%');
  await G(t=>__game.select(t),tg);await p.waitForTimeout(350);st=await p.textContent('#sheet');ok(/정착 중/.test(st)&&/50%/.test(st),'우리 동 화면 정착 표시');await p.screenshot({path:OUT+'/b1_settle.png'});await p.tap('.x');
@@ -36,15 +36,15 @@ const ok=(c,m)=>console.log((c?'PASS ':'FAIL ')+m);
  ok(fs1.tot>fs1.noFac,'치안 시설 방어 기여 계산 '+fs1.noFac+'→'+fs1.tot);
  // 세력 화면: 시설 성과·다음 공모
  await G(()=>{const g=__game,S=g.S;S.dev[S.f[0].cap*4+0]=5;S.gov.open=null;S.gov.nextAt=S.month+2;g.sync&&g.sync()});await p.tap('#cells');await p.waitForTimeout(300);st=await p.textContent('#sheet');
- ok(/시설 성과/.test(st)&&/상권 특구 · 주변 \d+곳 세수/.test(st)&&/다음 정부 공모: 약 \d+달 뒤/.test(st),'세력 화면 시설 성과·다음 공모');await p.screenshot({path:OUT+'/b3_realm.png',fullPage:true});
+ ok(/시설 성과/.test(st)&&/상권 특구 · 주변 \d+곳 수입/.test(st)&&/다음 정부 공모 · 약 \d+달 뒤/.test(st),'세력 화면 시설 성과·다음 공모');await p.screenshot({path:OUT+'/b3_realm.png',fullPage:true});
  ok(/\d+~\d+개 동/.test(st)||!/안개 속 어느 세력/.test(st),'안개 속 세력 규모는 범위로');await p.tap('.x');
  // 3달 성과 로그
  const rep=await G(()=>{const g=__game,S=g.S,E=g.E;S.facAcc={tax:0,draft:0,n:2};E.endTurn(S);return S.last.map(l=>l.t).find(t=>/시설 성과\(3달\)/.test(t))||null});ok(!!rep,'3달 시설 성과 소식: '+rep);
  // 공모 화면 총비용·완공·순이익
  await dismiss();await G(()=>{const g=__game,S=g.S;S.gov.open={k:'agency',until:S.month+3};g.sync&&g.sync()});await p.waitForTimeout(150);
  if(await p.isVisible('#govBar')){await p.tap('#govBar');await p.waitForTimeout(300);st=await p.textContent('#sheet');ok(/준비까지 총비용/.test(st)&&/완공 후 순이익/.test(st)&&/달이면 회수/.test(st),'공모 화면 총비용·완공·순이익');await p.screenshot({path:OUT+'/b4_gov.png'});await p.tap('.x')}else ok(false,'공모 막대');
- // 정부 사업 세수 합산 표시
- const gt=await G(()=>{const g=__game,S=g.S,cap=S.f[0].cap;S.gov.sites[cap]={k:'agency',start:0,done:0,pact:false,paid:0};g.select(cap);return true});await p.waitForTimeout(350);st=await p.textContent('#sheet');ok(/기본 [\d,.]+억 \+ 정부 사업 [\d,.]+억/.test(st),'동 세수에 정부 사업 합산');await p.tap('.x');
+ // 정부 사업 수입 합산 표시
+ const gt=await G(()=>{const g=__game,S=g.S,cap=S.f[0].cap;S.gov.sites[cap]={k:'agency',start:0,done:0,pact:false,paid:0};g.select(cap);return true});await p.waitForTimeout(350);st=await p.textContent('#sheet');ok(/기본 [\d,.]+억 \+ 정부 사업 [\d,.]+억/.test(st),'동 수입에 정부 사업 합산');await p.tap('.x');
  // 스카우트 사유
  const sc=await G(()=>{const g=__game,S=g.S,E=g.E;const f=S.f.find(f=>f.ai&&f.alive);f.grudge=S.month+3;f.grudgeWhy='scout';return E.pactCheck(S,f.id).why});ok(/회원을 빼 가서/.test(sc),'스카우트 후 협정 거절 사유: '+sc);
  // 민원 효과 없음 안내

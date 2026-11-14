@@ -81,7 +81,7 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   await p.screenshot({ path: OUT + '/p4_elect.png' });
   await dismiss();
   const goal = await G(() => document.getElementById('hud').textContent);
-  ok(/선거 \d+달 · \d+%/.test(goal), 'HUD 목표: 선거 카운트다운');
+  ok(/선거 \d+달·\d+%/.test(goal), 'HUD 목표: 선거 카운트다운');
   await p.tap('#cells'); await p.waitForTimeout(200); rs = await p.textContent('#sheet'); ok(/선거 예측/.test(rs) && /득표율/.test(rs), '세력 화면 선거 예측'); await p.tap('.x');
   // 6) 낙선 → 재선거: 민심을 바닥으로
   const lose = await G(() => { const g = __game, S = g.S, E = g.E; E.dongsOf(S, 0).forEach(i => S.min[i] = 0); S.elect.at = S.month + 1; S.f[0].troops = 99999; return E.voteShare(S); });

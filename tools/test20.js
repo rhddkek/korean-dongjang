@@ -42,7 +42,7 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   const cb = await G(() => { const g = __game, S = g.S, D = g.D; const cap = S.f[0].cap; const a = D[cap].a.filter(x => x !== cap).slice(0, 2); a.forEach(x => S.owner[x] = 0); const miss = D[cap].a.find(x => !a.includes(x) && x !== cap && S.owner[x] !== 0) ; S.owner[miss] = -1; S.combo = { mk: { d: [cap, a[0], miss], at: 1 } }; S.ap = 3; S.f[0].troops = 20000; S.rivalPlan = null; g.sync(); return { miss, n: D[miss].n }; });
   const todo = await G(() => document.getElementById('todo').textContent);
   ok(/되찾기.*골목상권 재가동/.test(todo), '추천 줄: ' + todo);
-  await p.tap('#cells'); await p.waitForTimeout(250);
+  await p.tap('#cells'); await p.waitForTimeout(250); await p.evaluate(() => __game.tab('zone')); await p.waitForTimeout(100);
   const rm = await G(() => { const b = document.querySelector('#sheet [data-cgo]'); return { t: document.getElementById('sheet').innerText.match(/골목상권 연합[^\n]*\n[^\n]*/)?.[0], has: !!b }; });
   ok(rm.has && /멈춤/.test(rm.t || ''), '세력 화면 조합 멈춤 + 보기 버튼: ' + (rm.t || '').replace(/\n/g, ' / '));
   await p.evaluate(() => document.querySelector('#sheet [data-cgo]').scrollIntoView()); await p.screenshot({ path: OUT + '/w3_combo.png' });
@@ -55,7 +55,7 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   await G(() => { const g = __game, S = g.S; S.cardOffer = ['coupon', 'saving', 'talk']; S.cardWhy = 'half'; g.sync(); });
   await p.waitForTimeout(300);
   const cards = await G(() => Array.from(document.querySelectorAll('#over:not([hidden]) .pcard em.now')).map(e => e.textContent));
-  ok(cards.length >= 2 && cards.some(x => /세수 월 \+/.test(x)) && cards.some(x => /절약/.test(x)), '정책 카드 지금 기준 숫자: ' + cards.join(' | '));
+  ok(cards.length >= 2 && cards.some(x => /수입 월 \+/.test(x)) && cards.some(x => /절약/.test(x)), '정책 카드 지금 기준 숫자: ' + cards.join(' | '));
   await p.screenshot({ path: OUT + '/w4_cards.png' });
   await dismiss();
 
@@ -70,7 +70,7 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
     await dismiss(); await G(() => { const S = __game.S; S.f[0].troops = 0; });
   }
   ok(/월수입 −?[\d,]+억→−?[\d,]+억/.test(news) || !/함락/.test(news), '함락 소식 월수입 전후: ' + news);
-  if (card) { console.log('CARD ' + card.replace(/\n/g, ' / ').slice(0, 200)); ok(/월 순수입/.test(card), '결과 카드 월 순수입 전후'); await p.screenshot({ path: OUT + '/w5_lost.png' }); }
+  if (card) { console.log('CARD ' + card.replace(/\n/g, ' / ').slice(0, 200)); ok(/월수입/.test(card), '결과 카드 월수입 전후'); await p.screenshot({ path: OUT + '/w5_lost.png' }); }
   await dismiss();
   ok(!errs.length, '오류 없음 ' + errs.join(' | '));
   await ctx.close();

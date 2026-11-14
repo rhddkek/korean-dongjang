@@ -25,7 +25,7 @@ const ok=(c,m)=>console.log((c?'PASS ':'FAIL ')+m);
  // 개발 수치가 실제와 일치
  await G(()=>__game.select(__game.S.f[0].cap));await p.waitForTimeout(250);await p.screenshot({path:OUT+'/54_own.png'});
  const devTxt=await p.textContent('.dev p');console.log(' 개발 표시:',devTxt);
- const mm=devTxt.match(/([\d.]+)억 → ([\d.]+)억/);const shown=parseFloat(mm[2])-parseFloat(mm[1]);
+ const mm=devTxt.match(/월수입 \+([\d.]+)억/);const shown=parseFloat(mm[1]);
  const real=await G(()=>{const g=__game,S=g.S,i=S.f[0].cap,fm=g.E.fullMapOf(S,0,g.E.dongsOf(S,0)),a=g.E.taxOf(S,i,fm);S.f[0].money+=100;g.E.develop(S,i,0);return g.E.taxOf(S,i,fm)-a});
  ok(Math.abs(real-shown)<0.21,'개발 효과 표시='+shown+' 실제='+real.toFixed(2));
  await p.tap('.x');
