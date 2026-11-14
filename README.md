@@ -3,7 +3,7 @@
 내가 사는 동에서 동장으로 시작해 구청장·시장·도지사·대통령까지 오르는 턴제 땅따먹기 웹게임입니다.
 실제 행정동 지도와 인구·상권 통계로 동네마다 힘이 다릅니다. 단일 HTML 파일 하나로 돌아가고, 저장은 브라우저에 남습니다.
 
-**플레이:** https://rhddkek.github.io/dongjang/
+**플레이:** https://rhddkek.github.io/korean-dongjang/
 
 ## 모드
 
