@@ -74,6 +74,17 @@ button{cursor:pointer;touch-action:manipulation}
 #rpBlock{position:fixed;inset:0;z-index:30;background:transparent;cursor:pointer}
 #rpBar{position:absolute;z-index:31;display:flex;align-items:center;gap:6px;background:#17231C;color:#fff;border-radius:4px;padding:4px 6px 4px 12px;box-shadow:0 2px 10px rgba(0,0,0,.18)}
 #rpBar[hidden]{display:none}
+#legend .lo{display:none;align-items:center;gap:4px}#legend.occ .lo{display:inline-flex}#legend.occ .lr{display:none}
+#legend .sw{display:inline-block;width:12px;height:12px;border-radius:2px;background:#E2E6DA;border:1px solid var(--line)}#legend .sw.own{background:var(--stamp)}#legend .sw.pup{background:#EA998F}
+.pupTop{display:flex;gap:10px;align-items:center;margin:10px 0}.pupTop img{border-radius:50%;flex:none}
+.bar.low u{background:var(--stamp)}
+.chips.wrap{flex-wrap:wrap}.chips.wrap .chip{flex:1 1 auto;padding:0 10px}.chip .dot{margin-right:4px}
+.spz{font-style:normal;font-size:12px;color:#fff;background:var(--stamp);border-radius:4px;padding:1px 6px;vertical-align:4px}
+details.rg summary{gap:8px}.rgN{flex:0 0 38%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rgN em{font-style:normal;font-size:11px;color:var(--stamp-dark);font-weight:500;margin-left:2px}
+.rgBar{flex:1;position:relative;height:8px;background:#E6E9E0;border-radius:2px;overflow:hidden}.rgBar u{position:absolute;left:0;top:0;bottom:0;background:var(--stamp)}.rgBar i{position:absolute;top:0;bottom:0;background:#EA998F}
+.rgC{flex:none;width:56px;text-align:right;font-size:13px;color:var(--mute);line-height:1.15}.rgC small{display:block;font-size:11px;color:var(--stamp-dark)}
+.dchips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}.dc{min-height:36px;padding:0 10px;border:1px solid var(--line);border-radius:4px;background:var(--sheet);font-size:13px;color:var(--mute)}
+.dc.own{background:var(--stamp);border-color:var(--stamp);color:#fff;font-weight:500}.dc.pup{background:#FBE3DF;border-color:#EA998F;color:#17231C}
 #menuBtn,#mapBtns button{position:relative}#menuBtn::after,#mapBtns button::after{content:'';position:absolute;left:-4px;right:-4px;top:-8px;bottom:-8px}
 .q{position:relative;margin-left:6px;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--mute);font-size:12px;line-height:1;padding:0;vertical-align:1px}
 .q::after{content:'';position:absolute;inset:-11px}.q[aria-expanded="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
@@ -314,7 +325,7 @@ details.diplo .acts{margin-top:2px}
   <div id="rpBlock" hidden></div>
   <div id="turnBanner" hidden aria-live="polite"></div><div id="turnCal" hidden role="status" aria-live="polite"></div><div id="rpTalk" hidden></div><div id="rpBar" hidden role="status" aria-live="polite"><span id="rpLabel">상대 턴</span><span id="rpDots" aria-hidden="true"></span><button id="rpFast" type="button">빠르게</button><button id="rpSkip" type="button">건너뛰기</button></div>
   <div id="mapBtns" hidden><button id="toCap" type="button">본거지</button><button id="toAll" type="button">서울 전체</button></div>
-  <div id="legend" hidden><span id="legendName"></span><span>낮음</span><span class="bar"></span><span>높음</span></div>
+  <div id="legend" hidden><span id="legendName"></span><span class="lr">낮음</span><span class="bar lr"></span><span class="lr">높음</span><span class="lo"><i class="sw own"></i>우리</span><span class="lo"><i class="sw pup"></i>괴뢰국</span><span class="lo"><i class="sw"></i>진출한 구</span></div>
   <header id="hud" hidden>
     <div id="hudTop"><div id="who"></div><div id="when" class="num"></div><button id="menuBtn" type="button">메뉴</button></div>
     <button id="cells" type="button" aria-label="우리 세력 현황 열기">
@@ -439,6 +450,8 @@ var Engine = (function () {
     paper: { n: '결재 간소화', e: '한 달 결재 +1건', tag: '행정' },
     intel: { n: '정보망', e: '모든 지역의 안개가 걷힘', tag: '행정' }
   };
+  function isPup(s, o) { return o > 0 && !!(s.f[o] && s.f[o].puppet); }
+  function foe(s, o) { return o > 0 && !(s.f[o] && s.f[o].puppet); }
   function hasCard(s, k) { return !!(s.cards && s.cards.indexOf(k) >= 0); }
   // 선거 공약: 동 유형마다 반응이 다름 (%p)
   var PLEDGES = {
@@ -899,7 +912,16 @@ var Engine = (function () {
       aidTax = Math.max(0, 16 - tax); aidDraft = Math.max(0, 12 - draft);
       tax += aidTax; draft += aidDraft;
     }
-    return { n: list.length, tax: tax, draft: draft, up: up, net: tax - up, decay: s.f[fid].troops * 0.015, full: Object.keys(fm).length, aidTax: aidTax, aidDraft: aidDraft, govIn: govIn, govOut: govOut };
+    var trib = 0;
+    if (fid === 0) s.f.forEach(function (f) { if (f.puppet && f.alive) trib += tribOf(s, f); });
+    else if (s.f[fid].puppet) trib = -Math.max(0, tax) * s.f[fid].puppet.rate;
+    return { n: list.length, tax: tax, draft: draft, up: up, net: tax - up + trib, trib: trib, decay: s.f[fid].troops * 0.015, full: Object.keys(fm).length, aidTax: aidTax, aidDraft: aidDraft, govIn: govIn, govOut: govOut };
+  }
+  // 괴뢰국이 우리에게 바치는 월 상납 (그 나라 수입 × 상납률)
+  function tribOf(s, f) {
+    var list = dongsOf(s, f.id), fm = fullMapOf(s, f.id, list), tax = 0;
+    list.forEach(function (i) { tax += taxOf(s, i, fm) + govTaxOf(s, i); });
+    return Math.max(0, tax) * f.puppet.rate;
   }
   function defense(s, i) {
     var d = D.d[i], o = s.owner[i];
@@ -952,6 +974,7 @@ var Engine = (function () {
     if (!r) { out.reason = '우리 땅과 붙어 있지 않습니다.'; return out; }
     var o = s.owner[t];
     if (o >= 0 && f.pact && f.pact[o] > s.month) { out.reason = '불가침 협정 중입니다.'; return out; }
+    if (isPup(s, o)) { out.reason = '우리 괴뢰국입니다.'; return out; }
     if (s.ap <= 0) { out.reason = '이번 달 결재를 다 썼습니다.'; }
     var mult = 1 + r.mult;
     out.atk = n * mult;
@@ -1065,7 +1088,7 @@ var Engine = (function () {
     if (!gone.boss || ((gone.hate || 0) < 20 && size < 4)) return;
     var best = null;
     s.f.forEach(function (x) {
-      if (!x.ai || !x.alive || x.id === o || x.adv) return;
+      if (!x.ai || !x.alive || x.puppet || x.id === o || x.adv) return;
       var n = dongsOf(s, x.id).length; if (!n) return;
       var sc = n + (touchesMe(s, x.id) ? 1000 : 0);
       if (!best || sc > best.sc) best = { id: x.id, sc: sc };
@@ -1248,7 +1271,7 @@ var Engine = (function () {
     var pact = s.f[0].pact || {}, out = [];
     GUDONGS[g].forEach(function (i) {
       var o = s.owner[i];
-      if (o === 0 || (o > 0 && pact[o] > s.month)) return;
+      if (o === 0 || (o > 0 && pact[o] > s.month) || isPup(s, o)) return;
       if (indepOnly && o !== -1) return;
       var r = route(s, 0, i);
       if (!r || (indepOnly && r.via === 'subway')) return;
@@ -1370,7 +1393,7 @@ var Engine = (function () {
     list.forEach(function (i) { var g = D.d[i].g; gs[g] = (gs[g] || 0) + 1; if (gs[g] > mc) { mc = gs[g]; main = g; } });
     var cross = list.filter(function (i) { return D.d[i].g !== main; }).length;
     var out = { ok: false, cost: cost, ap: 2, cross: cross, main: main, n: list.length };
-    if (list.length < 3 || list.length > 8) { out.why = C.UNIT + ' 3~8개를 고르세요. 지금 ' + list.length + '개.'; return out; }
+    if (list.length < 3 || list.length > 8) { out.why = C.UNIT + ' 3~8개를 고르세요. 지금 ' + list.length + '개. (더 크게는 구역 합병)'; return out; }
     var seen = {}, q = [list[0]]; seen[list[0]] = 1;
     while (q.length) { var x = q.pop(); D.d[x].a.forEach(function (j) { if (!seen[j] && list.indexOf(j) >= 0) { seen[j] = 1; q.push(j); } }); }
     if (Object.keys(seen).length !== list.length) { out.why = '서로 이어진 ' + C.UNIT + '만 묶을 수 있습니다.'; return out; }
@@ -1393,6 +1416,115 @@ var Engine = (function () {
     pushLog(s, name + ' 출범. ' + list.length + '개 ' + C.UNIT + '을 묶었고 청사는 ' + D.d[hall].n + '에 둡니다.' + (c.cross ? ' 원래 ' + C.GRP + '가 다른 ' + c.cross + '곳은 주민 반발로 민심이 떨어졌습니다.' : ''), 'good');
     return { ok: true, zone: z };
   }
+  // 구역 합병: 맞닿은 우리 구역 둘을 새 이름 하나로 (크기 상한은 직급 따라)
+  function zoneSize(s) { return [8, 8, 12, 16][s.rank] || 8; }
+  function zoneTouch(a, b) { return a.d.some(function (i) { return D.d[i].a.some(function (j) { return b.d.indexOf(j) >= 0; }); }); }
+  function zoneMergeCheck(s, idA, idB, name) {
+    var a = zoneById(s, idA), b = zoneById(s, idB);
+    if (!a || !b || a === b) return { ok: false, why: '합칠 구역 둘을 고르세요.' };
+    var n = a.d.length + b.d.length, cost = 15 * n, out = { ok: false, n: n, cost: cost, ap: 2, max: zoneSize(s) };
+    if (!zoneTouch(a, b)) { out.why = '서로 맞닿은 구역만 합칠 수 있습니다.'; return out; }
+    if (n > out.max) { out.why = '지금 직급으로는 구역 하나에 ' + C.UNIT + ' ' + out.max + '개까지입니다. (합치면 ' + n + '개)'; return out; }
+    name = cleanName(name);
+    var nw = nameOk(name); if (nw) { out.why = nw; return out; }
+    if ((s.zones || []).some(function (z) { return z.nm === name && z !== a && z !== b; })) { out.why = '같은 이름의 구역이 이미 있습니다.'; return out; }
+    if (s.ap < 2) { out.why = '결재 2건이 필요합니다.'; return out; }
+    if (s.f[0].money < cost) { out.why = '예산이 ' + Math.ceil(cost - s.f[0].money) + '억 모자랍니다.'; return out; }
+    out.ok = true; return out;
+  }
+  function zoneMerge(s, idA, idB, name) {
+    var c = zoneMergeCheck(s, idA, idB, name);
+    if (!c.ok) return { err: c.why };
+    var a = zoneById(s, idA), b = zoneById(s, idB);
+    name = cleanName(name);
+    s.ap -= 2; s.f[0].money -= c.cost;
+    var hall = D.d[a.hall].base >= D.d[b.hall].base ? a.hall : b.hall;
+    var z = { id: ++s.zoneSeq, nm: name, d: a.d.concat(b.d), at: s.month, hall: hall };
+    s.zones = s.zones.filter(function (x) { return x !== a && x !== b; }).concat([z]);
+    pushLog(s, a.nm + '·' + b.nm + ' 합병 → ' + name + ' 출범. ' + z.d.length + '개 ' + C.UNIT + ' · 청사 ' + D.d[hall].n + '.', 'good');
+    return { ok: true, zone: z };
+  }
+
+  // ---- 괴뢰국: 구역을 떼어 내 우리 말을 듣는 나라로 (권역장부터) ----
+  var PUP_RATES = [0.15, 0.3, 0.5];
+  function pupMax(s) { return [0, 0, 1, 2][s.rank] || 0; }
+  function puppets(s) { return s.f.filter(function (f) { return f.puppet && f.alive; }); }
+  function puppetCheck(s, id) {
+    var z = zoneById(s, id), out = { ok: false, ap: 2 };
+    if (!z) { out.why = '없는 구역입니다.'; return out; }
+    out.n = z.d.length; out.troops = Math.round(s.f[0].troops * 0.25);
+    if (s.rank < 2) { out.why = C.RANKS[2] + '부터 할 수 있습니다.'; return out; }
+    if (puppets(s).length >= pupMax(s)) { out.why = '지금 직급으로는 괴뢰국을 ' + pupMax(s) + '개까지 둘 수 있습니다.'; return out; }
+    if (z.d.length < 3) { out.why = C.UNIT + ' 3개 이상인 구역만 독립시킬 수 있습니다.'; return out; }
+    if (z.d.indexOf(s.f[0].cap) >= 0) { out.why = '본거지가 든 구역은 독립시킬 수 없습니다.'; return out; }
+    if (s.ap < 2) { out.why = '결재 2건이 필요합니다.'; return out; }
+    out.ok = true; return out;
+  }
+  function makePuppet(s, id) {
+    var c = puppetCheck(s, id); if (!c.ok) return { err: c.why };
+    var z = zoneById(s, id), me = s.f[0];
+    s.ap -= 2;
+    var pid = s.f.length, tr = c.troops;
+    me.troops -= tr;
+    s.f.push({ id: pid, name: z.nm, grp: '자치정부', cap: z.hall, money: 30 * z.d.length, troops: tr, away: 0, ai: true, alive: true, c: pid, grudge: 0, tookMine: 0, lostAt: -9, hate: 0, warm: 100,
+      boss: { nm: pick(s, SUR) + pick(s, GIV), face: Math.floor(rnd(s) * 1e6) }, puppet: { lord: 0, rate: 0.3, loyal: 70, stance: 'atk', target: -1, at: s.month, took: 0 } });
+    z.d.forEach(function (i) { s.owner[i] = pid; });
+    s.zones = s.zones.filter(function (x) { return x !== z; });
+    s.stat.puppets = (s.stat.puppets || 0) + 1;
+    pushLog(s, z.nm + ' 괴뢰국 수립. ' + s.f[pid].boss.nm + ' 대표가 맡고, 인원 ' + tr + '명을 넘겼습니다. 매달 수입의 30%를 바칩니다.', 'good', z.hall);
+    return { ok: true, id: pid };
+  }
+  function pupSet(s, pid, k, v) {
+    var f = s.f[pid]; if (!f || !f.puppet || !f.alive) return { err: '괴뢰국이 아닙니다.' };
+    var P = f.puppet;
+    if (k === 'rate' && PUP_RATES.indexOf(v) >= 0) P.rate = v;
+    else if (k === 'stance' && ['atk', 'def', 'dev'].indexOf(v) >= 0) P.stance = v;
+    else if (k === 'target') P.target = v > 0 && s.f[v] && s.f[v].alive && !s.f[v].puppet ? v : -1;
+    else return { err: '바꿀 수 없는 값입니다.' };
+    return { ok: true };
+  }
+  function pupAid(s, pid, amt) {
+    var f = s.f[pid], me = s.f[0]; if (!f || !f.puppet || !f.alive) return { err: '괴뢰국이 아닙니다.' };
+    amt = Math.min(amt, Math.floor(me.money)); if (amt < 10) return { err: '예산이 모자랍니다.' };
+    me.money -= amt; f.money += amt; f.puppet.loyal = Math.min(100, f.puppet.loyal + Math.round(amt / 10));
+    return { ok: true, amt: amt };
+  }
+  function absorbCheck(s, pid) {
+    var f = s.f[pid], out = { ok: false, ap: 2 };
+    if (!f || !f.puppet || !f.alive) { out.why = '괴뢰국이 아닙니다.'; return out; }
+    out.n = dongsOf(s, pid).length;
+    if (f.puppet.loyal < 40) { out.why = '충성 40 이상일 때만 다시 합칠 수 있습니다.'; return out; }
+    if (!touchesMe(s, pid)) { out.why = '우리 땅과 맞닿아 있어야 합니다.'; return out; }
+    if (s.ap < 2) { out.why = '결재 2건이 필요합니다.'; return out; }
+    out.ok = true; return out;
+  }
+  function absorbPuppet(s, pid) {
+    var c = absorbCheck(s, pid); if (!c.ok) return { err: c.why };
+    var f = s.f[pid], list = dongsOf(s, pid);
+    s.ap -= 2;
+    list.forEach(function (i) { s.owner[i] = 0; s.min[i] = Math.max(10, s.min[i] - 10); joinSoft(s, i); });
+    s.f[0].troops += Math.round((f.troops + (f.away || 0)) * 0.6); s.f[0].money += Math.max(0, f.money) * 0.5;
+    f.alive = false; f.troops = 0; f.away = 0;
+    pushLog(s, J(f.name, '을', '를') + ' 다시 우리 땅으로 합쳤습니다. ' + list.length + '개 ' + C.UNIT + ' · 몇 달 정착 기간.', 'good', f.cap);
+    afterChange(s);
+    return { ok: true, n: list.length };
+  }
+  // 매달 충성: 상납이 무거울수록, 우리보다 커질수록 떨어짐. 15 아래면 반란
+  function tickPuppets(s) {
+    puppets(s).forEach(function (f) {
+      var P = f.puppet, d = P.rate <= 0.15 ? 2 : P.rate <= 0.3 ? 0 : -3;
+      var mine = dongsOf(s, 0).length, theirs = dongsOf(s, f.id).length;
+      if (theirs > mine * 0.8) d -= 4; else if (theirs > mine * 0.4) d -= 2;
+      if (s.f[0].troops + (s.f[0].away || 0) < (f.troops + (f.away || 0)) * 0.7) d -= 2;
+      P.loyal = Math.max(0, Math.min(100, P.loyal + d));
+      if (P.loyal <= 15) {
+        f.puppet = null; f.hate = 70; f.warm = 0; f.grp = '독립파';
+        pushLog(s, J(f.name, '이', '가') + ' 반란을 일으켜 독립했습니다. 이제 우리를 노립니다.', 'bad', f.cap);
+      } else if (P.loyal <= 30 && !P.warned) { P.warned = 1; pushLog(s, f.name + '의 충성이 ' + Math.round(P.loyal) + '까지 떨어졌습니다. 15 아래면 반란.', 'bad', f.cap); }
+      if (P.loyal > 40) P.warned = 0;
+    });
+  }
+
   function zoneDissolve(s, id) {
     var z = zoneById(s, id); if (!z) return { err: '없는 구역입니다.' };
     s.zones = s.zones.filter(function (x) { return x !== z; });
@@ -1415,7 +1547,7 @@ var Engine = (function () {
       D.d[i].a.forEach(function (j) {
         if (seen[j]) return; seen[j] = 1;
         var o = s.owner[j];
-        if (o === 0 || (o > 0 && pact[o] > s.month)) return;
+        if (o === 0 || (o > 0 && pact[o] > s.month) || isPup(s, o)) return;
         var r = route(s, 0, j); if (!r) return;
         out.push({ i: j, need: needFor(s, j, 0.8), cost: persuadeCost(s, j) });
       });
@@ -1764,7 +1896,7 @@ var Engine = (function () {
   }
   function foeOf(s) {
     var seen = {}, best = -1, bt = -1;
-    dongsOf(s, 0).forEach(function (i) { D.d[i].a.forEach(function (j) { var o = s.owner[j]; if (o > 0 && !seen[o]) { seen[o] = 1; if (s.f[o].troops > bt) { bt = s.f[o].troops; best = o; } } }); });
+    dongsOf(s, 0).forEach(function (i) { D.d[i].a.forEach(function (j) { var o = s.owner[j]; if (foe(s, o) && !seen[o]) { seen[o] = 1; if (s.f[o].troops > bt) { bt = s.f[o].troops; best = o; } } }); });
     return best;
   }
   function applyFx(s, x) {
@@ -1819,7 +1951,7 @@ var Engine = (function () {
     if (s.month < 4) return;
     if (s.rival < 0 || !s.f[s.rival].alive) {
       var seen = {}, best = -1, bn = 0;
-      dongsOf(s, 0).forEach(function (i) { D.d[i].a.forEach(function (j) { var o = s.owner[j]; if (o > 0 && !seen[o]) { seen[o] = 1; var n = dongsOf(s, o).length; if (n > bn) { bn = n; best = o; } } }); });
+      dongsOf(s, 0).forEach(function (i) { D.d[i].a.forEach(function (j) { var o = s.owner[j]; if (foe(s, o) && !seen[o]) { seen[o] = 1; var n = dongsOf(s, o).length; if (n > bn) { bn = n; best = o; } } }); });
       if (best > 0) { s.rival = best; s.rivalAt = s.month; pushLog(s, s.f[best].name + ': 앞으로 자주 보겠네요.', 'riv'); }
       return;
     }
@@ -1839,7 +1971,7 @@ var Engine = (function () {
     if (s.offer || s.month <= C.GRACE || (s.offerAt || -9) + (late ? 2 : 6) > s.month) return;
     var me = s.f[0], pn = dongsOf(s, 0).length, best = null;
     s.f.forEach(function (f) {
-      if (!f.ai || !f.alive || f.offered || (me.pact && me.pact[f.id] > s.month)) return;
+      if (!f.ai || !f.alive || f.puppet || f.offered || (me.pact && me.pact[f.id] > s.month)) return;
       var n = dongsOf(s, f.id).length;
       if (n < 2 || !touchesMe(s, f.id)) return;
       var weak = f.troops < me.troops * 0.25 && pn >= n * 4;
@@ -1883,7 +2015,7 @@ var Engine = (function () {
   }
   function nemesis(s) {
     var best = null;
-    s.f.forEach(function (f) { if (f.ai && (f.tookMine || 0) > 0 && (!best || f.tookMine > best.tookMine)) best = f; });
+    s.f.forEach(function (f) { if (f.ai && !f.puppet && (f.tookMine || 0) > 0 && (!best || f.tookMine > best.tookMine)) best = f; });
     if (best) return best.name;
     return s.rival >= 0 ? s.f[s.rival].name : (s.stat.rivalDown || null);
   }
@@ -1947,7 +2079,7 @@ var Engine = (function () {
   }
   // ---- 반동장 연합과 선거 ----
   function coalForm(s) {
-    var m = s.f.filter(function (f) { return f.ai && f.alive && dongsOf(s, f.id).length; }).map(function (f) { return f.id; });
+    var m = s.f.filter(function (f) { return f.ai && f.alive && !f.puppet && dongsOf(s, f.id).length; }).map(function (f) { return f.id; });
     var stay = m.filter(function (id) { return (s.f[id].warm || 0) >= 50 && s.f[0].pact && s.f[0].pact[id] > s.month; });
     m = m.filter(function (id) { return stay.indexOf(id) < 0; });
     if (m.length < 2) return;
@@ -1964,6 +2096,7 @@ var Engine = (function () {
     var o = s.owner[i], p, d = D.d[i];
     if (o === 0) p = 0.35 + 0.55 * s.min[i] / 100;
     else if (o === -1) p = d.a.some(function (j) { return s.owner[j] === 0; }) ? 0.35 : 0.25;
+    else if (isPup(s, o)) p = 0.25 + 0.45 * s.f[o].puppet.loyal / 100;
     else p = s.f[0].pact && s.f[0].pact[o] > s.month ? 0.2 : 0.1;
     var cp = s.camp;
     if (cp && s.elect && !s.won) {
@@ -2016,7 +2149,7 @@ var Engine = (function () {
   // 상대 맞불 유세: 선거 기간에 원한 많은 회장이 우리 표밭 한 구를 깎음
   function counterCamp(s) {
     if (!s.elect || s.won || !s.camp) return;
-    var foes = s.f.filter(function (f) { return f.ai && f.alive && dongsOf(s, f.id).length && (inCoal(s, f.id) || (f.hate || 0) >= 20); });
+    var foes = s.f.filter(function (f) { return f.ai && f.alive && !f.puppet && dongsOf(s, f.id).length && (inCoal(s, f.id) || (f.hate || 0) >= 20); });
     if (!foes.length || rnd(s) > 0.65) return;
     foes.sort(function (a, b) { return ((b.hate || 0) + (b.adv ? 30 : 0)) - ((a.hate || 0) + (a.adv ? 30 : 0)); });
     var f = foes[0], best = -1, bp = -1;
@@ -2051,9 +2184,9 @@ var Engine = (function () {
     });
     return c;
   }
-  function popShare(s, fid) {
+  function popShare(s, fid, own) {
     var p = 0;
-    for (var i = 0; i < s.owner.length; i++) if (s.owner[i] === fid) p += D.d[i].pop;
+    for (var i = 0; i < s.owner.length; i++) { var o = s.owner[i]; if (o === fid) p += D.d[i].pop; else if (fid === 0 && !own && isPup(s, o)) p += D.d[i].pop * 0.5; }
     return p / TOTALPOP;
   }
   function rankNow(s) {
@@ -2092,8 +2225,9 @@ var Engine = (function () {
   function aiTurn(s, f) {
     var e = economy(s, f.id), tr = traitOf(s, f.id);
     f.troops += f.away || 0; f.away = 0;
-    var big = e.n <= 12 ? 1 : Math.pow(12 / e.n, 0.45);
-    f.money += e.net * 0.8 * big * tr.money;
+    var big = e.n <= 12 ? 1 : Math.pow(12 / e.n, 0.45), P = f.puppet;
+    f.money += P ? (e.net - e.trib) * 0.8 * big * tr.money + e.trib : e.net * 0.8 * big * tr.money;
+    if (P && f.money < 0) f.money = 0;
     f.troops += e.draft * 0.85 * big - f.troops * 0.02;
     var list = dongsOf(s, f.id);
     if (!list.length) { f.alive = false; return; }
@@ -2106,7 +2240,10 @@ var Engine = (function () {
     // 예산: 인원 모집 + 개발
     if (f.money > hold) {
       var spend = (f.money - hold) * tr.rec;
-      if (rnd(s) < tr.dev && spend >= 25) {
+      if (P && P.stance === 'dev') {
+        for (var dk = 0; dk < 4; dk++) { var di = pick(s, list), dt = autoDevType(s, di), dc = dt < 0 ? null : devCost(s, di, dt); if (dc !== null && dc <= f.money - hold) { f.money -= dc; s.dev[di * 4 + dt]++; applyDevSide(s, di, dt); } }
+        spend = Math.max(0, f.money - hold) * 0.3;
+      } else if (rnd(s) < tr.dev && spend >= 25) {
         var r0 = rnd(s), i = pick(s, list), t = r0 < 0.4 ? 0 : r0 < 0.75 ? 2 : r0 < 0.88 ? 1 : 3, c = devCost(s, i, t);
         if (c !== null && c <= f.money - hold) { f.money -= c; s.dev[i * 4 + t]++; applyDevSide(s, i, t); spend = Math.max(0, f.money - hold) * 0.5; }
       }
@@ -2114,7 +2251,8 @@ var Engine = (function () {
       f.troops += spend * C.RECRUIT;
     }
     var tries = Math.max(1, Math.min(3, 1 + Math.floor(list.length / 12)) + tr.tries);
-    var touching = list.some(function (i) { return D.d[i].a.some(function (j) { return s.owner[j] === 0; }); });
+    var touching = !P && list.some(function (i) { return D.d[i].a.some(function (j) { return s.owner[j] === 0; }); });
+    if (P) { if (P.stance === 'def' || P.stance === 'dev') tries = 0; else tries = Math.min(2, tries + (P.target > 0 ? 1 : 0)); }
     var pounce = touching && s.weakAt === s.month - 1 && s.month > C.GRACE && dongsOf(s, 0).length > 5 && f.id === s.rival && !(s.f[0].pact && s.f[0].pact[f.id] > s.month);
     if (pounce) {
       tries += 1;
@@ -2134,7 +2272,7 @@ var Engine = (function () {
     var hunt = pounce || opp || (inCoal(s, f.id) && touching) || grudge;
     // 본거지가 위협받으면 확장을 멈추고 지킨다
     var capDef = defense(s, f.cap).total, threat = 0;
-    D.d[f.cap].a.forEach(function (j) { var o = s.owner[j]; if (o >= 0 && o !== f.id) threat = Math.max(threat, s.f[o].troops + (o === 0 ? s.f[o].away || 0 : 0)); });
+    D.d[f.cap].a.forEach(function (j) { var o = s.owner[j]; if (P && (o === 0 || isPup(s, o))) return; if (o >= 0 && o !== f.id) threat = Math.max(threat, s.f[o].troops + (o === 0 ? s.f[o].away || 0 : 0)); });
     if (threat * 0.8 > capDef) { f.troops += Math.max(0, f.money) * C.RECRUIT * 0.5; f.money *= 0.5; tries = inCoal(s, f.id) && touching ? 1 : 0; }   // 연합은 겁먹지 않고 계속 침
     if (f.lostAt + 1 >= s.month) tries = Math.min(tries, 1);
     // 숙적 작전: 예고한 동을 친다. 본거지가 위협받아 못 나오면 미룸
@@ -2176,6 +2314,7 @@ var Engine = (function () {
           seen[t2] = 1;
           var o = s.owner[t2];
           if (o > 0 && inCoal(s, f.id) && inCoal(s, o)) continue;
+          if (P && (o === 0 || isPup(s, o))) continue;
           if (o === 0) {
             if (s.month <= C.GRACE) continue;
             if (s.f[0].pact && s.f[0].pact[f.id] > s.month) continue;
@@ -2190,6 +2329,8 @@ var Engine = (function () {
           if (hunt && o === 0) val *= 2.5;
           if (D.d[t2].g === D.d[f.cap].g) val *= 1.5;
           if (o >= 0 && s.f[o].cap === t2) val *= 1.8;
+          if (P && P.target > 0 && o === P.target) val *= 4;
+          if (P && P.target > 0 && o !== P.target && o > 0) val *= 0.5;
           var sc = val / def * (0.8 + rnd(s) * 0.4);
           if (sc > bestScore) { bestScore = sc; bestT = t2; bestR = r; }
         }
@@ -2208,7 +2349,10 @@ var Engine = (function () {
           if (res.movedCap !== undefined) pushLog(s, '본거지를 ' + ro(D.d[res.movedCap].n) + ' 옮겼습니다. 인원 일부가 흩어졌습니다.', 'bad');
         } else { f.lostAt = s.month; pushLog(s, J(D.d[bestT].n, '이', '가') + ' ' + f.name + '의 공격을 막아냈습니다.', 'good', bestT); if (res.facNote) pushLog(s, res.facNote, 'good'); }
       } else if (res.collapse) {
-        pushLog(s, J(f.name, '이', '가') + ' ' + J(res.collapse.name, '을', '를') + ' 무너뜨렸습니다.');
+        pushLog(s, J(f.name, '이', '가') + ' ' + J(res.collapse.name, '을', '를') + ' 무너뜨렸습니다.', P ? 'good' : undefined);
+      } else if (P && res.win) {
+        P.took = (P.took || 0) + 1;
+        if (from > 0 && from === P.target) pushLog(s, f.name + '(괴뢰국)이 명령대로 ' + s.f[from].name + '의 ' + J(D.d[bestT].n, '을', '를') + ' 빼앗았습니다.', 'good', bestT);
       }
     }
   }
@@ -2222,6 +2366,7 @@ var Engine = (function () {
     var e = economy(s, 0);
     me.money = Math.max(0, me.money + e.net);
     devPlanRun(s, e.net);
+    tickPuppets(s);
     var fr = facReport(s);
     s.stat.facMoney = (s.stat.facMoney || 0) + fr.tax; s.stat.facDraft = (s.stat.facDraft || 0) + fr.draft;
     var fa = s.facAcc = s.facAcc || { tax: 0, draft: 0, n: 0, it: {} }; fa.it = fa.it || {};
@@ -2324,6 +2469,8 @@ var Engine = (function () {
 
   return {
     realmDevPlan: realmDevPlan, realmDevelop: realmDevelop, autoDevType: autoDevType,
+    isPup: isPup, tribOf: tribOf, zoneSize: zoneSize, zoneTouch: zoneTouch, zoneMergeCheck: zoneMergeCheck, zoneMerge: zoneMerge,
+    PUP_RATES: PUP_RATES, pupMax: pupMax, puppets: puppets, puppetCheck: puppetCheck, makePuppet: makePuppet, pupSet: pupSet, pupAid: pupAid, absorbCheck: absorbCheck, absorbPuppet: absorbPuppet,
     PLEDGES: PLEDGES, devSide: devSide, moodOf: moodOf, voteOf: voteOf, voteGu: voteGu, campInfo: campInfo, campaign: campaign, choosePledges: choosePledges,
     zoneOf: zoneOf, zoneById: zoneById, zoneMax: zoneMax, zoneCheck: zoneCheck, zoneMake: zoneMake, zoneDissolve: zoneDissolve, zoneAttack: zoneAttack, zoneAttackPreview: zoneAttackPreview, zoneDevelop: zoneDevelop, zoneDevelopPreview: zoneDevelopPreview, zoneTargets: zoneTargets, nameOk: nameOk,
     C: C, setData: setData, setCity: setCity, city: function () { return CITY; }, replay: function () { return RP; }, CARDS: CARDS, hasCard: hasCard, chooseCard: chooseCard, offerCards: offerCards, voteShare: voteShare, inCoal: inCoal, SUR: SUR, GIV: GIV, headOf: headOf, stem: stem, create: create, preview: preview, needFor: needFor, attack: attack, develop: develop, devCost: devCost,
@@ -2386,7 +2533,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
   var lastAct = 0, recDong = null, guReserve = 0.25, blinkTimer = 0;
   function guard(fn) { return function () { var n = Date.now(); if (n - lastAct < 300) return; lastAct = n; fn.apply(this, arguments); }; }
   var lastSheetKey = '', peek = false, zoneSel = null, zp = null, TLS = null, CAL = null, guSel = null, S = null, sel = null, pickSel = null, lens = 0, reach = {}, flash = {}, flashTimer = 0, errMsg = '', sendN = 0, sheetMode = 'none', confirmNew = false;
-  var LENS = ['세력', '인구', '경제', '인프라', '생활'], LKEY = [null, 'P', 'E', 'I', 'L'];
+  var LENS = ['세력', '점령', '인구', '경제', '인프라', '생활'], LKEY = [null, null, 'P', 'E', 'I', 'L'], OCC = 1;
   var PAL = ['#D4321F', '#2F6DB5', '#E2A11F', '#2F9B78', '#8257B8', '#CC5C98', '#6F9426', '#1C9FB8', '#B0713A', '#5468D4', '#74889A', '#8F3F73', '#3F7A55', '#D9812F', '#A5952E', '#3D5A80', '#56B096', '#B57FD0', '#8A6D3B', '#4F9BD9'];
   var REDUCED = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -2427,7 +2574,10 @@ if (typeof module !== 'undefined') module.exports = Engine;
   function signed(v, f) { return (v >= 0 ? '+' : '−') + f(Math.abs(v)); }
   function dateOf(m) { var t = 2027 * 12 + m; return Math.floor(t / 12) + '년 ' + (t % 12 + 1) + '월'; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-  function fCol(id) { return id === 0 ? PAL[0] : PAL[1 + (id - 1) % (PAL.length - 1)]; }
+  function fCol(id) { return id === 0 ? PAL[0] : S && S.f[id] && S.f[id].puppet ? pupCol() : PAL[1 + (id - 1) % (PAL.length - 1)]; }
+  var PUPCOL = null;
+  function pupCol() { if (PUPCOL) return PUPCOL; var n = parseInt(PAL[0].slice(1), 16), k = 0.5, m = function (v) { return Math.round(v + (255 - v) * k); }; return (PUPCOL = 'rgb(' + m(n >> 16) + ',' + m(n >> 8 & 255) + ',' + m(n & 255) + ')'); }
+  function isPupO(o) { return S && o > 0 && E.isPup(S, o); }
   function save() { try { if (S) { var o = S.owner; if (RPS) S.owner = RPS.real; if (TLS) S.owner = TLS.real; if (CAL) S.owner = CAL.real; localStorage.setItem(SAVE_KEY, JSON.stringify(S)); S.owner = o; } } catch (e) {} }
   function backup() { try { var t = localStorage.getItem(SAVE_KEY); if (t) localStorage.setItem(SAVE_KEY + '-prev', t); } catch (e) {} }
   function bests() { try { return JSON.parse(localStorage.getItem(BEST_KEY)) || {}; } catch (e) { return {}; } }
@@ -2574,13 +2724,14 @@ if (typeof module !== 'undefined') module.exports = Engine;
   if (SEOUL) ['진관동', '평창동', '우이동', '도봉1동', '정릉4동', '상계1동', '상계3·4동', '공릉2동', '대학동', '남현동', '내곡동', '양재2동', '부암동', '삼청동'].forEach(function (n) { D.forEach(function (d, i) { if (d.n === n) MOUNT[i] = 1; }); });
   var DEV_COL = ['#E2A11F', '#2F6DB5', '#2F9B78', '#47524A'];
   function fillOf(i) {
+    if (lens === OCC && S) { var oo = S.owner[i]; return oo === 0 ? PAL[0] : isPupO(oo) ? pupCol() : GU_TOUCH && GU_TOUCH[D[i].g] ? '#E2E6DA' : '#F2F3EE'; }
     if (lens) return ramp(D[i][LKEY[lens]]);
     if (fogged(i)) return FOG_PAT;
     if (!S) return i === pickSel ? '#D4321F' : '#ECEFE6';
     var o = S.owner[i];
-    return o === -1 ? '#ECEFE6' : o === 0 || o === S.rival ? fCol(o) : muted(fCol(o));
+    return o === -1 ? '#ECEFE6' : o === 0 || o === S.rival || isPupO(o) ? fCol(o) : muted(fCol(o));
   }
-  var MUTE = {};
+  var MUTE = {}, GU_TOUCH = null;
   function muted(hex) {
     if (MUTE[hex]) return MUTE[hex];
     if (!/^#[0-9a-f]{6}$/i.test(hex)) return hex;
@@ -2604,11 +2755,13 @@ if (typeof module !== 'undefined') module.exports = Engine;
     var px = 1 / cam.s;
     var unscale = new DOMMatrix().scale(1 / cam.s);
     FOG_PAT.setTransform(unscale); MT_PAT.setTransform(unscale);
+    if (lens === OCC && S) { GU_TOUCH = {}; for (var gi0 = 0; gi0 < D.length; gi0++) if (S.owner[gi0] === 0 || isPupO(S.owner[gi0])) GU_TOUCH[D[gi0].g] = 1; }
     for (var i = 0; i < D.length; i++) { c.fillStyle = fillOf(i); c.fill(dongPath[i]); }
     if (!lens) { c.fillStyle = MT_PAT; Object.keys(MOUNT).forEach(function (k) { if (!fogged(+k)) c.fill(dongPath[k]); }); }
     c.lineJoin = 'round'; c.lineCap = 'round';
     c.strokeStyle = 'rgba(30,45,35,.32)'; c.lineWidth = 0.7 * px; c.stroke(allDong);
     if (S && !lens) { c.strokeStyle = 'rgba(255,255,255,.85)'; for (var mi = 0; mi < D.length; mi++) if (S.owner[mi] === 0) { var sl = E.lv(S, mi, 3); c.lineWidth = (sl >= 3 ? 1.2 + sl * 0.5 : 1.2) * px; c.stroke(dongPath[mi]); } }
+    if (S && (!lens || lens === OCC)) { var pf = S.f.filter(function (f) { return f.puppet && f.alive; }); if (pf.length) { c.strokeStyle = PAL[0]; c.lineWidth = 1.6 * px; c.setLineDash([4 * px, 3 * px]); for (var pi = 0; pi < D.length; pi++) if (isPupO(S.owner[pi])) c.stroke(dongPath[pi]); c.setLineDash([]); } }
     c.strokeStyle = '#7DB2CF'; c.lineWidth = Math.max(RIVER_W, 4.5 * px); c.stroke(riverPath);
     c.strokeStyle = 'rgba(255,255,255,.45)'; c.lineWidth = Math.max(10, 1.2 * px); c.setLineDash([Math.max(60, 8 * px), Math.max(110, 14 * px)]); c.stroke(riverPath); c.setLineDash([]);
     c.strokeStyle = 'rgba(23,35,28,.72)'; c.lineWidth = 1.5 * px; c.stroke(guPath);
@@ -2881,11 +3034,16 @@ if (typeof module !== 'undefined') module.exports = Engine;
     c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineJoin = 'round';
     var zoom = cam.s / fitS;
     var r = viewRect();
-    if (zoom < 2.6) {
+    var occ = lens === OCC && S, occN = null;
+    if (occ) { occN = GU.map(function () { return [0, 0, 0]; }); for (var oi = 0; oi < D.length; oi++) { var og = occN[D[oi].g]; og[2]++; if (S.owner[oi] === 0) og[0]++; else if (isPupO(S.owner[oi])) og[1]++; } }
+    if (zoom < 2.6 || occ) {
       c.font = (W < 500 ? 12 : 14) + 'px ' + '"Black Han Sans","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
       var guPlaced = [];
       GU.forEach(function (g, gi) {
         var x = g.x * cam.s + cam.x, y = g.y * cam.s + cam.y;
+        var gl = occ && (occN[gi][0] || occN[gi][1]) ? g.n + ' ' + (occN[gi][0] + occN[gi][1]) + '/' + occN[gi][2] : g.n;
+        if (occ && x > -80 && x < W + 80 && y > -20 && y < H + 20 && (occN[gi][0] || occN[gi][1])) { c.lineWidth = 4; c.strokeStyle = 'rgba(255,255,255,.95)'; c.strokeText(gl, x, y); c.fillStyle = '#7A1A0E'; c.fillText(gl, x, y); guPlaced.push({ x: x, y: y, w: c.measureText(gl).width }); return; }
+        if (occ && zoom >= 2.6) return;
         var gw = c.measureText(g.n).width;
         if ((guBox[gi][2] - guBox[gi][0]) * cam.s < gw * 1.05) return;
         for (var q = 0; q < guPlaced.length; q++) if (Math.abs(guPlaced[q].x - x) < (guPlaced[q].w + gw) / 2 + 3 && Math.abs(guPlaced[q].y - y) < 16) return;
@@ -3166,14 +3324,14 @@ if (typeof module !== 'undefined') module.exports = Engine;
     mine.forEach(function (i) {
       D[i].a.forEach(function (j) {
         var o = S.owner[j];
-        if (o === 0 || (o > 0 && pact[o] > S.month)) return;
+        if (o === 0 || (o > 0 && (pact[o] > S.month || isPupO(o)))) return;
         reach[j] = 1;
       });
     });
     mine.forEach(function (i) {
       E.subwayOf(i).forEach(function (j) {
         var o = S.owner[j];
-        if (o === 0 || reach[j] || (o > 0 && pact[o] > S.month)) return;
+        if (o === 0 || reach[j] || (o > 0 && (pact[o] > S.month || isPupO(o)))) return;
         reach[j] = 2;
       });
     });
@@ -3280,6 +3438,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
     var lg = $('legend');
     lg.hidden = !lens;
     if (lens) { $('legendName').textContent = LENS[lens]; lg.style.top = ($('hud').getBoundingClientRect().bottom + 8) + 'px'; }
+    lg.classList.toggle('occ', lens === OCC);
     var gb = $('govBar'), gi0 = E.govInfo(S);
     gb.hidden = !gi0;
     if (gi0) gb.textContent = '정부 공모: ' + gi0.G.n + ' · ' + gi0.left + '달 남음 · 신청 가능 ' + gi0.ok.length + '곳';
@@ -3402,7 +3561,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
     sh.hidden = false;
     if (sheetMode !== 'dong' || isWide()) peek = false;
     sh.classList.toggle('peek', peek);
-    if (sheetMode === 'dong') { if (sel === null) { sh.hidden = true; return; } if (S.owner[sel] === 0) ownSheet(sh); else enemySheet(sh); }
+    if (sheetMode === 'dong') { if (sel === null) { sh.hidden = true; return; } if (S.owner[sel] === 0) ownSheet(sh); else if (isPupO(S.owner[sel])) pupSheet(sh); else enemySheet(sh); }
     else if (sheetMode === 'realm') realmSheet(sh);
     else if (sheetMode === 'log') logSheet(sh);
     else if (sheetMode === 'menu') menuSheet(sh);
@@ -3752,11 +3911,22 @@ if (typeof module !== 'undefined') module.exports = Engine;
   function zoneSheet(sh) {
     var z = E.zoneById(S, zoneSel);
     if (!z) { sheetMode = 'none'; renderSheet(); return; }
-    var html = '<div class="head"><div><h2>' + esc(z.nm) + '</h2><p>행정구역 · ' + z.d.length + '개 ' + UNITN + ' · 청사 ' + esc(D[z.hall].n) + ' · ' + dateOf(z.at) + ' 출범</p></div><button class="x" type="button" aria-label="닫기">×</button></div>';
+    var html = '<div class="head"><div><h2>' + esc(z.nm) + (z.d.length >= 10 ? ' <em class="spz">특별구</em>' : '') + '</h2><p>행정구역 · ' + z.d.length + '개 ' + UNITN + ' · 청사 ' + esc(D[z.hall].n) + ' · ' + dateOf(z.at) + ' 출범</p></div><button class="x" type="button" aria-label="닫기">×</button></div>';
     html += '<p class="why num">' + esc(z.d.map(function (i) { return D[i].n; }).join(' · ')) + '. 구역 안 ' + UNITN + ' 수입 +5%.</p>';
     var ap = E.zoneAttackPreview(S, z.id, guReserve);
     html += '<div class="sec">맞닿은 ' + UNITN + ' 한꺼번에 공격</div><p class="why num">맞닿은 ' + ap.count + '곳 중 최대 ' + ap.limit + '곳 · 약한 순 · 각 승률 80%</p><div class="chips">' + [[0, '남길 인원 없음'], [0.25, '25% 남기기'], [0.5, '50% 남기기']].map(function (x) { return '<button class="chip rs' + (guReserve === x[0] ? ' on' : '') + '" type="button" data-r="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div><p class="why num">' + (ap.can ? esc(ap.names.join(', ')) + ' · 약 ' + people(ap.need) + ' 출동, ' + people(ap.left) + ' 남음' : (ap.count ? '지금 남길 인원을 빼면 보낼 수 있는 곳이 없습니다.' : '칠 수 있는 곳이 없습니다.')) + '</p><div class="acts"><button class="btn red" id="zAtk" type="button"' + (S.ap >= ap.ap && ap.can >= 1 ? '' : ' disabled') + '>' + esc(z.nm) + ' 작전 · 결재 ' + ap.ap + '건</button></div>';
     html += '<div class="sec">구역 한꺼번에 개발 (한 단계씩)</div><div class="two">' + E.C.TRACKS.map(function (t, k) { var q = E.zoneDevelopPreview(S, z.id, k); return '<button class="btn gd zd num" type="button" data-k="' + k + '"' + (q.n ? '' : ' disabled') + '>' + t + (q.n ? ' ' + q.n + '곳<br>' + money(q.cost) : '<br>불가') + '</button>'; }).join('') + '</div>';
+    var others = (S.zones || []).filter(function (x) { return x !== z && E.zoneTouch(z, x); });
+    if (others.length) {
+      if (!zp || zp.mergeOf !== z.id) zp = { mergeOf: z.id, name: (z.nm.replace(/(구|동|시|군)$/, '') + others[0].nm).slice(0, 8) };
+      html += sec('구역 합병 · 최대 ' + E.zoneSize(S) + '개', '맞닿은 우리 구역과 합쳐 새 이름 하나로. 크기 상한은 직급 따라 8 → 12 → 16개. 결재 2건 + ' + UNITN + '마다 15억.');
+      html += '<label class="zname"><span>새 이름</span><input id="zmName" type="text" maxlength="8" autocomplete="off" value="' + esc(zp.name) + '"></label>';
+      html += '<div class="rows num">' + others.map(function (x) { var c = E.zoneMergeCheck(S, z.id, x.id, zp.name); return '<button class="row rowBtn zm" type="button" data-z="' + x.id + '"' + (c.ok ? '' : ' disabled') + '><span>' + esc(x.nm) + '와 합병 · 합계 ' + c.n + '개</span><span>' + (c.ok ? money(c.cost) + ' ›' : esc(c.why)) + '</span></button>'; }).join('') + '</div>';
+    }
+    if (S.rank >= 2) {
+      var pc = E.puppetCheck(S, z.id);
+      html += sec('괴뢰국으로 독립', '이 구역을 떼어 내 우리 말을 듣는 나라로 만듭니다.<br>매달 수입의 일부를 바치고, 스스로 인원을 모아 주변 세력을 칩니다. 우리 땅은 절대 안 칩니다.<br>우리 동 수가 줄어 관리비가 줄고, 인구는 절반만 장악으로 칩니다.<br>충성이 15 아래로 떨어지면 반란. 충성 40 이상이면 언제든 다시 합칠 수 있습니다.') + '<div class="acts"><button class="btn red" id="zPup" type="button"' + (pc.ok ? '' : ' disabled') + '>괴뢰국 수립 · 결재 2건 · 인원 ' + people(pc.troops || 0) + ' 넘김</button></div>' + (pc.why ? '<p class="why">' + esc(pc.why) + '</p>' : '<p class="why num">' + E.puppets(S).length + '/' + E.pupMax(S) + '개 · 처음 상납률 30%</p>');
+    }
     if (errMsg) html += '<p class="err">' + esc(errMsg) + '</p>';
     html += '<div class="acts"><button class="btn" id="zDel" type="button">' + (zp && zp.del === z.id ? '정말 해체 (한 번 더 누르기)' : '구역 해체') + '</button></div>';
     sh.innerHTML = tx(html);
@@ -3769,7 +3939,49 @@ if (typeof module !== 'undefined') module.exports = Engine;
       save(); sync();
     }));
     Array.prototype.forEach.call(sh.querySelectorAll('.zd'), function (b) { b.addEventListener('click', function () { var r = E.zoneDevelop(S, z.id, +b.dataset.k); errMsg = r.err || ''; if (!r.err) { sfx('coin'); setNews(S.log[0].t); } save(); sync(); }); });
+    var zmIn = $('zmName');
+    if (zmIn) zmIn.addEventListener('input', function () { zp.name = zmIn.value; Array.prototype.forEach.call(sh.querySelectorAll('.zm'), function (b) { var c = E.zoneMergeCheck(S, z.id, +b.dataset.z, zp.name); b.disabled = !c.ok; b.lastElementChild.textContent = tx(c.ok ? money(c.cost) + ' ›' : c.why); }); });
+    Array.prototype.forEach.call(sh.querySelectorAll('.zm'), function (b) { b.addEventListener('click', guard(function () {
+      var r = E.zoneMerge(S, z.id, +b.dataset.z, zp.name);
+      if (r.err) { errMsg = r.err; renderSheet(); return; }
+      errMsg = ''; zp = null; zoneSel = r.zone.id; sfx('stamp'); stampAt(r.zone.hall, true, '합병'); setNews(S.log[0].t); save(); sync();
+    })); });
+    bind('zPup', guard(function () {
+      var r = E.makePuppet(S, z.id);
+      if (r.err) { errMsg = r.err; renderSheet(); return; }
+      errMsg = ''; zp = null; sfx('stamp'); stampAt(S.f[r.id].cap, true, '독립'); setNews(S.log[0].t); save(); goDong(S.f[r.id].cap);
+    }));
     bind('zDel', function () { if (zp && zp.del === z.id) { E.zoneDissolve(S, z.id); zp = null; setNews(S.log[0].t); realmTab = 'zone'; sheetMode = 'realm'; save(); sync(); } else { zp = { del: z.id }; renderSheet(); } });
+  }
+  var STANCE = [['atk', '공격'], ['def', '방어'], ['dev', '개발']];
+  function pupSheet(sh) {
+    var o = S.owner[sel], f = S.f[o], P = f.puppet, n = E.dongsOf(S, o).length, trib = E.tribOf(S, f), base = P.rate ? trib / P.rate : 0;
+    var html = '<div class="head"><div><h2>' + esc(D[sel].n) + '</h2><p>' + esc(f.name) + ' · 괴뢰국 · ' + n + '개 ' + UNITN + '</p></div><button class="x" type="button" aria-label="닫기">×</button></div>';
+    html += '<div class="pupTop">' + faceImg(o, 44) + '<div><b>' + esc(f.boss.nm) + ' 대표</b><br><span class="num">상납 월 <b>' + money(trib) + '</b> · 인원 ' + people(f.troops + (f.away || 0)) + ' · 방침 ' + STANCE.filter(function (x) { return x[0] === P.stance; })[0][1] + (P.target > 0 && S.f[P.target].alive ? ' → ' + esc(S.f[P.target].name) : '') + '</span></div></div>';
+    html += '<div class="bar' + (P.loyal <= 30 ? ' low' : '') + '"><u style="width:' + P.loyal + '%"></u><s style="left:15%"></s></div><p class="why num">충성 <b>' + Math.round(P.loyal) + '</b> · 15 아래면 반란' + (P.took ? ' · 지금까지 ' + P.took + '곳 점령' : '') + '</p>';
+    var aid = [50, 100, 300].map(function (v) { return '<button class="chip num pa" type="button" data-a="' + v + '"' + (S.f[0].money >= v ? '' : ' disabled') + '>' + v + '억 · 충성 +' + v / 10 + '</button>'; }).join('');
+    if (peek) {
+      html += '<div class="chips">' + aid.split('</button>').slice(0, 2).join('</button>') + '</button><button class="chip qm" id="qMore" type="button">관리 ▾</button></div>';
+      sh.innerHTML = tx(html); bindPup(sh, o); return;
+    }
+    html += sec('상납률', '상납이 무거울수록 매달 충성이 바뀝니다. 15%: +2 · 30%: 0 · 50%: −3.<br>이 나라가 우리 땅의 40%를 넘거나 인원이 우리보다 많아지면 충성이 더 떨어집니다.') + '<div class="chips">' + E.PUP_RATES.map(function (r) { return '<button class="chip num pr' + (P.rate === r ? ' on' : '') + '" type="button" data-r="' + r + '">' + Math.round(r * 100) + '% · 월 ' + money(base * r) + '</button>'; }).join('') + '</div>';
+    html += sec('방침', '공격: 맞닿은 세력을 알아서 칩니다(우리는 절대 안 침).<br>방어: 공격하지 않고 인원을 모읍니다.<br>개발: 돈을 개발에 씁니다.') + '<div class="chips">' + STANCE.map(function (x) { return '<button class="chip ps' + (P.stance === x[0] ? ' on' : '') + '" type="button" data-s="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>';
+    var nb = {}; E.dongsOf(S, o).forEach(function (i) { D[i].a.forEach(function (j) { var q = S.owner[j]; if (q > 0 && !isPupO(q) && S.f[q].alive) nb[q] = 1; }); });
+    var nbl = Object.keys(nb).map(Number).sort(function (a, b) { return E.dongsOf(S, b).length - E.dongsOf(S, a).length; }).slice(0, 5);
+    if (P.stance === 'atk') html += sec('공격 대상', '고른 세력의 동을 먼저 노리고 한 달에 한 번 더 칩니다.') + '<div class="chips wrap">' + '<button class="chip pt' + (P.target > 0 ? '' : ' on') + '" type="button" data-t="-1">알아서</button>' + nbl.map(function (q) { return '<button class="chip pt' + (P.target === q ? ' on' : '') + '" type="button" data-t="' + q + '"><span class="dot" style="background:' + fCol(q) + '"></span>' + esc(S.f[q].name) + '</button>'; }).join('') + '</div>';
+    html += sec('지원금') + '<div class="chips">' + aid + '</div>';
+    var ac = E.absorbCheck(S, o);
+    html += sec('다시 합치기', '이 나라의 ' + UNITN + '을 모두 우리 땅으로 되돌립니다. 인원 60%와 돈 절반이 들어오고, 몇 달 정착 기간을 거칩니다.') + '<div class="acts"><button class="btn" id="pAbs" type="button"' + (ac.ok ? '' : ' disabled') + '>' + n + '개 ' + UNITN + ' 되돌리기 · 결재 2건</button></div>' + (ac.why ? '<p class="why">' + esc(ac.why) + '</p>' : '');
+    if (errMsg) html += '<p class="err">' + esc(errMsg) + '</p>';
+    sh.innerHTML = tx(html); bindPup(sh, o);
+  }
+  function bindPup(sh, o) {
+    var each = function (sel2, fn) { Array.prototype.forEach.call(sh.querySelectorAll(sel2), function (b) { b.addEventListener('click', function () { fn(b); save(); sync(); }); }); };
+    each('.pr', function (b) { E.pupSet(S, o, 'rate', +b.dataset.r); });
+    each('.ps', function (b) { E.pupSet(S, o, 'stance', b.dataset.s); });
+    each('.pt', function (b) { E.pupSet(S, o, 'target', +b.dataset.t); });
+    each('.pa', function (b) { var r = E.pupAid(S, o, +b.dataset.a); errMsg = r.err || ''; if (r.ok) { sfx('coin'); setNews(S.f[o].name + '에 ' + money(r.amt) + ' 지원 · 충성 ' + Math.round(S.f[o].puppet.loyal)); } });
+    bind('pAbs', guard(function () { var cap = S.f[o].cap, r = E.absorbPuppet(S, o); errMsg = r.err || ''; if (r.ok) { sfx('stamp'); stampAt(cap, true, '합병'); setNews(S.log[0].t); } save(); sync(); }));
   }
   function guSheet(sh) {
     var g = guSel, st = E.guStatus(S, g), me = S.f[0], fin = GU[g].f;
@@ -3948,6 +4160,23 @@ if (typeof module !== 'undefined') module.exports = Engine;
   }
   // 제목 + 접어 둔 설명(? 버튼)
   function sec(t, help) { return '<div class="sec">' + t + (help ? '<button class="q" type="button" aria-label="설명 보기" aria-expanded="false">?</button>' : '') + '</div>' + (help ? '<p class="why hp" hidden>' + help + '</p>' : ''); }
+  // 지역별 점령: 모든 구를 점령 비율 순으로, 펼치면 동 이름(누르면 이동)
+  function regionHTML() {
+    var rows = GU.map(function (g, gi) { return { gi: gi, d: [] }; });
+    for (var i = 0; i < D.length; i++) rows[D[i].g].d.push(i);
+    var full = 0, half = 0, inn = 0;
+    rows.forEach(function (r) { r.own = r.d.filter(function (i) { return S.owner[i] === 0; }).length; r.pup = r.d.filter(function (i) { return isPupO(S.owner[i]); }).length; if (r.own === r.d.length) full++; else if (r.own * 2 >= r.d.length) half++; if (r.own || r.pup) inn++; });
+    rows.sort(function (a, b) { return (b.own + b.pup * 0.5) / b.d.length - (a.own + a.pup * 0.5) / a.d.length || a.gi - b.gi; });
+    var h = sec('지역별 점령 · ' + GRP + ' ' + GU.length + '곳', '펼치면 ' + UNITN + ' 이름이 나옵니다. 진한 칸은 우리 ' + UNITN + ', 옅은 칸은 괴뢰국, 빈 칸은 아직 아닌 곳. 누르면 지도에서 그 ' + UNITN + '으로 갑니다.<br>지도 버튼을 눌러 "지도: 점령"으로 바꾸면 지도에서도 볼 수 있습니다.');
+    h += '<p class="why num">전체 장악 <b>' + full + '</b> · 절반 이상 <b>' + half + '</b> · 진출 <b>' + inn + '</b> / ' + GU.length + '</p>';
+    h += rows.map(function (r) {
+      var g = GU[r.gi], pc = Math.round((r.own / r.d.length) * 100);
+      var tag = r.own === r.d.length ? '전체 장악' : r.own * 2 >= r.d.length ? '절반 이상' : r.own || r.pup ? '진출' : '';
+      var body = '<div class="dchips">' + r.d.slice().sort(function (a, b) { var ra = S.owner[a] === 0 ? 0 : isPupO(S.owner[a]) ? 1 : 2, rb = S.owner[b] === 0 ? 0 : isPupO(S.owner[b]) ? 1 : 2; return ra - rb || (D[a].n < D[b].n ? -1 : 1); }).map(function (i) { var o = S.owner[i]; return '<button type="button" class="dc' + (o === 0 ? ' own' : isPupO(o) ? ' pup' : '') + '" data-go1="' + i + '">' + esc(D[i].n) + '</button>'; }).join('') + '</div><button class="linkish" type="button" data-gs="' + r.gi + '">' + g.n + ' 화면 ›</button>';
+      return '<details class="more rule rg"><summary><span class="rgN">' + g.n + (tag ? ' <em>' + tag + '</em>' : '') + '</span><span class="rgBar"><u style="width:' + pc + '%"></u><i style="left:' + pc + '%;width:' + Math.round(r.pup / r.d.length * 100) + '%"></i></span><span class="num rgC">' + r.own + '/' + r.d.length + (r.pup ? '<small>괴뢰 ' + r.pup + '</small>' : '') + '</span></summary>' + body + '</details>';
+    }).join('');
+    return h;
+  }
   function realmSheet(sh) {
     var me = S.f[0], e = E.economy(S, 0), held = E.guHeld(S, 0);
     var html = '<div class="head"><div><h2>' + esc(title()) + '</h2><p>' + esc(me.name) + ' · 본거지 ' + esc(D[me.cap].n) + '</p></div><button class="x" type="button" aria-label="닫기">×</button></div>';
@@ -3973,7 +4202,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
     tN += sec('모집', '일당을 주고 인원을 모읍니다. 1억 = 1.2명.') + '<div class="chips">' + [100, 300].map(function (v) {
       return '<button class="chip num" type="button" data-m="' + v + '"' + (me.money >= v ? '' : ' disabled') + '>' + v + '억 → ' + Math.round(v * 1.2) + '명</button>';
     }).join('') + '<button class="chip num" type="button" data-m="all"' + (me.money >= 1 ? '' : ' disabled') + '>전액 → ' + Math.round(Math.floor(me.money) * 1.2) + '명</button></div>';
-    tN += sec('월 수지', '위쪽 예산 아래 숫자가 월수입입니다. 대기: 지금 공격·방어에 쓸 수 있는 인원. 출동: 다음 달 복귀. 귀가: 이번 판에서 빠진 인원.') + '<div class="rows num"><div class="row"><span>수입' + (e.aidTax > 0 ? ' (약소 동 지원금 포함)' : '') + '</span><span>+' + money(e.tax) + '</span></div><div class="row"><span>동 관리비</span><span>−' + money(e.up) + '</span></div><div class="row"><span><b>월수입</b></span><span><b>' + signed(e.net, money) + '</b></span></div><div class="row"><span>동원' + (e.aidDraft > 0 ? ' (지원 포함)' : '') + '</span><span>+' + people(e.draft) + '</span></div><div class="row"><span>자연 귀가</span><span>−' + people(e.decay) + '</span></div>' + (me.away >= 1 ? '<div class="row"><span>출동 중 · 다음 달 복귀</span><span>' + people(me.away) + '</span></div>' : '') + '</div>';
+    tN += sec('월 수지', '위쪽 예산 아래 숫자가 월수입입니다. 대기: 지금 공격·방어에 쓸 수 있는 인원. 출동: 다음 달 복귀. 귀가: 이번 판에서 빠진 인원.') + '<div class="rows num"><div class="row"><span>수입' + (e.aidTax > 0 ? ' (약소 동 지원금 포함)' : '') + '</span><span>+' + money(e.tax) + '</span></div><div class="row"><span>동 관리비</span><span>−' + money(e.up) + '</span></div>' + (e.trib >= 0.5 ? '<div class="row"><span>괴뢰국 상납</span><span>+' + money(e.trib) + '</span></div>' : '') + '<div class="row"><span><b>월수입</b></span><span><b>' + signed(e.net, money) + '</b></span></div><div class="row"><span>동원' + (e.aidDraft > 0 ? ' (지원 포함)' : '') + '</span><span>+' + people(e.draft) + '</span></div><div class="row"><span>자연 귀가</span><span>−' + people(e.decay) + '</span></div>' + (me.away >= 1 ? '<div class="row"><span>출동 중 · 다음 달 복귀</span><span>' + people(me.away) + '</span></div>' : '') + '</div>';
     var AB = E.ABIL[S.abil];
     tN += sec('대표 능력 · ' + AB.n, esc(AB.how));
     if (S.abil === 'station') { var ei = E.expressInfo(S); tN += '<p class="why num">지하철로 칠 수 있는 동 ' + E.raidTargets(S) + '곳 · ' + (S.express === S.month ? '바로 복귀 ' + Math.max(0, 3 - (S.expQ || 0)) + '번 남음' : '켜면 같은 인원으로 3번 연달아 공격') + '</p><div class="acts"><button class="btn ab" id="express" type="button"' + (ei.ok ? '' : ' disabled') + '>' + (S.express === S.month ? '이번 달 급행 원정 중' : '급행 원정 켜기' + (ei.cost ? ' · ' + money(ei.cost) : '')) + '</button></div>' + (ei.why ? '<p class="why">' + esc(ei.why) + '</p>' : ''); }
@@ -4001,10 +4230,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
       var ms = c && !on ? comboMiss(k) : [];
       return '<div class="row' + (ms.length ? ' bt' : '') + '"><span><b>' + C0.n + '</b><br><small>' + (ms.length ? '<b class="bad">멈춤</b> · ' + esc(ms.map(function (j) { return D[j].n; }).join('·')) + ' 되찾으면 다시 작동' : c ? esc(c.d.map(function (j) { return D[j].n; }).join('·')) : C0.t) + '</small></span>' + (ms.length ? '<button class="btn" type="button" data-cgo="' + ms[0] + '">' + esc(D[ms[0]].n) + ' 보기</button>' : '<span class="nw">' + (c ? '작동 중' : '아직') + '</span>') + '</div>';
     }).join('') + '</div>';
-    var list = GU.map(function (x, i) { return { i: i, st: E.guStatus(S, i) }; }).filter(function (x) { return x.st.have > 0; }).sort(function (a, b) { return b.st.have / b.st.total - a.st.have / a.st.total; });
-    if (list.length) tZ += sec('우리가 들어간 ' + GRP) + '<div class="rows num">' + list.slice(0, 12).map(function (x) {
-      return '<button class="row rowBtn" type="button" data-g="' + x.i + '"><span>' + GU[x.i].n + (x.st.full ? ' · 수입 +' + GU[x.i].f + '% 적용' : x.st.half ? ' · ' + R1S + ' 자격' : '') + '</span><span>' + x.st.have + '/' + x.st.total + ' ›</span></button>';
-    }).join('') + '</div>';
+    tZ += regionHTML();
     // ---- 세력 ----
     var fl = E.factionList(S), nbF = {}, big = null;
     E.dongsOf(S, 0).forEach(function (i) { D[i].a.forEach(function (j) { var o = S.owner[j]; if (o > 0) nbF[o] = 1; }); });
@@ -4014,8 +4240,10 @@ if (typeof module !== 'undefined') module.exports = Engine;
     tF += sec('세력 순위', anyHid ? '안개 속 세력은 대략적인 규모만 보입니다.' : '') + '<div class="rows num">' + fl.slice(0, 7).map(function (f) {
       var pct = me.pact && me.pact[f.id] > S.month ? ' · 협정 ' + (me.pact[f.id] - S.month) + '달' : '';
       var hid = f.id !== 0 && S.seenGu && !S.seenGu[D[f.cap].g];
-      return '<div class="row"><span><span class="dot" style="background:' + (hid ? '#C3CBC1' : fCol(f.id)) + '"></span>' + esc(f.id === 0 ? '우리' : hid ? '안개 속 어느 세력' : f.name) + (f.id === S.rival ? ' · 숙적' : '') + esc(pct) + '</span><span>' + (hid ? fuzzy(f.n, 1) + '개 동 · ' + fuzzy(f.troops, 100) + '명' : f.n + '개 동 · ' + people(f.troops)) + '</span></div>';
+      return '<div class="row"><span><span class="dot" style="background:' + (hid ? '#C3CBC1' : fCol(f.id)) + '"></span>' + esc(f.id === 0 ? '우리' : hid ? '안개 속 어느 세력' : f.name) + (f.id === S.rival ? ' · 숙적' : '') + (isPupO(f.id) ? ' · 괴뢰국' : '') + esc(pct) + '</span><span>' + (hid ? fuzzy(f.n, 1) + '개 동 · ' + fuzzy(f.troops, 100) + '명' : f.n + '개 동 · ' + people(f.troops)) + '</span></div>';
     }).join('') + '</div>';
+    var pl0 = E.puppets(S);
+    if (pl0.length || S.rank >= 2) tF = sec('괴뢰국 · ' + pl0.length + '/' + E.pupMax(S), '구역 화면에서 구역을 괴뢰국으로 독립시킬 수 있습니다(' + RANK2 + '부터).') + (pl0.length ? '<div class="rows num">' + pl0.map(function (f) { return '<button class="row rowBtn" type="button" data-pg="' + f.cap + '"><span><span class="dot" style="background:' + pupCol() + '"></span>' + esc(f.name) + ' · 충성 ' + Math.round(f.puppet.loyal) + (f.puppet.loyal <= 30 ? ' <b class="bad">위험</b>' : '') + '</span><span>' + E.dongsOf(S, f.id).length + '개 · 월 +' + money(E.tribOf(S, f)) + ' ›</span></button>'; }).join('') + '</div>' : '<p class="why">아직 없음</p>') + tF;
     var TABS = [['now', '현황', tN], ['pol', '정책', tP], ['zone', '구역', tZ], ['fac', '세력', tF]];
     if (!TABS.some(function (t) { return t[0] === realmTab; })) realmTab = 'now';
     html += '<div class="tabs" role="tablist">' + TABS.map(function (t) { return '<button class="tab' + (realmTab === t[0] ? ' on' : '') + '" type="button" role="tab" aria-selected="' + (realmTab === t[0]) + '" data-tab="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>';
@@ -4027,7 +4255,8 @@ if (typeof module !== 'undefined') module.exports = Engine;
       Array.prototype.forEach.call(sh.querySelectorAll('.tabp'), function (x) { x.hidden = x.dataset.tp !== realmTab; });
       sh.scrollTop = 0;
     }); });
-    Array.prototype.forEach.call(sh.querySelectorAll('[data-cgo]'), function (b) { b.addEventListener('click', function () { goDong(+b.dataset.cgo); }); });
+    Array.prototype.forEach.call(sh.querySelectorAll('[data-cgo],[data-pg],[data-go1]'), function (b) { b.addEventListener('click', function () { goDong(+(b.dataset.cgo || b.dataset.pg || b.dataset.go1)); }); });
+    Array.prototype.forEach.call(sh.querySelectorAll('[data-gs]'), function (b) { b.addEventListener('click', function () { guSel = +b.dataset.gs; sel = null; sheetMode = 'gu'; renderSheet(); dirty(); }); });
     Array.prototype.forEach.call(sh.querySelectorAll('.chip[data-dt]'), function (b) { b.addEventListener('click', function () { devT = +b.dataset.dt; renderSheet(); }); });
     Array.prototype.forEach.call(sh.querySelectorAll('.chip[data-db]'), function (b) { b.addEventListener('click', function () { devB = +b.dataset.db; renderSheet(); }); });
     Array.prototype.forEach.call(sh.querySelectorAll('.chip[data-dp]'), function (b) { b.addEventListener('click', function () {
