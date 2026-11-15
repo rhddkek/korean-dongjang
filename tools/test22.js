@@ -57,7 +57,7 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   ok(/괴뢰국 상납/.test(now), '월 수지에 괴뢰국 상납');
   await G(() => __game.tab('fac')); await p.waitForTimeout(150);
   const fac = await G(() => document.getElementById('sheet').innerText);
-  ok(/괴뢰국 · 1\/1/.test(fac) && /범어만촌 · 충성/.test(fac), '세력 탭 괴뢰국 목록');
+  ok(/괴뢰국 · 1\/3/.test(fac) && /범어만촌 · 충성/.test(fac), '세력 탭 괴뢰국 목록');
   await G(() => __game.tab('zone')); await p.waitForTimeout(150);
   const rg = await G(() => ({ n: document.querySelectorAll('details.rg').length, t: document.getElementById('sheet').innerText.match(/전체 장악[^\n]*/)?.[0] }));
   ok(rg.n >= 20, '지역별 점령 목록 ' + rg.n + '개 구 · ' + rg.t);

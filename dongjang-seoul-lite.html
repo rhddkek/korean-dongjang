@@ -1447,13 +1447,13 @@ var Engine = (function () {
 
   // ---- 괴뢰국: 구역을 떼어 내 우리 말을 듣는 나라로 (권역장부터) ----
   var PUP_RATES = [0.15, 0.3, 0.5];
-  function pupMax(s) { return [0, 0, 1, 2][s.rank] || 0; }
+  function pupMax(s) { return [0, 1, 3, 5][s.rank] || 0; }
   function puppets(s) { return s.f.filter(function (f) { return f.puppet && f.alive; }); }
   function puppetCheck(s, id) {
     var z = zoneById(s, id), out = { ok: false, ap: 2 };
     if (!z) { out.why = '없는 구역입니다.'; return out; }
     out.n = z.d.length; out.troops = Math.round(s.f[0].troops * 0.25);
-    if (s.rank < 2) { out.why = C.RANKS[2] + '부터 할 수 있습니다.'; return out; }
+    if (s.rank < 1) { out.why = C.RANKS[1] + '부터 할 수 있습니다.'; return out; }
     if (puppets(s).length >= pupMax(s)) { out.why = '지금 직급으로는 괴뢰국을 ' + pupMax(s) + '개까지 둘 수 있습니다.'; return out; }
     if (z.d.length < 3) { out.why = C.UNIT + ' 3개 이상인 구역만 독립시킬 수 있습니다.'; return out; }
     if (z.d.indexOf(s.f[0].cap) >= 0) { out.why = '본거지가 든 구역은 독립시킬 수 없습니다.'; return out; }
@@ -1473,6 +1473,77 @@ var Engine = (function () {
     s.stat.puppets = (s.stat.puppets || 0) + 1;
     pushLog(s, z.nm + ' 괴뢰국 수립. ' + s.f[pid].boss.nm + ' 대표가 맡고, 인원 ' + tr + '명을 넘겼습니다. 매달 수입의 30%를 바칩니다.', 'good', z.hall);
     return { ok: true, id: pid };
+  }
+  // ---- 땅 주고받기: 우리 ↔ 괴뢰국, 괴뢰국 ↔ 괴뢰국 ----
+  function touchF(s, i, fid) { return D.d[i].a.some(function (j) { return s.owner[j] === fid; }); }
+  function pupOk(s, pid) { var f = s.f[pid]; return !!(f && f.puppet && f.alive); }
+  // 우리 동 → 괴뢰국 (결재 없음, 충성 +3)
+  function giveCheck(s, i, pid) {
+    if (s.owner[i] !== 0) return { ok: false, why: '우리 ' + C.UNIT + '이 아닙니다.' };
+    if (!pupOk(s, pid)) return { ok: false, why: '괴뢰국이 아닙니다.' };
+    if (i === s.f[0].cap) return { ok: false, why: '본거지는 넘길 수 없습니다.' };
+    if (!touchF(s, i, pid)) return { ok: false, why: '그 괴뢰국과 맞닿은 ' + C.UNIT + '만 넘길 수 있습니다.' };
+    return { ok: true };
+  }
+  function giveToPup(s, i, pid) {
+    var c = giveCheck(s, i, pid); if (!c.ok) return { err: c.why };
+    s.owner[i] = pid; var P = s.f[pid].puppet; P.loyal = Math.min(100, P.loyal + 3);
+    pushLog(s, J(D.d[i].n, '을', '를') + ' ' + s.f[pid].name + '에 넘겼습니다. 충성 ' + Math.round(P.loyal) + '.', 'good', i);
+    afterChange(s);
+    return { ok: true };
+  }
+  // 괴뢰국 동 → 우리 (결재 1건, 충성 −6, 충성 30 이상)
+  function takeCheck(s, i) {
+    var o = s.owner[i];
+    if (!pupOk(s, o)) return { ok: false, why: '괴뢰국 ' + C.UNIT + '이 아닙니다.' };
+    var f = s.f[o];
+    if (i === f.cap) return { ok: false, why: '그 나라의 청사는 받아올 수 없습니다. 통째로 받으려면 다시 합치기.' };
+    if (!touchF(s, i, 0)) return { ok: false, why: '우리 땅과 맞닿은 ' + C.UNIT + '만 받아올 수 있습니다.' };
+    if (f.puppet.loyal < 30) return { ok: false, why: '충성 30 이상일 때만 받아올 수 있습니다.' };
+    if (s.ap < 1) return { ok: false, why: '결재가 남지 않았습니다.' };
+    return { ok: true };
+  }
+  function takeFromPup(s, i) {
+    var c = takeCheck(s, i); if (!c.ok) return { err: c.why };
+    var o = s.owner[i], P = s.f[o].puppet;
+    s.ap -= 1; s.owner[i] = 0; joinSoft(s, i); P.loyal = Math.max(0, P.loyal - 6);
+    pushLog(s, s.f[o].name + '에서 ' + J(D.d[i].n, '을', '를') + ' 받아왔습니다. 충성 ' + Math.round(P.loyal) + '.', 'good', i);
+    afterChange(s);
+    return { ok: true };
+  }
+  // 괴뢰국 동 → 다른 괴뢰국 (결재 없음, 주는 쪽 −2 · 받는 쪽 +2)
+  function moveCheck(s, i, pid) {
+    var o = s.owner[i];
+    if (!pupOk(s, o) || !pupOk(s, pid) || o === pid) return { ok: false, why: '괴뢰국끼리만 옮길 수 있습니다.' };
+    if (i === s.f[o].cap) return { ok: false, why: '청사는 옮길 수 없습니다.' };
+    if (!touchF(s, i, pid)) return { ok: false, why: '받는 괴뢰국과 맞닿은 ' + C.UNIT + '만 옮길 수 있습니다.' };
+    return { ok: true };
+  }
+  function movePup(s, i, pid) {
+    var c = moveCheck(s, i, pid); if (!c.ok) return { err: c.why };
+    var o = s.owner[i];
+    s.owner[i] = pid; s.f[o].puppet.loyal = Math.max(0, s.f[o].puppet.loyal - 2); s.f[pid].puppet.loyal = Math.min(100, s.f[pid].puppet.loyal + 2);
+    pushLog(s, D.d[i].n + ' · ' + s.f[o].name + ' → ' + s.f[pid].name + '.', 'good', i);
+    return { ok: true };
+  }
+  // 우리 구역을 통째로 기존 괴뢰국에 편입 (결재 1건, 충성 +2/동, 최대 +20)
+  function zoneGiveCheck(s, zid, pid) {
+    var z = zoneById(s, zid);
+    if (!z || !pupOk(s, pid)) return { ok: false, why: '구역과 괴뢰국을 고르세요.' };
+    if (z.d.indexOf(s.f[0].cap) >= 0) return { ok: false, why: '본거지가 든 구역은 넘길 수 없습니다.' };
+    if (!z.d.some(function (i) { return touchF(s, i, pid); })) return { ok: false, why: '그 괴뢰국과 맞닿은 구역만 넘길 수 있습니다.' };
+    if (s.ap < 1) return { ok: false, why: '결재가 남지 않았습니다.' };
+    return { ok: true, n: z.d.length };
+  }
+  function zoneGive(s, zid, pid) {
+    var c = zoneGiveCheck(s, zid, pid); if (!c.ok) return { err: c.why };
+    var z = zoneById(s, zid), P = s.f[pid].puppet;
+    s.ap -= 1; z.d.forEach(function (i) { s.owner[i] = pid; });
+    P.loyal = Math.min(100, P.loyal + Math.min(20, 2 * z.d.length));
+    s.zones = s.zones.filter(function (x) { return x !== z; });
+    pushLog(s, z.nm + ' ' + z.d.length + '개 ' + J(C.UNIT, '을', '를') + ' ' + s.f[pid].name + '에 편입했습니다. 충성 ' + Math.round(P.loyal) + '.', 'good', z.hall);
+    afterChange(s);
+    return { ok: true };
   }
   function pupSet(s, pid, k, v) {
     var f = s.f[pid]; if (!f || !f.puppet || !f.alive) return { err: '괴뢰국이 아닙니다.' };
@@ -2470,6 +2541,7 @@ var Engine = (function () {
   return {
     realmDevPlan: realmDevPlan, realmDevelop: realmDevelop, autoDevType: autoDevType,
     isPup: isPup, tribOf: tribOf, zoneSize: zoneSize, zoneTouch: zoneTouch, zoneMergeCheck: zoneMergeCheck, zoneMerge: zoneMerge,
+    giveCheck: giveCheck, giveToPup: giveToPup, takeCheck: takeCheck, takeFromPup: takeFromPup, moveCheck: moveCheck, movePup: movePup, zoneGiveCheck: zoneGiveCheck, zoneGive: zoneGive,
     PUP_RATES: PUP_RATES, pupMax: pupMax, puppets: puppets, puppetCheck: puppetCheck, makePuppet: makePuppet, pupSet: pupSet, pupAid: pupAid, absorbCheck: absorbCheck, absorbPuppet: absorbPuppet,
     PLEDGES: PLEDGES, devSide: devSide, moodOf: moodOf, voteOf: voteOf, voteGu: voteGu, campInfo: campInfo, campaign: campaign, choosePledges: choosePledges,
     zoneOf: zoneOf, zoneById: zoneById, zoneMax: zoneMax, zoneCheck: zoneCheck, zoneMake: zoneMake, zoneDissolve: zoneDissolve, zoneAttack: zoneAttack, zoneAttackPreview: zoneAttackPreview, zoneDevelop: zoneDevelop, zoneDevelopPreview: zoneDevelopPreview, zoneTargets: zoneTargets, nameOk: nameOk,
@@ -3850,12 +3922,15 @@ if (typeof module !== 'undefined') module.exports = Engine;
       var more = '지금: ' + cur + '<br>' + spLine + (pv ? '<br><span class="pv">' + pv.lv + '단계 ' + esc(pv.name) + '까지 남은 투자 ' + money(pv.cost) + ' · ' + (/^지금/.test(pv.text) ? '' : '지금 기준 ') + esc(pv.text) + '</span>' : '') + (k === 3 ? '<br>방어는 동 자체 방어(치안·민심·동네 유형)에 대기 인원 일부가 더해진 값입니다.' : '');
       html += '<div class="dev"><h4 role="button" tabindex="0" aria-expanded="' + !!devOpen[k] + '" data-dk="' + k + '"><i class="dd" style="background:' + DEV_COL[k] + '"></i>' + t + ' · ' + esc(now) + '<em>' + '●'.repeat(l) + '○'.repeat(5 - l) + '</em><span class="dtog" aria-hidden="true">' + (devOpen[k] ? '▴' : '▾') + '</span></h4><p>' + nx + '</p><button class="btn" data-k="' + k + '" type="button"' + (c !== null && me.money >= c ? '' : ' disabled') + '>' + (c === null ? '최고 단계' : esc(next) + '<br>' + money(c)) + '</button><div class="dmore"' + (devOpen[k] ? '' : ' hidden') + '><p>' + more + '</p></div></div>';
     });
+    var adjP = E.puppets(S).filter(function (f) { return d.a.some(function (j) { return S.owner[j] === f.id; }); });
+    if (adjP.length && sel !== S.f[0].cap) html += sec('괴뢰국에 넘기기', '이 ' + UNITN + '을 맞닿은 괴뢰국에 넘깁니다. 결재 없음 · 충성 +3.') + '<div class="chips wrap">' + adjP.map(function (f) { return '<button class="chip pg2" type="button" data-p="' + f.id + '"><span class="dot" style="background:' + pupCol() + '"></span>' + esc(f.name) + '에 넘기기</button>'; }).join('') + '</div>';
     if (errMsg) html += '<p class="err">' + esc(errMsg) + '</p>';
     if (zf) html += '<button class="guLink" id="zoneLink" type="button"><span>' + esc(zf.nm) + ' · 한꺼번에 작전·개발</span><span class="num">' + zf.d.length + '개 ›</span></button>';
     html += guLinkHTML(d.g) + statsHTML(sel);
     sh.innerHTML = tx(html);
     bind('guLink', function () { openGu(d.g); });
     if (zf) bind('zoneLink', function () { openZone(zf.id); });
+    Array.prototype.forEach.call(sh.querySelectorAll('.pg2'), function (b) { b.addEventListener('click', function () { var i = sel, r = E.giveToPup(S, i, +b.dataset.p); errMsg = r.err || ''; if (r.ok) { sfx('page'); setNews(S.log[0].t); } save(); sync(); }); });
     bind('planSrc', function () { var pi = E.planInfo(S); if (pi) select(pi.src); });
     bind('govPact', guard(function () { var r = E.govPact(S, sel); if (r.err) { errMsg = r.err; } else setNews(S.log[0].t); save(); sync(); }));
     Array.prototype.forEach.call(sh.querySelectorAll('.dev h4[data-dk]'), function (h) {
@@ -3923,10 +3998,12 @@ if (typeof module !== 'undefined') module.exports = Engine;
       html += '<label class="zname"><span>새 이름</span><input id="zmName" type="text" maxlength="8" autocomplete="off" value="' + esc(zp.name) + '"></label>';
       html += '<div class="rows num">' + others.map(function (x) { var c = E.zoneMergeCheck(S, z.id, x.id, zp.name); return '<button class="row rowBtn zm" type="button" data-z="' + x.id + '"' + (c.ok ? '' : ' disabled') + '><span>' + esc(x.nm) + '와 합병 · 합계 ' + c.n + '개</span><span>' + (c.ok ? money(c.cost) + ' ›' : esc(c.why)) + '</span></button>'; }).join('') + '</div>';
     }
-    if (S.rank >= 2) {
+    if (S.rank >= 1) {
       var pc = E.puppetCheck(S, z.id);
       html += sec('괴뢰국으로 독립', '이 구역을 떼어 내 우리 말을 듣는 나라로 만듭니다.<br>매달 수입의 일부를 바치고, 스스로 인원을 모아 주변 세력을 칩니다. 우리 땅은 절대 안 칩니다.<br>우리 동 수가 줄어 관리비가 줄고, 인구는 절반만 장악으로 칩니다.<br>충성이 15 아래로 떨어지면 반란. 충성 40 이상이면 언제든 다시 합칠 수 있습니다.') + '<div class="acts"><button class="btn red" id="zPup" type="button"' + (pc.ok ? '' : ' disabled') + '>괴뢰국 수립 · 결재 2건 · 인원 ' + people(pc.troops || 0) + ' 넘김</button></div>' + (pc.why ? '<p class="why">' + esc(pc.why) + '</p>' : '<p class="why num">' + E.puppets(S).length + '/' + E.pupMax(S) + '개 · 처음 상납률 30%</p>');
     }
+    var zpn = E.puppets(S).filter(function (f) { return z.d.some(function (i) { return D[i].a.some(function (j) { return S.owner[j] === f.id; }); }); });
+    if (zpn.length) html += sec('괴뢰국에 편입', '이 구역을 맞닿은 괴뢰국에 통째로 넘깁니다. 결재 1건 · 충성 +' + Math.min(20, 2 * z.d.length) + '.') + '<div class="rows num">' + zpn.map(function (f) { var c = E.zoneGiveCheck(S, z.id, f.id); return '<button class="row rowBtn zg" type="button" data-p="' + f.id + '"' + (c.ok ? '' : ' disabled') + '><span><span class="dot" style="background:' + pupCol() + '"></span>' + esc(f.name) + '에 편입</span><span>' + (c.ok ? z.d.length + '개 ›' : esc(c.why)) + '</span></button>'; }).join('') + '</div>';
     if (errMsg) html += '<p class="err">' + esc(errMsg) + '</p>';
     html += '<div class="acts"><button class="btn" id="zDel" type="button">' + (zp && zp.del === z.id ? '정말 해체 (한 번 더 누르기)' : '구역 해체') + '</button></div>';
     sh.innerHTML = tx(html);
@@ -3946,6 +4023,11 @@ if (typeof module !== 'undefined') module.exports = Engine;
       if (r.err) { errMsg = r.err; renderSheet(); return; }
       errMsg = ''; zp = null; zoneSel = r.zone.id; sfx('stamp'); stampAt(r.zone.hall, true, '합병'); setNews(S.log[0].t); save(); sync();
     })); });
+    Array.prototype.forEach.call(sh.querySelectorAll('.zg'), function (b) { b.addEventListener('click', guard(function () {
+      var hall = z.hall, r = E.zoneGive(S, z.id, +b.dataset.p);
+      if (r.err) { errMsg = r.err; renderSheet(); return; }
+      errMsg = ''; sfx('stamp'); stampAt(hall, true, '편입'); setNews(S.log[0].t); save(); goDong(hall);
+    })); });
     bind('zPup', guard(function () {
       var r = E.makePuppet(S, z.id);
       if (r.err) { errMsg = r.err; renderSheet(); return; }
@@ -3964,6 +4046,8 @@ if (typeof module !== 'undefined') module.exports = Engine;
       html += '<div class="chips">' + aid.split('</button>').slice(0, 2).join('</button>') + '</button><button class="chip qm" id="qMore" type="button">관리 ▾</button></div>';
       sh.innerHTML = tx(html); bindPup(sh, o); return;
     }
+    var tk = E.takeCheck(S, sel), oth = E.puppets(S).filter(function (x) { return x.id !== o && D[sel].a.some(function (j) { return S.owner[j] === x.id; }); });
+    html += sec(D[sel].n + ' 주고받기', '받아오기: 우리 땅과 맞닿은 ' + UNITN + '만 · 결재 1건 · 충성 −6 (충성 30 이상).<br>다른 괴뢰국으로: 맞닿은 괴뢰국에 옮김 · 결재 없음 · 주는 쪽 충성 −2, 받는 쪽 +2.') + '<div class="chips wrap"><button class="chip" id="pTake" type="button"' + (tk.ok ? '' : ' disabled') + '>우리가 받아오기 · 결재 1건</button>' + oth.map(function (x) { return '<button class="chip pm" type="button" data-p="' + x.id + '"><span class="dot" style="background:' + pupCol() + '"></span>' + esc(x.name) + '에 옮기기</button>'; }).join('') + '</div>' + (tk.ok ? '' : '<p class="why">' + esc(tk.why) + '</p>');
     html += sec('상납률', '상납이 무거울수록 매달 충성이 바뀝니다. 15%: +2 · 30%: 0 · 50%: −3.<br>이 나라가 우리 땅의 40%를 넘거나 인원이 우리보다 많아지면 충성이 더 떨어집니다.') + '<div class="chips">' + E.PUP_RATES.map(function (r) { return '<button class="chip num pr' + (P.rate === r ? ' on' : '') + '" type="button" data-r="' + r + '">' + Math.round(r * 100) + '% · 월 ' + money(base * r) + '</button>'; }).join('') + '</div>';
     html += sec('방침', '공격: 맞닿은 세력을 알아서 칩니다(우리는 절대 안 침).<br>방어: 공격하지 않고 인원을 모읍니다.<br>개발: 돈을 개발에 씁니다.') + '<div class="chips">' + STANCE.map(function (x) { return '<button class="chip ps' + (P.stance === x[0] ? ' on' : '') + '" type="button" data-s="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>';
     var nb = {}; E.dongsOf(S, o).forEach(function (i) { D[i].a.forEach(function (j) { var q = S.owner[j]; if (q > 0 && !isPupO(q) && S.f[q].alive) nb[q] = 1; }); });
@@ -3981,6 +4065,8 @@ if (typeof module !== 'undefined') module.exports = Engine;
     each('.ps', function (b) { E.pupSet(S, o, 'stance', b.dataset.s); });
     each('.pt', function (b) { E.pupSet(S, o, 'target', +b.dataset.t); });
     each('.pa', function (b) { var r = E.pupAid(S, o, +b.dataset.a); errMsg = r.err || ''; if (r.ok) { sfx('coin'); setNews(S.f[o].name + '에 ' + money(r.amt) + ' 지원 · 충성 ' + Math.round(S.f[o].puppet.loyal)); } });
+    bind('pTake', guard(function () { var i = sel, r = E.takeFromPup(S, i); errMsg = r.err || ''; if (r.ok) { sfx('stamp'); stampAt(i, true, '인수'); setNews(S.log[0].t); } save(); sync(); }));
+    Array.prototype.forEach.call(sh.querySelectorAll('.pm'), function (b) { b.addEventListener('click', function () { var r = E.movePup(S, sel, +b.dataset.p); errMsg = r.err || ''; if (r.ok) { sfx('page'); setNews(S.log[0].t); } save(); sync(); }); });
     bind('pAbs', guard(function () { var cap = S.f[o].cap, r = E.absorbPuppet(S, o); errMsg = r.err || ''; if (r.ok) { sfx('stamp'); stampAt(cap, true, '합병'); setNews(S.log[0].t); } save(); sync(); }));
   }
   function guSheet(sh) {
@@ -4243,7 +4329,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
       return '<div class="row"><span><span class="dot" style="background:' + (hid ? '#C3CBC1' : fCol(f.id)) + '"></span>' + esc(f.id === 0 ? '우리' : hid ? '안개 속 어느 세력' : f.name) + (f.id === S.rival ? ' · 숙적' : '') + (isPupO(f.id) ? ' · 괴뢰국' : '') + esc(pct) + '</span><span>' + (hid ? fuzzy(f.n, 1) + '개 동 · ' + fuzzy(f.troops, 100) + '명' : f.n + '개 동 · ' + people(f.troops)) + '</span></div>';
     }).join('') + '</div>';
     var pl0 = E.puppets(S);
-    if (pl0.length || S.rank >= 2) tF = sec('괴뢰국 · ' + pl0.length + '/' + E.pupMax(S), '구역 화면에서 구역을 괴뢰국으로 독립시킬 수 있습니다(' + RANK2 + '부터).') + (pl0.length ? '<div class="rows num">' + pl0.map(function (f) { return '<button class="row rowBtn" type="button" data-pg="' + f.cap + '"><span><span class="dot" style="background:' + pupCol() + '"></span>' + esc(f.name) + ' · 충성 ' + Math.round(f.puppet.loyal) + (f.puppet.loyal <= 30 ? ' <b class="bad">위험</b>' : '') + '</span><span>' + E.dongsOf(S, f.id).length + '개 · 월 +' + money(E.tribOf(S, f)) + ' ›</span></button>'; }).join('') + '</div>' : '<p class="why">아직 없음</p>') + tF;
+    if (pl0.length || S.rank >= 1) tF = sec('괴뢰국 · ' + pl0.length + '/' + E.pupMax(S), '구역 화면에서 구역을 괴뢰국으로 독립시킬 수 있습니다. 한도: ' + R1N + ' 1 · ' + RANK2 + ' 3 · ' + MAYOR + ' 5.<br>괴뢰국 동을 누르면 받아오기·다른 괴뢰국으로 옮기기, 우리 동을 누르면 괴뢰국에 넘기기.') + (pl0.length ? '<div class="rows num">' + pl0.map(function (f) { return '<button class="row rowBtn" type="button" data-pg="' + f.cap + '"><span><span class="dot" style="background:' + pupCol() + '"></span>' + esc(f.name) + ' · 충성 ' + Math.round(f.puppet.loyal) + (f.puppet.loyal <= 30 ? ' <b class="bad">위험</b>' : '') + '</span><span>' + E.dongsOf(S, f.id).length + '개 · 월 +' + money(E.tribOf(S, f)) + ' ›</span></button>'; }).join('') + '</div>' : '<p class="why">아직 없음</p>') + tF;
     var TABS = [['now', '현황', tN], ['pol', '정책', tP], ['zone', '구역', tZ], ['fac', '세력', tF]];
     if (!TABS.some(function (t) { return t[0] === realmTab; })) realmTab = 'now';
     html += '<div class="tabs" role="tablist">' + TABS.map(function (t) { return '<button class="tab' + (realmTab === t[0] ? ' on' : '') + '" type="button" role="tab" aria-selected="' + (realmTab === t[0]) + '" data-tab="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>';

@@ -1050,13 +1050,13 @@ var Engine = (function () {
 
   // ---- 괴뢰국: 구역을 떼어 내 우리 말을 듣는 나라로 (권역장부터) ----
   var PUP_RATES = [0.15, 0.3, 0.5];
-  function pupMax(s) { return [0, 0, 1, 2][s.rank] || 0; }
+  function pupMax(s) { return [0, 1, 3, 5][s.rank] || 0; }
   function puppets(s) { return s.f.filter(function (f) { return f.puppet && f.alive; }); }
   function puppetCheck(s, id) {
     var z = zoneById(s, id), out = { ok: false, ap: 2 };
     if (!z) { out.why = '없는 구역입니다.'; return out; }
     out.n = z.d.length; out.troops = Math.round(s.f[0].troops * 0.25);
-    if (s.rank < 2) { out.why = C.RANKS[2] + '부터 할 수 있습니다.'; return out; }
+    if (s.rank < 1) { out.why = C.RANKS[1] + '부터 할 수 있습니다.'; return out; }
     if (puppets(s).length >= pupMax(s)) { out.why = '지금 직급으로는 괴뢰국을 ' + pupMax(s) + '개까지 둘 수 있습니다.'; return out; }
     if (z.d.length < 3) { out.why = C.UNIT + ' 3개 이상인 구역만 독립시킬 수 있습니다.'; return out; }
     if (z.d.indexOf(s.f[0].cap) >= 0) { out.why = '본거지가 든 구역은 독립시킬 수 없습니다.'; return out; }
@@ -1076,6 +1076,77 @@ var Engine = (function () {
     s.stat.puppets = (s.stat.puppets || 0) + 1;
     pushLog(s, z.nm + ' 괴뢰국 수립. ' + s.f[pid].boss.nm + ' 대표가 맡고, 인원 ' + tr + '명을 넘겼습니다. 매달 수입의 30%를 바칩니다.', 'good', z.hall);
     return { ok: true, id: pid };
+  }
+  // ---- 땅 주고받기: 우리 ↔ 괴뢰국, 괴뢰국 ↔ 괴뢰국 ----
+  function touchF(s, i, fid) { return D.d[i].a.some(function (j) { return s.owner[j] === fid; }); }
+  function pupOk(s, pid) { var f = s.f[pid]; return !!(f && f.puppet && f.alive); }
+  // 우리 동 → 괴뢰국 (결재 없음, 충성 +3)
+  function giveCheck(s, i, pid) {
+    if (s.owner[i] !== 0) return { ok: false, why: '우리 ' + C.UNIT + '이 아닙니다.' };
+    if (!pupOk(s, pid)) return { ok: false, why: '괴뢰국이 아닙니다.' };
+    if (i === s.f[0].cap) return { ok: false, why: '본거지는 넘길 수 없습니다.' };
+    if (!touchF(s, i, pid)) return { ok: false, why: '그 괴뢰국과 맞닿은 ' + C.UNIT + '만 넘길 수 있습니다.' };
+    return { ok: true };
+  }
+  function giveToPup(s, i, pid) {
+    var c = giveCheck(s, i, pid); if (!c.ok) return { err: c.why };
+    s.owner[i] = pid; var P = s.f[pid].puppet; P.loyal = Math.min(100, P.loyal + 3);
+    pushLog(s, J(D.d[i].n, '을', '를') + ' ' + s.f[pid].name + '에 넘겼습니다. 충성 ' + Math.round(P.loyal) + '.', 'good', i);
+    afterChange(s);
+    return { ok: true };
+  }
+  // 괴뢰국 동 → 우리 (결재 1건, 충성 −6, 충성 30 이상)
+  function takeCheck(s, i) {
+    var o = s.owner[i];
+    if (!pupOk(s, o)) return { ok: false, why: '괴뢰국 ' + C.UNIT + '이 아닙니다.' };
+    var f = s.f[o];
+    if (i === f.cap) return { ok: false, why: '그 나라의 청사는 받아올 수 없습니다. 통째로 받으려면 다시 합치기.' };
+    if (!touchF(s, i, 0)) return { ok: false, why: '우리 땅과 맞닿은 ' + C.UNIT + '만 받아올 수 있습니다.' };
+    if (f.puppet.loyal < 30) return { ok: false, why: '충성 30 이상일 때만 받아올 수 있습니다.' };
+    if (s.ap < 1) return { ok: false, why: '결재가 남지 않았습니다.' };
+    return { ok: true };
+  }
+  function takeFromPup(s, i) {
+    var c = takeCheck(s, i); if (!c.ok) return { err: c.why };
+    var o = s.owner[i], P = s.f[o].puppet;
+    s.ap -= 1; s.owner[i] = 0; joinSoft(s, i); P.loyal = Math.max(0, P.loyal - 6);
+    pushLog(s, s.f[o].name + '에서 ' + J(D.d[i].n, '을', '를') + ' 받아왔습니다. 충성 ' + Math.round(P.loyal) + '.', 'good', i);
+    afterChange(s);
+    return { ok: true };
+  }
+  // 괴뢰국 동 → 다른 괴뢰국 (결재 없음, 주는 쪽 −2 · 받는 쪽 +2)
+  function moveCheck(s, i, pid) {
+    var o = s.owner[i];
+    if (!pupOk(s, o) || !pupOk(s, pid) || o === pid) return { ok: false, why: '괴뢰국끼리만 옮길 수 있습니다.' };
+    if (i === s.f[o].cap) return { ok: false, why: '청사는 옮길 수 없습니다.' };
+    if (!touchF(s, i, pid)) return { ok: false, why: '받는 괴뢰국과 맞닿은 ' + C.UNIT + '만 옮길 수 있습니다.' };
+    return { ok: true };
+  }
+  function movePup(s, i, pid) {
+    var c = moveCheck(s, i, pid); if (!c.ok) return { err: c.why };
+    var o = s.owner[i];
+    s.owner[i] = pid; s.f[o].puppet.loyal = Math.max(0, s.f[o].puppet.loyal - 2); s.f[pid].puppet.loyal = Math.min(100, s.f[pid].puppet.loyal + 2);
+    pushLog(s, D.d[i].n + ' · ' + s.f[o].name + ' → ' + s.f[pid].name + '.', 'good', i);
+    return { ok: true };
+  }
+  // 우리 구역을 통째로 기존 괴뢰국에 편입 (결재 1건, 충성 +2/동, 최대 +20)
+  function zoneGiveCheck(s, zid, pid) {
+    var z = zoneById(s, zid);
+    if (!z || !pupOk(s, pid)) return { ok: false, why: '구역과 괴뢰국을 고르세요.' };
+    if (z.d.indexOf(s.f[0].cap) >= 0) return { ok: false, why: '본거지가 든 구역은 넘길 수 없습니다.' };
+    if (!z.d.some(function (i) { return touchF(s, i, pid); })) return { ok: false, why: '그 괴뢰국과 맞닿은 구역만 넘길 수 있습니다.' };
+    if (s.ap < 1) return { ok: false, why: '결재가 남지 않았습니다.' };
+    return { ok: true, n: z.d.length };
+  }
+  function zoneGive(s, zid, pid) {
+    var c = zoneGiveCheck(s, zid, pid); if (!c.ok) return { err: c.why };
+    var z = zoneById(s, zid), P = s.f[pid].puppet;
+    s.ap -= 1; z.d.forEach(function (i) { s.owner[i] = pid; });
+    P.loyal = Math.min(100, P.loyal + Math.min(20, 2 * z.d.length));
+    s.zones = s.zones.filter(function (x) { return x !== z; });
+    pushLog(s, z.nm + ' ' + z.d.length + '개 ' + J(C.UNIT, '을', '를') + ' ' + s.f[pid].name + '에 편입했습니다. 충성 ' + Math.round(P.loyal) + '.', 'good', z.hall);
+    afterChange(s);
+    return { ok: true };
   }
   function pupSet(s, pid, k, v) {
     var f = s.f[pid]; if (!f || !f.puppet || !f.alive) return { err: '괴뢰국이 아닙니다.' };
@@ -2073,6 +2144,7 @@ var Engine = (function () {
   return {
     realmDevPlan: realmDevPlan, realmDevelop: realmDevelop, autoDevType: autoDevType,
     isPup: isPup, tribOf: tribOf, zoneSize: zoneSize, zoneTouch: zoneTouch, zoneMergeCheck: zoneMergeCheck, zoneMerge: zoneMerge,
+    giveCheck: giveCheck, giveToPup: giveToPup, takeCheck: takeCheck, takeFromPup: takeFromPup, moveCheck: moveCheck, movePup: movePup, zoneGiveCheck: zoneGiveCheck, zoneGive: zoneGive,
     PUP_RATES: PUP_RATES, pupMax: pupMax, puppets: puppets, puppetCheck: puppetCheck, makePuppet: makePuppet, pupSet: pupSet, pupAid: pupAid, absorbCheck: absorbCheck, absorbPuppet: absorbPuppet,
     PLEDGES: PLEDGES, devSide: devSide, moodOf: moodOf, voteOf: voteOf, voteGu: voteGu, campInfo: campInfo, campaign: campaign, choosePledges: choosePledges,
     zoneOf: zoneOf, zoneById: zoneById, zoneMax: zoneMax, zoneCheck: zoneCheck, zoneMake: zoneMake, zoneDissolve: zoneDissolve, zoneAttack: zoneAttack, zoneAttackPreview: zoneAttackPreview, zoneDevelop: zoneDevelop, zoneDevelopPreview: zoneDevelopPreview, zoneTargets: zoneTargets, nameOk: nameOk,
