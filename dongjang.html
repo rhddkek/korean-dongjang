@@ -1336,6 +1336,36 @@ var Engine = (function () {
     return { ok: true, n: p.n, cost: p.cost };
   }
 
+  // ---- 전체 개발: 우리 동 전체에서 단계 낮은 곳부터 한 단계씩 (결재 안 씀) ----
+  var DEV_ORDER = { comm: [0, 1, 3, 2], resi: [2, 3, 0, 1], etc: [0, 2, 1, 3] };
+  function autoDevType(s, i) {
+    if (s.min[i] < 45 && lv(s, i, 3) < 5) return 3;
+    var ord = COMM[D.d[i].type] ? DEV_ORDER.comm : RESI[D.d[i].type] ? DEV_ORDER.resi : DEV_ORDER.etc, best = -1, bl = 9;
+    ord.forEach(function (t) { var l = lv(s, i, t); if (l < 5 && l < bl) { bl = l; best = t; } });
+    return best;
+  }
+  function realmDevPlan(s, t, budget) {
+    var c = [];
+    dongsOf(s, 0).forEach(function (i) { var tt = t >= 0 ? t : autoDevType(s, i); if (tt < 0) return; var k = devCost(s, i, tt); if (k !== null) c.push({ i: i, t: tt, c: k, l: lv(s, i, tt) }); });
+    c.sort(function (a, b) { return a.l - b.l || a.c - b.c || D.d[b.i].pop - D.d[a.i].pop; });
+    var sum = 0, list = [], m = Math.min(s.f[0].money, budget === undefined ? Infinity : budget);
+    c.forEach(function (x) { if (sum + x.c <= m) { sum += x.c; list.push([x.i, x.t]); } });
+    return { n: list.length, cost: sum, list: list, all: c.length };
+  }
+  function realmDevelop(s, t, budget) {
+    var p = realmDevPlan(s, t, budget);
+    if (!p.n) return { err: p.all ? '예산이 모자랍니다.' : '올릴 수 있는 동이 없습니다.' };
+    var by = [0, 0, 0, 0];
+    p.list.forEach(function (x) { var r = develop(s, x[0], x[1]); if (r.ok) by[x[1]]++; });
+    return { ok: true, n: p.n, cost: p.cost, by: by };
+  }
+  var DEV_N = ['상권', '교통', '주거', '치안'];
+  function devPlanRun(s, net) {
+    var dp = s.devPlan; if (!dp || !(net > 0)) return;
+    var r = realmDevelop(s, dp.t, Math.floor(net * dp.pct));
+    if (r.ok) pushLog(s, '자동 개발 · ' + r.by.map(function (n, k) { return n ? DEV_N[k] + ' ' + n : ''; }).filter(Boolean).join(' · ') + '곳 · ' + r.cost + '억', 'dev');
+  }
+
   // ---- 행정구역 개편: 이어진 우리 동 3~8개를 이름 붙인 구역으로 (구청장부터) ----
   function zoneOf(s, i) { var z = s.zones; if (!z) return null; for (var k = 0; k < z.length; k++) if (z[k].d.indexOf(i) >= 0) return z[k]; return null; }
   function zoneById(s, id) { return (s.zones || []).filter(function (z) { return z.id === id; })[0] || null; }
@@ -2210,6 +2240,7 @@ var Engine = (function () {
     var me = s.f[0];
     var e = economy(s, 0);
     me.money = Math.max(0, me.money + e.net);
+    devPlanRun(s, e.net);
     var fr = facReport(s);
     s.stat.facMoney = (s.stat.facMoney || 0) + fr.tax; s.stat.facDraft = (s.stat.facDraft || 0) + fr.draft;
     var fa = s.facAcc = s.facAcc || { tax: 0, draft: 0, n: 0, it: {} }; fa.it = fa.it || {};
@@ -2311,6 +2342,7 @@ var Engine = (function () {
   }
 
   return {
+    realmDevPlan: realmDevPlan, realmDevelop: realmDevelop, autoDevType: autoDevType,
     PLEDGES: PLEDGES, devSide: devSide, moodOf: moodOf, voteOf: voteOf, voteGu: voteGu, campInfo: campInfo, campaign: campaign, choosePledges: choosePledges,
     zoneOf: zoneOf, zoneById: zoneById, zoneMax: zoneMax, zoneCheck: zoneCheck, zoneMake: zoneMake, zoneDissolve: zoneDissolve, zoneAttack: zoneAttack, zoneAttackPreview: zoneAttackPreview, zoneDevelop: zoneDevelop, zoneDevelopPreview: zoneDevelopPreview, zoneTargets: zoneTargets, nameOk: nameOk,
     C: C, setData: setData, setCity: setCity, city: function () { return CITY; }, replay: function () { return RP; }, CARDS: CARDS, hasCard: hasCard, chooseCard: chooseCard, offerCards: offerCards, voteShare: voteShare, inCoal: inCoal, SUR: SUR, GIV: GIV, headOf: headOf, stem: stem, create: create, preview: preview, needFor: needFor, attack: attack, develop: develop, devCost: devCost,
@@ -3905,7 +3937,34 @@ if (typeof module !== 'undefined') module.exports = Engine;
     return h + '</div>';
   }
   function fuzzy(v, unit) { var lo = Math.max(0, Math.floor(v * 0.7 / unit) * unit), hi = Math.ceil(v * 1.3 / unit) * unit; return lo.toLocaleString('ko-KR') + '~' + hi.toLocaleString('ko-KR'); }
-  var realmTab = 'now';
+  var realmTab = 'now', devT = null, devB = 1;
+  var DEVN = ['상권', '교통', '주거', '치안'];
+  // 전체 개발 미리보기: 계획대로 한 단계씩 올렸을 때 월수입·동원 변화 (상태는 되돌림)
+  function realmDevFx(plan) {
+    var a = E.economy(S, 0);
+    plan.list.forEach(function (x) { S.dev[x[0] * 4 + x[1]]++; });
+    var b = E.economy(S, 0);
+    plan.list.forEach(function (x) { S.dev[x[0] * 4 + x[1]]--; });
+    var by = [0, 0, 0, 0], side = 0;
+    plan.list.forEach(function (x) { by[x[1]]++; if (E.devSide(S, x[0], x[1]).text) side++; });
+    return { tax: b.net - a.net, dr: b.draft - a.draft, by: by, side: side };
+  }
+  function realmDevHTML(me) {
+    if (devT === null) devT = S.devPlan ? S.devPlan.t : -1;
+    var mine = E.dongsOf(S, 0).length;
+    var h = sec('전체 개발 · 우리 동 ' + mine + '곳', '우리 동 전체에서 단계 낮은 곳부터 한 단계씩 올립니다. 결재는 쓰지 않습니다.<br>추천: 동 성격에 맞춰 상권·주거 등을 고르고, 민심 45 아래 동은 치안부터.<br>매달 자동: 다음 달부터 월수입의 일정 비율로 알아서 짓습니다.');
+    h += '<div class="chips dt" role="group" aria-label="무엇을 지을지">' + [[-1, '추천']].concat(DEVN.map(function (n, k) { return [k, n]; })).map(function (x) { return '<button class="chip' + (devT === x[0] ? ' on' : '') + '" type="button" data-dt="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>';
+    h += '<div class="chips db" role="group" aria-label="예산">' + [[0.3, '예산 30%'], [0.5, '절반'], [1, '전액']].map(function (x) { return '<button class="chip num' + (devB === x[0] ? ' on' : '') + '" type="button" data-db="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>';
+    var pl = E.realmDevPlan(S, devT, Math.floor(me.money * devB));
+    if (pl.n) {
+      var fx = realmDevFx(pl);
+      h += '<p class="why num">' + pl.n + '곳 · ' + money(pl.cost) + ' → ' + [fx.tax >= 0.5 ? '월수입 <b>+' + money(fx.tax) + '</b>' : '', fx.dr >= 0.5 ? '동원 <b>+' + people(fx.dr) + '/월</b>' : '', fx.by[1] ? '공격 전력↑ ' + fx.by[1] + '곳' : '', fx.by[3] ? '방어·민심↑ ' + fx.by[3] + '곳' : ''].filter(Boolean).join(' · ') + (devT < 0 ? '<br>' + fx.by.map(function (n, k) { return n ? DEVN[k] + ' ' + n : ''; }).filter(Boolean).join(' · ') : '') + (fx.side ? '<br><span class="side">대가 있는 곳 ' + fx.side + '곳 · 민심·방어·수입 소폭 감소</span>' : '') + '</p>';
+    } else h += '<p class="why">' + (pl.all ? '예산 부족 · 가장 싼 곳 ' + money(Math.min.apply(null, E.dongsOf(S, 0).map(function (i) { var tt = devT >= 0 ? devT : E.autoDevType(S, i); var c = tt < 0 ? null : E.devCost(S, i, tt); return c === null ? 1e9 : c; }))) : '모두 최고 단계') + '</p>';
+    h += '<div class="acts"><button class="btn" id="realmDev" type="button"' + (pl.n ? '' : ' disabled') + '>' + (pl.n ? (devT < 0 ? '추천대로' : DEVN[devT]) + ' ' + pl.n + '곳 짓기 · ' + money(pl.cost) : '지을 곳 없음') + '</button></div>';
+    var dp = S.devPlan;
+    h += '<p class="qlbl">매달 자동 · ' + (dp ? (dp.t < 0 ? '추천' : DEVN[dp.t]) + ' · 월수입의 ' + Math.round(dp.pct * 100) + '%' : '꺼짐') + '</p><div class="chips dp" role="group" aria-label="매달 자동 개발">' + [[0, '끄기'], [0.3, '월수입 30%'], [0.5, '월수입 50%']].map(function (x) { var on = x[0] ? dp && dp.pct === x[0] && dp.t === devT : !dp; return '<button class="chip num' + (on ? ' on' : '') + '" type="button" data-dp="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>';
+    return h;
+  }
   // 제목 + 접어 둔 설명(? 버튼)
   function sec(t, help) { return '<div class="sec">' + t + (help ? '<button class="q" type="button" aria-label="설명 보기" aria-expanded="false">?</button>' : '') + '</div>' + (help ? '<p class="why hp" hidden>' + help + '</p>' : ''); }
   function realmSheet(sh) {
@@ -3929,6 +3988,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
       var cm = S.coal.m.filter(function (id) { return S.f[id].alive; });
       tN += sec('반동장 연합 · ' + cm.length + '개 세력', '서로 싸우지 않고 우리만 노립니다. 연합 세력과는 협정·통합이 안 됩니다.') + '<div class="faces sm">' + cm.slice(0, 10).map(function (id) { return faceImg(id, 30); }).join('') + '</div><p class="why num">연합 전체 ' + people(cm.reduce(function (x, id) { return x + S.f[id].troops + (S.f[id].away || 0); }, 0)) + '</p>';
     }
+    tN += realmDevHTML(me);
     tN += sec('모집', '일당을 주고 인원을 모읍니다. 1억 = 1.2명.') + '<div class="chips">' + [100, 300].map(function (v) {
       return '<button class="chip num" type="button" data-m="' + v + '"' + (me.money >= v ? '' : ' disabled') + '>' + v + '억 → ' + Math.round(v * 1.2) + '명</button>';
     }).join('') + '<button class="chip num" type="button" data-m="all"' + (me.money >= 1 ? '' : ' disabled') + '>전액 → ' + Math.round(Math.floor(me.money) * 1.2) + '명</button></div>';
@@ -3987,6 +4047,17 @@ if (typeof module !== 'undefined') module.exports = Engine;
       sh.scrollTop = 0;
     }); });
     Array.prototype.forEach.call(sh.querySelectorAll('[data-cgo]'), function (b) { b.addEventListener('click', function () { goDong(+b.dataset.cgo); }); });
+    Array.prototype.forEach.call(sh.querySelectorAll('.chip[data-dt]'), function (b) { b.addEventListener('click', function () { devT = +b.dataset.dt; renderSheet(); }); });
+    Array.prototype.forEach.call(sh.querySelectorAll('.chip[data-db]'), function (b) { b.addEventListener('click', function () { devB = +b.dataset.db; renderSheet(); }); });
+    Array.prototype.forEach.call(sh.querySelectorAll('.chip[data-dp]'), function (b) { b.addEventListener('click', function () {
+      var v = +b.dataset.dp; S.devPlan = v ? { t: devT, pct: v } : null;
+      setNews(v ? '매달 자동 개발 · ' + (devT < 0 ? '추천' : DEVN[devT]) + ' · 월수입의 ' + Math.round(v * 100) + '%' : '매달 자동 개발 끔'); save(); sync();
+    }); });
+    bind('realmDev', guard(function () {
+      var r = E.realmDevelop(S, devT, Math.floor(S.f[0].money * devB));
+      if (r.err) { errMsg = r.err; } else { errMsg = ''; sfx('coin'); setNews('전체 개발 · ' + r.by.map(function (n, k) { return n ? DEVN[k] + ' ' + n : ''; }).filter(Boolean).join(' · ') + '곳 · ' + money(r.cost)); }
+      save(); sync();
+    }));
     Array.prototype.forEach.call(sh.querySelectorAll('.chip[data-m]'), function (b) {
       b.addEventListener('click', function () {
         var v = b.dataset.m === 'all' ? me.money : +b.dataset.m, r = E.recruit(S, v);

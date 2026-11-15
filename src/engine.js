@@ -931,6 +931,36 @@ var Engine = (function () {
     return { ok: true, n: p.n, cost: p.cost };
   }
 
+  // ---- 전체 개발: 우리 동 전체에서 단계 낮은 곳부터 한 단계씩 (결재 안 씀) ----
+  var DEV_ORDER = { comm: [0, 1, 3, 2], resi: [2, 3, 0, 1], etc: [0, 2, 1, 3] };
+  function autoDevType(s, i) {
+    if (s.min[i] < 45 && lv(s, i, 3) < 5) return 3;
+    var ord = COMM[D.d[i].type] ? DEV_ORDER.comm : RESI[D.d[i].type] ? DEV_ORDER.resi : DEV_ORDER.etc, best = -1, bl = 9;
+    ord.forEach(function (t) { var l = lv(s, i, t); if (l < 5 && l < bl) { bl = l; best = t; } });
+    return best;
+  }
+  function realmDevPlan(s, t, budget) {
+    var c = [];
+    dongsOf(s, 0).forEach(function (i) { var tt = t >= 0 ? t : autoDevType(s, i); if (tt < 0) return; var k = devCost(s, i, tt); if (k !== null) c.push({ i: i, t: tt, c: k, l: lv(s, i, tt) }); });
+    c.sort(function (a, b) { return a.l - b.l || a.c - b.c || D.d[b.i].pop - D.d[a.i].pop; });
+    var sum = 0, list = [], m = Math.min(s.f[0].money, budget === undefined ? Infinity : budget);
+    c.forEach(function (x) { if (sum + x.c <= m) { sum += x.c; list.push([x.i, x.t]); } });
+    return { n: list.length, cost: sum, list: list, all: c.length };
+  }
+  function realmDevelop(s, t, budget) {
+    var p = realmDevPlan(s, t, budget);
+    if (!p.n) return { err: p.all ? '예산이 모자랍니다.' : '올릴 수 있는 동이 없습니다.' };
+    var by = [0, 0, 0, 0];
+    p.list.forEach(function (x) { var r = develop(s, x[0], x[1]); if (r.ok) by[x[1]]++; });
+    return { ok: true, n: p.n, cost: p.cost, by: by };
+  }
+  var DEV_N = ['상권', '교통', '주거', '치안'];
+  function devPlanRun(s, net) {
+    var dp = s.devPlan; if (!dp || !(net > 0)) return;
+    var r = realmDevelop(s, dp.t, Math.floor(net * dp.pct));
+    if (r.ok) pushLog(s, '자동 개발 · ' + r.by.map(function (n, k) { return n ? DEV_N[k] + ' ' + n : ''; }).filter(Boolean).join(' · ') + '곳 · ' + r.cost + '억', 'dev');
+  }
+
   // ---- 행정구역 개편: 이어진 우리 동 3~8개를 이름 붙인 구역으로 (구청장부터) ----
   function zoneOf(s, i) { var z = s.zones; if (!z) return null; for (var k = 0; k < z.length; k++) if (z[k].d.indexOf(i) >= 0) return z[k]; return null; }
   function zoneById(s, id) { return (s.zones || []).filter(function (z) { return z.id === id; })[0] || null; }
@@ -1805,6 +1835,7 @@ var Engine = (function () {
     var me = s.f[0];
     var e = economy(s, 0);
     me.money = Math.max(0, me.money + e.net);
+    devPlanRun(s, e.net);
     var fr = facReport(s);
     s.stat.facMoney = (s.stat.facMoney || 0) + fr.tax; s.stat.facDraft = (s.stat.facDraft || 0) + fr.draft;
     var fa = s.facAcc = s.facAcc || { tax: 0, draft: 0, n: 0, it: {} }; fa.it = fa.it || {};
@@ -1906,6 +1937,7 @@ var Engine = (function () {
   }
 
   return {
+    realmDevPlan: realmDevPlan, realmDevelop: realmDevelop, autoDevType: autoDevType,
     PLEDGES: PLEDGES, devSide: devSide, moodOf: moodOf, voteOf: voteOf, voteGu: voteGu, campInfo: campInfo, campaign: campaign, choosePledges: choosePledges,
     zoneOf: zoneOf, zoneById: zoneById, zoneMax: zoneMax, zoneCheck: zoneCheck, zoneMake: zoneMake, zoneDissolve: zoneDissolve, zoneAttack: zoneAttack, zoneAttackPreview: zoneAttackPreview, zoneDevelop: zoneDevelop, zoneDevelopPreview: zoneDevelopPreview, zoneTargets: zoneTargets, nameOk: nameOk,
     C: C, setData: setData, setCity: setCity, city: function () { return CITY; }, replay: function () { return RP; }, CARDS: CARDS, hasCard: hasCard, chooseCard: chooseCard, offerCards: offerCards, voteShare: voteShare, inCoal: inCoal, SUR: SUR, GIV: GIV, headOf: headOf, stem: stem, create: create, preview: preview, needFor: needFor, attack: attack, develop: develop, devCost: devCost,
