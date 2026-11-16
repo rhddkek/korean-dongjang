@@ -405,16 +405,16 @@
     var h = ''; for (var q = 1; q <= RPS.shown; q++) h += '<i' + (q <= RPS.k ? ' class="on"' : '') + '></i>';
     el.innerHTML = h;
   }
-  function rpDur() { return RPS.fast ? 520 : 1150; }
+  function rpDur() { return RPS.fast ? 520 : RPS.shown > 4 && RPS.k > 3 ? 420 : 1150; }
   function rpApply(st) { st.e.ch.forEach(function (c) { RPS.own[c[0]] = c[1]; }); st.applied = true; }
   function rpNext() {
     if (RPS.cur && !RPS.cur.applied) rpApply(RPS.cur);
     RPS.i++;
-    while (RPS.i < RPS.steps.length && !RPS.steps[RPS.i].show) { rpApply(RPS.steps[RPS.i]); RPS.quick++; RPS.i++; }
+    while (RPS.i < RPS.steps.length && (!RPS.steps[RPS.i].show || RPS.k >= 8)) { rpApply(RPS.steps[RPS.i]); RPS.quick++; RPS.i++; }
     if (RPS.i >= RPS.steps.length) { RPS.cur = null; return false; }
     var st = RPS.cur = RPS.steps[RPS.i], e = st.e; RPS.k++;
     st.t0 = performance.now();
-    rpText('상대 턴 ' + RPS.k + '/' + RPS.shown); rpDots();
+    rpText('상대 턴 ' + RPS.k + '/' + Math.min(8, RPS.shown)); rpDots();
     var tk = $('rpTalk');
     if (e.k === 'atk' && e.o === 0 && e.f > 0 && bossOf(e.f)) { tk.innerHTML = e.win && S.f[e.f].adv ? bossHTML(e.f, 'revenge', D[e.t].n, true) : bossHTML(e.f, e.win ? 'win' : 'lose', D[e.t].n); tk.hidden = false; }
     else tk.hidden = true;
@@ -984,11 +984,22 @@
     $('next').innerHTML = S.ap > 0 ? '다음 달<small>결재 ' + S.ap + '건 남음</small>' : '다음 달 ▶';
   }
   // 지금 할 수 있는 가장 좋은 한 수: 승률 80%로 칠 수 있는 동 중 인구가 가장 큰 곳 → 없으면 설득 → 모집
+  // 결재가 안 드는 일: 돈이 남는데 인원이 얇으면 모집, 아니면 전체 개발
+  function idleRec(force) {
+    var me = S.f[0], n = E.dongsOf(S, 0).length;
+    if (me.money < 150) return null;
+    var threat = S.rivalPlan && S.owner[S.rivalPlan.t] === 0 && me.troops < S.rivalPlan.n * 1.2;
+    var thin = me.troops < Math.min(1500, Math.max(150, n * 25));
+    if (threat) return { k: 'rec', txt: '추천 · 모집 · 침공 대비 (예산 ' + money(me.money) + ')' };
+    if (thin || force) return { k: 'rec', txt: '추천 · 모집 · 예산 ' + money(me.money) + ' 남음' };
+    if (me.money >= 300) { var pl = E.realmDevPlan(S, -1, Math.floor(me.money * 0.5)); if (pl.n) return { k: 'rec', txt: '추천 · 전체 개발 ' + pl.n + '곳 · 예산 ' + money(me.money) + ' 남음' }; }
+    return null;
+  }
   function recommend() {
     if (!S || S.over) return null;
     var lowP = E.puppets(S).filter(function (f) { return f.puppet.loyal <= 30; }).sort(function (a, b) { return a.puppet.loyal - b.puppet.loyal; })[0];
     if (lowP) return { k: 'pup', t: lowP.cap, txt: '경고 · ' + lowP.name + ' 충성 ' + Math.round(lowP.puppet.loyal) + ' · 지원금 보내기' };
-    if (S.ap <= 0) return null;
+    if (S.ap <= 0) return idleRec();
     if (S.elect && !S.won) {
       var bc = null; GU.forEach(function (x, gi) { var ci = E.campInfo(S, gi); if (ci.ok && ci.gain >= 0.002 && (!bc || ci.gain > bc.gain)) bc = { g: gi, gain: ci.gain }; });
       if (bc) return { k: 'gu', g: bc.g, txt: '추천 · ' + GU[bc.g].n + ' 유세 +' + (bc.gain * 100).toFixed(1) + '%p' };
@@ -1001,11 +1012,14 @@
       GU.forEach(function (x, gi) { var pv = E.guAttackPreview(S, gi, 0.25); if (pv.can >= 2 && S.ap >= pv.ap && (!bg || pv.can > bg.can)) bg = { g: gi, can: pv.can }; });
       if (bg) return { k: 'gu', g: bg.g, txt: '추천 · ' + GU[bg.g].n + ' 작전 ' + bg.can + '곳' };
     }
-    var me = S.f[0], mine = E.dongsOf(S, 0), seen = {}, best = null, bestP = null, max = Math.floor(me.troops);
+    var me = S.f[0], mine = E.dongsOf(S, 0), seen = {}, best = null, bestP = null, max = Math.floor(me.troops), held0 = false;
+    var threatN = S.rivalPlan && S.owner[S.rivalPlan.t] === 0 ? S.rivalPlan.n : 0;
+    var keep = Math.max(threatN, S.coal && !S.won ? Math.min(1500, mine.length * 6) : 0);
     mine.forEach(function (a) { D[a].a.forEach(function (j) {
       if (seen[j] || S.owner[j] === 0 || fogged(j)) return; seen[j] = 1;
       var o = S.owner[j]; if (o > 0 && me.pact && me.pact[o] > S.month) return;
       var n = E.needFor(S, j, 0.8); if (!n || n > max) return;
+      if (n > max - keep) { held0 = true; return; }
       var pv = E.preview(S, j, n); if (!pv.ok) return;
       var v = D[j].pop + (D[j].work || 0) * 0.5 + (S.rivalPlan && S.rivalPlan.src === j ? 1e7 : 0);
       if (!best || v > best.v) best = { t: j, v: v, n: n, pct: pv.pct };
@@ -1021,13 +1035,17 @@
       var pv = E.preview(S, j, n); if (!pv.ok) return false;
       back = { t: j, k: k, pct: pv.pct }; return true;
     }); });
+    var thin0 = me.money >= 150 && (me.troops < Math.min(1500, Math.max(150, mine.length * 25)) || (S.rivalPlan && S.owner[S.rivalPlan.t] === 0 && me.troops < S.rivalPlan.n * 1.2));
+    if (thin0) return idleRec();
     if (back) return { k: 'atk', t: back.t, txt: '추천 · ' + D[back.t].n + ' 되찾기 ' + Math.round(back.pct * 100) + '% · ' + shortCombo(back.k) + ' 재가동' };
     if (best) return { k: 'atk', t: best.t, txt: '추천 · ' + D[best.t].n + ' 치기 ' + Math.round(best.pct * 100) + '%' };
     if (bestP) return { k: 'per', t: bestP.t, txt: '추천 · ' + D[bestP.t].n + ' 설득 ' + money(bestP.c) };
-    if (me.money >= 100 && max < 200) return { k: 'rec', txt: '추천 · 인원 모집 (' + money(me.money) + ' 있음)' };
+    var ir = idleRec(!best && !bestP); if (ir) return ir;
+    if (held0) return { k: 'hold', txt: '추천 · 대기 ' + people(keep) + ' 남기고 다음 달 (' + (threatN ? '침공 대비' : '연합 대비') + ')' };
     var hs = S.seenHint || {};
     if (S.rank >= 1 && !hs.zone && !(S.zones || []).length && !E.puppets(S).length && mine.length >= 4) return { k: 'hint', h: 'zone', txt: '새 기능 · 행정구역 만들기 (이어진 ' + UNITN + ' 묶기)' };
     if (S.rank >= 1 && !hs.pup && (S.zones || []).length && !E.puppets(S).length) { var z0 = S.zones.filter(function (z) { return z.d.indexOf(me.cap) < 0; })[0]; if (z0) return { k: 'zone', z: z0.id, h: 'pup', txt: '새 기능 · ' + z0.nm + ' 괴뢰국으로 독립' }; }
+    if (S.month >= 1 && !S.won) return { k: 'hold', txt: '추천 · 다음 달 · 돈과 인원 모으는 중' };
     return null;
   }
   function syncTodo() {
@@ -1083,6 +1101,7 @@
   $('todo').addEventListener('click', function () {
     var el = $('todo');
     if (el.dataset.h) { S.seenHint = S.seenHint || {}; S.seenHint[el.dataset.h] = 1; save(); }
+    if (el.dataset.k === 'hold') { var nb0 = $('next'); nb0.classList.remove('nudge'); void nb0.offsetWidth; nb0.classList.add('nudge'); return; }
     if (el.dataset.k === 'hint') { sel = null; realmTab = 'zone'; sheetMode = 'realm'; renderSheet(); return; }
     if (el.dataset.k === 'rec') { sel = null; realmTab = 'now'; sheetMode = 'realm'; renderSheet(); return; }
     if (el.dataset.k === 'gu') { openGu(+el.dataset.g); return; }
@@ -2081,7 +2100,7 @@
     if (S.elect && S.electShown !== S.elect.n) return showElectNotice();
     if (S.elect && S.camp && !(S.camp.pl || []).length) return showElectNotice(true);
   }
-  function showCard(html) { $('card').innerHTML = tx(html); $('over').hidden = false; var b = $('card').querySelector('button'); if (b) { try { b.focus({ preventScroll: true }); } catch (e) { b.focus(); } } $('card').scrollTop = 0; }
+  function showCard(html) { $('rpBar').hidden = true; $('card').innerHTML = tx(html); $('over').hidden = false; var b = $('card').querySelector('button'); if (b) { try { b.focus({ preventScroll: true }); } catch (e) { b.focus(); } } $('card').scrollTop = 0; }
   function hideCard() { $('over').hidden = true; save(); dirty(); }
   function nickOf(win) {
     var st = S.stat, gu = GU[D[S.start].g].n;
@@ -2167,6 +2186,7 @@
   var bannerTimer = 0;
   function turnBanner() {
     if (!S || S.over || REDUCED) return;
+    $('rpBar').hidden = true;
     var el = $('turnBanner'), e = E.economy(S, 0), d = ym(S.month);
     el.innerHTML = '<b>' + d.m + '월 · 우리 차례</b><span class="num">결재 ' + S.ap + '건 · 예산 ' + signed(e.net, money) + '</span>';
     var vr = viewRect(); el.style.top = (vr.y + 8) + 'px'; el.style.left = (vr.x + 8) + 'px';
@@ -2258,7 +2278,9 @@
     save();
     holdOv = true; sync(); holdOv = false;
     // 잃은 동이 있으면(후반엔 본거지가 아니고 한 곳뿐이면 소식 줄로만) 결과 카드 하나로 묶어 보여 줌
-    var big = lostList.length ? (S.rank < 2 || lostList.length > 1 || capHit) : (held.length && S.rank === 0);
+    var lc = S.lossCards || 0;
+    var big = lostList.length ? (capHit || lc < 2) : (held.length && S.rank === 0 && lc < 2);
+    if (big && lostList.length) S.lossCards = lc + 1;
     if (big && !S.over && $('over').hidden) battleCard(lostList, held, battles, nBefore, capHit);
     else checkOverlay();
   }

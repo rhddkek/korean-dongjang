@@ -74,6 +74,7 @@ button{cursor:pointer;touch-action:manipulation}
 #rpBlock{position:fixed;inset:0;z-index:30;background:transparent;cursor:pointer}
 #rpBar{position:absolute;z-index:31;display:flex;align-items:center;gap:6px;background:#17231C;color:#fff;border-radius:4px;padding:4px 6px 4px 12px;box-shadow:0 2px 10px rgba(0,0,0,.18)}
 #rpBar[hidden]{display:none}
+#next.nudge{animation:nudge .5s}@keyframes nudge{0%,100%{transform:none}30%{transform:translateY(-4px)}60%{transform:translateY(2px)}}
 .stampMark.sm{width:48px;height:48px;margin:-24px 0 0 -24px;font-size:14px;border-width:3px}.stampMark.long.sm{width:60px;height:60px;margin:-30px 0 0 -30px;font-size:13px;padding:4px}
 .btn.arm,.chip.arm,.rowBtn.arm{background:var(--stamp)!important;color:#fff!important;border-color:var(--stamp)!important}.rowBtn.arm span{color:#fff}
 #undo{flex:none;background:var(--sheet);border:1px solid var(--ink);border-radius:4px;padding:0 10px;font-size:13px;font-weight:500;min-height:36px;white-space:nowrap}#undo[hidden]{display:none}

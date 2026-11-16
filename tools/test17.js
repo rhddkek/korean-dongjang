@@ -46,8 +46,8 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   ok(await G(() => __game.E.lv(__game.S, __game.S.f[0].cap, 0) === 1), '칩 한 번 → 상권 1단계');
   // 결재 0 → 다음 달 버튼 강조, 할 일 줄 숨김
   await G(() => { __game.S.ap = 0; __game.select(null); __game.sync(); }); await p.waitForTimeout(150);
-  const z = await G(() => ({ go: document.getElementById('next').classList.contains('go'), txt: document.getElementById('next').innerText, todo: document.getElementById('todo').hidden }));
-  ok(z.go && /▶/.test(z.txt) && z.todo, '결재 0 → 다음 달 강조, 할 일 줄 숨김');
+  const z = await G(() => ({ go: document.getElementById('next').classList.contains('go'), txt: document.getElementById('next').innerText, todo: document.getElementById('todo').hidden, tt: document.getElementById('todo').textContent }));
+  ok(z.go && /▶/.test(z.txt) && (z.todo || /모집|전체 개발|다음 달/.test(z.tt)), '결재 0 → 다음 달 강조, 할 일 줄은 숨김 또는 결재 안 드는 일만: ' + (z.todo ? '숨김' : z.tt));
   // 가로 화면에서는 간단 보기 없음
   const c4 = await b.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 }); const p4 = await c4.newPage(); await p4.goto('http://localhost:8142', { waitUntil: 'load' }); await p4.waitForTimeout(300); await p4.tap('#begin'); await p4.waitForTimeout(350);
   const lp = await p4.evaluate(() => { const g = __game, S = g.S, D = g.D, c = g.cam(); const j = D[S.f[0].cap].a.find(x => S.owner[x] !== 0); return { x: D[j].x * c.s + c.x, y: D[j].y * c.s + c.y }; });
