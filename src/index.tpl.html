@@ -74,6 +74,12 @@ button{cursor:pointer;touch-action:manipulation}
 #rpBlock{position:fixed;inset:0;z-index:30;background:transparent;cursor:pointer}
 #rpBar{position:absolute;z-index:31;display:flex;align-items:center;gap:6px;background:#17231C;color:#fff;border-radius:4px;padding:4px 6px 4px 12px;box-shadow:0 2px 10px rgba(0,0,0,.18)}
 #rpBar[hidden]{display:none}
+.stampMark.sm{width:48px;height:48px;margin:-24px 0 0 -24px;font-size:14px;border-width:3px}.stampMark.long.sm{width:60px;height:60px;margin:-30px 0 0 -30px;font-size:13px;padding:4px}
+.btn.arm,.chip.arm,.rowBtn.arm{background:var(--stamp)!important;color:#fff!important;border-color:var(--stamp)!important}.rowBtn.arm span{color:#fff}
+#undo{flex:none;background:var(--sheet);border:1px solid var(--ink);border-radius:4px;padding:0 10px;font-size:13px;font-weight:500;min-height:36px;white-space:nowrap}#undo[hidden]{display:none}
+.unlT{margin:8px 0 2px;font-size:12px;color:var(--mute)}.unl{margin:0 0 8px;padding:0;list-style:none;text-align:left}.unl li{padding:6px 0;border-top:1px solid #E6E9E0;font-size:14px}.unl li:first-child{border-top:0}
+.chips.pq{margin:2px 0 10px;gap:4px}.chips.pq .chip{min-height:40px;font-size:13px;padding:0}.chips.pq i{flex:0 0 6px}
+.tab{font-size:13px}
 #legend .lo{display:none;align-items:center;gap:4px}#legend.occ .lo{display:inline-flex}#legend.occ .lr{display:none}
 #legend .sw{display:inline-block;width:12px;height:12px;border-radius:2px;background:#E2E6DA;border:1px solid var(--line)}#legend .sw.own{background:var(--stamp)}#legend .sw.pup{background:#EA998F}
 .pupTop{display:flex;gap:10px;align-items:center;margin:10px 0}.pupTop img{border-radius:50%;flex:none}
@@ -341,7 +347,7 @@ details.diplo .acts{margin-top:2px}
     <button id="offerBar" type="button" hidden></button>
     <button id="evBar" type="button" hidden></button>
     <div id="dock">
-      <div id="newsRow"><button id="pin" type="button" hidden></button><button id="news" type="button" aria-label="지역 소식 열기"></button></div>
+      <div id="newsRow"><button id="pin" type="button" hidden></button><button id="news" type="button" aria-label="지역 소식 열기"></button><button id="undo" type="button" hidden>되돌리기</button></div>
       <button id="todo" type="button" hidden></button>
       <button id="lens" type="button"></button>
       <button id="next" type="button">다음 달</button>

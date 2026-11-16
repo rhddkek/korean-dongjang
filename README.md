@@ -23,6 +23,7 @@
 
 - 규칙: `src/engine.js` · 화면: `src/ui.js` · 틀: `src/index.tpl.html`
 - 데이터: `data/game_data.json`(서울), `data/city_*.json`(광역시·도·통합·전국), 만드는 스크립트 `tools/build_modes.py`
+- 배경음악: `bgm/calm.mp3`, `bgm/tense.mp3` (메뉴에서 켰을 때만 불러옴, 원본은 `raw/bgm/src`)
 - 빌드: `python3 tools/build.py` → `dongjang.html`(단일 파일)과 `index.html`(GitHub Pages용, 미리보기 태그 포함)
 - 테스트: `node tools/test2.js` ~ `test19.js <스크린샷폴더>` (Playwright, 휴대폰 화면), `node tools/play2.js`
 - 자동 플레이 균형: `node tools/simmodes.js`

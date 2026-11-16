@@ -51,6 +51,20 @@
   var SFX_DATA = /*SFX*/{}/*SFX_END*/;
   var SOUND_KEY = 'dongjang-sound', soundOn = true, actx = null, aud = {};
   try { soundOn = localStorage.getItem(SOUND_KEY) !== 'off'; } catch (e) {}
+  // 배경음악: 따로 둔 파일(bgm/*.mp3)을 켰을 때만 불러옴. 파일이 없으면 조용히 꺼짐
+  var MUSIC_KEY = 'dongjang-music', musicOn = false, bgm = null, bgmK = '', bgmBad = false;
+  try { musicOn = localStorage.getItem(MUSIC_KEY) === 'on'; } catch (e) {}
+  function bgmWant() { return !S || S.over || S.won ? 'calm' : (S.coal || S.elect) ? 'tense' : 'calm'; }
+  function bgmSync(gesture) {
+    if (!musicOn || bgmBad) { if (bgm) bgm.pause(); return; }
+    var k = bgmWant();
+    if (!bgm) { bgm = new Audio(); bgm.loop = true; bgm.volume = 0.32; bgm.preload = 'auto'; bgm.addEventListener('error', function () { bgmBad = true; musicOn = false; if (sheetMode === 'menu') renderSheet(); }); }
+    if (bgmK !== k) { bgmK = k; bgm.src = 'bgm/' + k + '.mp3'; }
+    if (bgm.paused && (gesture || bgm.dataset.ok)) { var pr = bgm.play(); if (pr && pr.then) pr.then(function () { bgm.dataset.ok = 1; }).catch(function () {}); }
+  }
+  function setMusic(on) { musicOn = on; bgmBad = false; try { localStorage.setItem(MUSIC_KEY, on ? 'on' : 'off'); } catch (e) {} bgmSync(true); }
+  document.addEventListener('pointerdown', function () { if (musicOn && bgm && bgm.paused || (musicOn && !bgm)) bgmSync(true); }, true);
+  document.addEventListener('visibilitychange', function () { if (bgm) { if (document.hidden) bgm.pause(); else bgmSync(true); } });
   function setSound(on) { soundOn = on; try { localStorage.setItem(SOUND_KEY, on ? 'on' : 'off'); } catch (e) {} }
   function tone(f0, f1, dur, type, vol, delay) {
     try {
@@ -88,7 +102,10 @@
   var PUPCOL = null;
   function pupCol() { if (PUPCOL) return PUPCOL; var n = parseInt(PAL[0].slice(1), 16), k = 0.5, m = function (v) { return Math.round(v + (255 - v) * k); }; return (PUPCOL = 'rgb(' + m(n >> 16) + ',' + m(n >> 8 & 255) + ',' + m(n & 255) + ')'); }
   function isPupO(o) { return S && o > 0 && E.isPup(S, o); }
-  function save() { try { if (S) { var o = S.owner; if (RPS) S.owner = RPS.real; if (TLS) S.owner = TLS.real; if (CAL) S.owner = CAL.real; localStorage.setItem(SAVE_KEY, JSON.stringify(S)); S.owner = o; } } catch (e) {} }
+  var UNDO = [], undoKeep = false;
+  function undoable(fn) { var snap = JSON.stringify(S), r = fn(); if (r && !r.err) { UNDO.push(snap); if (UNDO.length > 12) UNDO.shift(); undoKeep = true; } return r; }
+  function syncUndo() { var u = $('undo'); if (u) { u.hidden = !UNDO.length || !S || S.over; if (!u.hidden) u.textContent = '되돌리기' + (UNDO.length > 1 ? ' ' + UNDO.length : ''); } }
+  function save() { if (!undoKeep) UNDO.length = 0; undoKeep = false; syncUndo(); try { if (S) { var o = S.owner; if (RPS) S.owner = RPS.real; if (TLS) S.owner = TLS.real; if (CAL) S.owner = CAL.real; localStorage.setItem(SAVE_KEY, JSON.stringify(S)); S.owner = o; } } catch (e) {} }
   function backup() { try { var t = localStorage.getItem(SAVE_KEY); if (t) localStorage.setItem(SAVE_KEY + '-prev', t); } catch (e) {} }
   function bests() { try { return JSON.parse(localStorage.getItem(BEST_KEY)) || {}; } catch (e) { return {}; } }
   function saveBest(i, m) { try { var b = bests(); if (!b[i] || m < b[i]) { b[i] = m; localStorage.setItem(BEST_KEY, JSON.stringify(b)); } } catch (e) {} }
@@ -349,6 +366,7 @@
     if (!S) return out;
     if (S.marks && S.marks.m === S.month) S.marks.list.forEach(function (x) { out.push(x); });
     if (S.rivalPlan && S.owner[S.rivalPlan.t] === 0) out.push({ t: S.rivalPlan.t, k: 'threat' });
+    E.puppets(S).forEach(function (f) { if (f.puppet.loyal <= 30) out.push({ t: f.cap, k: 'loyal' }); });
     return out;
   }
   // ---- 상대 턴 재생: '다음 달'을 누르면 AI가 한 일을 하나씩 보여 줌 (우리 땅 일 → 우리 근처 → 그 밖은 묶어서) ----
@@ -492,7 +510,7 @@
     var ms = marksNow(); if (!ms.length) return;
     c.setTransform(DPR, 0, 0, DPR, 0, 0);
     c.font = '700 12px "IBM Plex Sans KR","Apple SD Gothic Neo",sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle';
-    var STY = { lost: ['#17231C', '#fff', '함락', 'flag'], held: ['#1F6B52', '#fff', '방어 성공', 'shield'], threat: ['#C2410C', '#fff', '침공 예고', 'warn'] };
+    var STY = { lost: ['#17231C', '#fff', '함락', 'flag'], held: ['#1F6B52', '#fff', '방어 성공', 'shield'], threat: ['#C2410C', '#fff', '침공 예고', 'warn'], loyal: ['#B4261A', '#fff', '충성 위험', 'warn'] };
     ms.forEach(function (m) {
       var d = D[m.t], st = STY[m.k]; if (!d || !st) return;
       // 테두리 (월드 좌표)
@@ -506,7 +524,7 @@
       else { c.strokeStyle = '#fff'; c.lineWidth = 6.5 * px; c.stroke(dongPath[m.t]); c.strokeStyle = st[0]; c.lineWidth = 3.6 * px; c.stroke(dongPath[m.t]); }
       c.restore();
       // 아이콘 + 글자 꼬리표 (화면 좌표)
-      var x = d.x * cam.s + cam.x, y = d.y * cam.s + cam.y - 20;
+      var x = d.x * cam.s + cam.x, y = d.y * cam.s + cam.y - 27;
       var w = c.measureText(st[2]).width + 26, h = 20;
       c.fillStyle = st[0]; c.strokeStyle = '#fff'; c.lineWidth = 1.5;
       c.beginPath(); if (c.roundRect) c.roundRect(x - w / 2, y - h / 2, w, h, 5); else c.rect(x - w / 2, y - h / 2, w, h); c.fill(); c.stroke();
@@ -913,7 +931,7 @@
         stampWorld(g.x, g.y, true, g.n + ' 완성');
         var msg = E.J(g.n, '을', '를') + ' 통째로 장악했습니다. 이 ' + GRP + ' 수입 +' + g.f + '%.';
         S.log.unshift({ m: S.month, t: msg, k: 'good' });
-        $('news').textContent = tx(msg) + ' ' + $('news').textContent; $('news').className = '';
+        var old0 = $('news').textContent; $('news').textContent = tx(msg) + (old0 && !/^첫 목표/.test(old0) && old0.length < 60 ? ' ' + old0 : ''); $('news').className = '';
       }
       if (!full && S.fullSeen[i]) S.fullSeen[i] = 0;
     });
@@ -967,7 +985,10 @@
   }
   // 지금 할 수 있는 가장 좋은 한 수: 승률 80%로 칠 수 있는 동 중 인구가 가장 큰 곳 → 없으면 설득 → 모집
   function recommend() {
-    if (!S || S.over || S.ap <= 0) return null;
+    if (!S || S.over) return null;
+    var lowP = E.puppets(S).filter(function (f) { return f.puppet.loyal <= 30; }).sort(function (a, b) { return a.puppet.loyal - b.puppet.loyal; })[0];
+    if (lowP) return { k: 'pup', t: lowP.cap, txt: '경고 · ' + lowP.name + ' 충성 ' + Math.round(lowP.puppet.loyal) + ' · 지원금 보내기' };
+    if (S.ap <= 0) return null;
     if (S.elect && !S.won) {
       var bc = null; GU.forEach(function (x, gi) { var ci = E.campInfo(S, gi); if (ci.ok && ci.gain >= 0.002 && (!bc || ci.gain > bc.gain)) bc = { g: gi, gain: ci.gain }; });
       if (bc) return { k: 'gu', g: bc.g, txt: '추천 · ' + GU[bc.g].n + ' 유세 +' + (bc.gain * 100).toFixed(1) + '%p' };
@@ -1004,12 +1025,15 @@
     if (best) return { k: 'atk', t: best.t, txt: '추천 · ' + D[best.t].n + ' 치기 ' + Math.round(best.pct * 100) + '%' };
     if (bestP) return { k: 'per', t: bestP.t, txt: '추천 · ' + D[bestP.t].n + ' 설득 ' + money(bestP.c) };
     if (me.money >= 100 && max < 200) return { k: 'rec', txt: '추천 · 인원 모집 (' + money(me.money) + ' 있음)' };
+    var hs = S.seenHint || {};
+    if (S.rank >= 1 && !hs.zone && !(S.zones || []).length && !E.puppets(S).length && mine.length >= 4) return { k: 'hint', h: 'zone', txt: '새 기능 · 행정구역 만들기 (이어진 ' + UNITN + ' 묶기)' };
+    if (S.rank >= 1 && !hs.pup && (S.zones || []).length && !E.puppets(S).length) { var z0 = S.zones.filter(function (z) { return z.d.indexOf(me.cap) < 0; })[0]; if (z0) return { k: 'zone', z: z0.id, h: 'pup', txt: '새 기능 · ' + z0.nm + ' 괴뢰국으로 독립' }; }
     return null;
   }
   function syncTodo() {
     var el = $('todo'), r = recommend();
     el.hidden = !r || S.won || S.over || !!TLS || sheetMode === 'zpick' || (sel !== null && r.t === sel) || (sheetMode === 'gu' && r.k === 'gu' && guSel === r.g) || (sheetMode === 'zone' && r.k === 'zone' && zoneSel === r.z);
-    if (!el.hidden) { el.innerHTML = '<span>' + esc(tx(r.txt)) + '</span><b>›</b>'; el.dataset.k = r.k; el.dataset.t = r.t === undefined ? '' : r.t; el.dataset.g = r.g === undefined ? '' : r.g; el.dataset.z = r.z === undefined ? '' : r.z; }
+    if (!el.hidden) { el.innerHTML = '<span>' + esc(tx(r.txt)) + '</span><b>›</b>'; el.dataset.k = r.k; el.dataset.t = r.t === undefined ? '' : r.t; el.dataset.g = r.g === undefined ? '' : r.g; el.dataset.z = r.z === undefined ? '' : r.z; el.dataset.h = r.h || ''; }
   }
   // 이번 달 잃은 동은 소식 줄 옆에 고정 (다른 소식이 덮어도 남음). 누르면 그 동으로, 여러 건이면 전투 결과 다시 보기
   function lostNow() { var mk = S && S.marks && S.marks.m === S.month ? S.marks : null; return mk ? mk.list.filter(function (x) { return x.k === 'lost' && D[x.t]; }) : []; }
@@ -1057,7 +1081,10 @@
     if (i !== null) requestAnimationFrame(function () { ensureVisible(i); });
   }
   $('todo').addEventListener('click', function () {
-    var el = $('todo'); if (el.dataset.k === 'rec') { sel = null; realmTab = 'now'; sheetMode = 'realm'; renderSheet(); return; }
+    var el = $('todo');
+    if (el.dataset.h) { S.seenHint = S.seenHint || {}; S.seenHint[el.dataset.h] = 1; save(); }
+    if (el.dataset.k === 'hint') { sel = null; realmTab = 'zone'; sheetMode = 'realm'; renderSheet(); return; }
+    if (el.dataset.k === 'rec') { sel = null; realmTab = 'now'; sheetMode = 'realm'; renderSheet(); return; }
     if (el.dataset.k === 'gu') { openGu(+el.dataset.g); return; }
     if (el.dataset.k === 'zone') { openZone(+el.dataset.z); return; }
     var t = +el.dataset.t; select(t, true); requestAnimationFrame(function () { ensureVisible(t); });
@@ -1263,6 +1290,16 @@
     var b = $('atk'); if (b) b.disabled = !p.ok;
   }
   function bind(id, fn) { var el = $(id); if (el) el.addEventListener('click', fn); }
+  // 첫 탭: '한 번 더 누르면 실행'으로 바뀜(4초). 두 번째 탭에 실행
+  function arm(b, fn) {
+    return function (ev) {
+      if (b.dataset.arm) { delete b.dataset.arm; fn(ev); return; }
+      var tgt = b.classList.contains('row') ? b.lastElementChild : b, old = tgt.innerHTML;
+      b.dataset.arm = 1; b.classList.add('arm'); tgt.textContent = '한 번 더 누르면 실행';
+      setTimeout(function () { if (b.dataset.arm) { delete b.dataset.arm; b.classList.remove('arm'); tgt.innerHTML = old; } }, 4000);
+    };
+  }
+  function bindArm(id, fn) { var el = $(id); if (el) el.addEventListener('click', arm(el, fn)); }
   function act(res, clear) {
     if (res && res.err) { errMsg = res.err; renderSheet(); return; }
     errMsg = '';
@@ -1297,8 +1334,12 @@
     var el = document.createElement('div');
     el.className = 'stampMark' + (win ? '' : ' fail') + (text.length > 2 ? ' long' : '');
     el.textContent = text;
-    el.style.left = Math.max(50, Math.min(W - 50, x)) + 'px';
-    el.style.top = Math.max(50, Math.min(H - 50, y)) + 'px';
+    // 보이는 지도 안에만 찍음. 지도가 거의 안 보이면(정보창이 꽉 참) 소리만
+    var vr = viewRect(), bot = S && !isWide() ? $('bottom').getBoundingClientRect().top : vr.y + vr.h, hh = bot - vr.y, R = text.length > 2 ? 58 : 44;
+    if (hh < 70) return;
+    if (hh < R * 2 + 8) { el.classList.add('sm'); R = text.length > 2 ? 32 : 26; }
+    el.style.left = Math.max(vr.x + R, Math.min(vr.x + vr.w - R, x)) + 'px';
+    el.style.top = Math.max(vr.y + R, Math.min(bot - R, y)) + 'px';
     $('stampLayer').appendChild(el);
     setTimeout(function () { el.remove(); }, REDUCED ? 500 : 800);
   }
@@ -1368,7 +1409,7 @@
     sh.innerHTML = tx(html);
     bind('guLink', function () { openGu(d.g); });
     if (zf) bind('zoneLink', function () { openZone(zf.id); });
-    Array.prototype.forEach.call(sh.querySelectorAll('.pg2'), function (b) { b.addEventListener('click', function () { var i = sel, r = E.giveToPup(S, i, +b.dataset.p); errMsg = r.err || ''; if (r.ok) { sfx('page'); setNews(S.log[0].t); } save(); sync(); }); });
+    Array.prototype.forEach.call(sh.querySelectorAll('.pg2'), function (b) { b.addEventListener('click', arm(b, function () { var i = sel, r = E.giveToPup(S, i, +b.dataset.p); errMsg = r.err || ''; if (r.ok) { sfx('page'); setNews(S.log[0].t); } save(); sync(); })); });
     bind('planSrc', function () { var pi = E.planInfo(S); if (pi) select(pi.src); });
     bind('govPact', guard(function () { var r = E.govPact(S, sel); if (r.err) { errMsg = r.err; } else setNews(S.log[0].t); save(); sync(); }));
     Array.prototype.forEach.call(sh.querySelectorAll('.dev h4[data-dk]'), function (h) {
@@ -1379,7 +1420,7 @@
   }
   function bindDev(sh) {
     Array.prototype.forEach.call(sh.querySelectorAll('.dev button, .qdev'), function (b) {
-      b.addEventListener('click', function () { var k = +b.dataset.k, r = E.develop(S, sel, k); if (r.err) { errMsg = r.err; } else { errMsg = ''; sfx('coin'); var l = E.lv(S, sel, k); setNews(D[sel].n + ' ' + E.facName(S, sel, k, l) + (l === 1 ? ' 창설.' : ' 완공.') + (E.FAC_SP[k][l] ? ' ' + E.FAC_SP[k][l] + '.' : '')); if (E.FAC_SP[k][l]) stampAt(sel, true, l === 5 ? '완공' : '창설'); } save(); sync(); });
+      b.addEventListener('click', function () { var k = +b.dataset.k, r = undoable(function () { return E.develop(S, sel, k); }); if (r.err) { errMsg = r.err; } else { errMsg = ''; sfx('coin'); var l = E.lv(S, sel, k); setNews(D[sel].n + ' ' + E.facName(S, sel, k, l) + (l === 1 ? ' 창설.' : ' 완공.') + (E.FAC_SP[k][l] ? ' ' + E.FAC_SP[k][l] + '.' : '')); if (E.FAC_SP[k][l]) stampAt(sel, true, l === 5 ? '완공' : '창설'); } save(); sync(); });
     });
   }
   function openGu(g) {
@@ -1453,20 +1494,20 @@
       stampAt(z.hall, r.won > 0, r.won > 0 ? r.won + '개 접수' : '실패');
       save(); sync();
     }));
-    Array.prototype.forEach.call(sh.querySelectorAll('.zd'), function (b) { b.addEventListener('click', function () { var r = E.zoneDevelop(S, z.id, +b.dataset.k); errMsg = r.err || ''; if (!r.err) { sfx('coin'); setNews(S.log[0].t); } save(); sync(); }); });
+    Array.prototype.forEach.call(sh.querySelectorAll('.zd'), function (b) { b.addEventListener('click', function () { var r = undoable(function () { return E.zoneDevelop(S, z.id, +b.dataset.k); }); errMsg = r.err || ''; if (!r.err) { sfx('coin'); setNews(S.log[0].t); } save(); sync(); }); });
     var zmIn = $('zmName');
     if (zmIn) zmIn.addEventListener('input', function () { zp.name = zmIn.value; Array.prototype.forEach.call(sh.querySelectorAll('.zm'), function (b) { var c = E.zoneMergeCheck(S, z.id, +b.dataset.z, zp.name); b.disabled = !c.ok; b.lastElementChild.textContent = tx(c.ok ? money(c.cost) + ' ›' : c.why); }); });
-    Array.prototype.forEach.call(sh.querySelectorAll('.zm'), function (b) { b.addEventListener('click', guard(function () {
+    Array.prototype.forEach.call(sh.querySelectorAll('.zm'), function (b) { b.addEventListener('click', arm(b, function () {
       var r = E.zoneMerge(S, z.id, +b.dataset.z, zp.name);
       if (r.err) { errMsg = r.err; renderSheet(); return; }
       errMsg = ''; zp = null; zoneSel = r.zone.id; sfx('stamp'); stampAt(r.zone.hall, true, '합병'); setNews(S.log[0].t); save(); sync();
     })); });
-    Array.prototype.forEach.call(sh.querySelectorAll('.zg'), function (b) { b.addEventListener('click', guard(function () {
+    Array.prototype.forEach.call(sh.querySelectorAll('.zg'), function (b) { b.addEventListener('click', arm(b, function () {
       var hall = z.hall, r = E.zoneGive(S, z.id, +b.dataset.p);
       if (r.err) { errMsg = r.err; renderSheet(); return; }
       errMsg = ''; sfx('stamp'); stampAt(hall, true, '편입'); setNews(S.log[0].t); save(); goDong(hall);
     })); });
-    bind('zPup', guard(function () {
+    bindArm('zPup', (function () {
       var r = E.makePuppet(S, z.id);
       if (r.err) { errMsg = r.err; renderSheet(); return; }
       errMsg = ''; zp = null; sfx('stamp'); stampAt(S.f[r.id].cap, true, '독립'); setNews(S.log[0].t); save(); goDong(S.f[r.id].cap);
@@ -1505,7 +1546,7 @@
     each('.pa', function (b) { var r = E.pupAid(S, o, +b.dataset.a); errMsg = r.err || ''; if (r.ok) { sfx('coin'); setNews(S.f[o].name + '에 ' + money(r.amt) + ' 지원 · 충성 ' + Math.round(S.f[o].puppet.loyal)); } });
     bind('pTake', guard(function () { var i = sel, r = E.takeFromPup(S, i); errMsg = r.err || ''; if (r.ok) { sfx('stamp'); stampAt(i, true, '인수'); setNews(S.log[0].t); } save(); sync(); }));
     Array.prototype.forEach.call(sh.querySelectorAll('.pm'), function (b) { b.addEventListener('click', function () { var r = E.movePup(S, sel, +b.dataset.p); errMsg = r.err || ''; if (r.ok) { sfx('page'); setNews(S.log[0].t); } save(); sync(); }); });
-    bind('pAbs', guard(function () { var cap = S.f[o].cap, r = E.absorbPuppet(S, o); errMsg = r.err || ''; if (r.ok) { sfx('stamp'); stampAt(cap, true, '합병'); setNews(S.log[0].t); } save(); sync(); }));
+    bindArm('pAbs', (function () { var cap = S.f[o].cap, r = E.absorbPuppet(S, o); errMsg = r.err || ''; if (r.ok) { sfx('stamp'); stampAt(cap, true, '합병'); setNews(S.log[0].t); } save(); sync(); }));
   }
   function guSheet(sh) {
     var g = guSel, st = E.guStatus(S, g), me = S.f[0], fin = GU[g].f;
@@ -1545,7 +1586,7 @@
     bind('guCamp', guard(function () { var r = E.campaign(S, g); if (r.err) { errMsg = r.err; renderSheet(); return; } errMsg = ''; sfx('stamp'); stampWorld(GU[g].x, GU[g].y, true, '유세'); setNews(S.log[0].t); save(); sync(); }));
     bind('guPer', guard(function () { var r = E.guPersuade(S, g); if (r.err) { errMsg = r.err; renderSheet(); return; } errMsg = ''; setNews(S.log[0].t); save(); sync(); }));
     Array.prototype.forEach.call(sh.querySelectorAll('.gd'), function (b) {
-      b.addEventListener('click', function () { var r = E.guDevelop(S, g, +b.dataset.k); errMsg = r.err || ''; save(); sync(); });
+      b.addEventListener('click', function () { var r = undoable(function () { return E.guDevelop(S, g, +b.dataset.k); }); errMsg = r.err || ''; save(); sync(); });
     });
   }
   function moodTax(dm, list) {
@@ -1754,10 +1795,10 @@
       var ms = c && !on ? comboMiss(k) : [];
       return '<div class="row' + (ms.length ? ' bt' : '') + '"><span><b>' + C0.n + '</b><br><small>' + (ms.length ? '<b class="bad">멈춤</b> · ' + esc(ms.map(function (j) { return D[j].n; }).join('·')) + ' 되찾으면 다시 작동' : c ? esc(c.d.map(function (j) { return D[j].n; }).join('·')) : C0.t) + '</small></span>' + (ms.length ? '<button class="btn" type="button" data-cgo="' + ms[0] + '">' + esc(D[ms[0]].n) + ' 보기</button>' : '<span class="nw">' + (c ? '작동 중' : '아직') + '</span>') + '</div>';
     }).join('') + '</div>';
-    tZ += regionHTML();
+    var tO = regionHTML();
     // ---- 세력 ----
     var fl = E.factionList(S), nbF = {}, big = null;
-    E.dongsOf(S, 0).forEach(function (i) { D[i].a.forEach(function (j) { var o = S.owner[j]; if (o > 0) nbF[o] = 1; }); });
+    E.dongsOf(S, 0).forEach(function (i) { D[i].a.forEach(function (j) { var o = S.owner[j]; if (o > 0 && !isPupO(o)) nbF[o] = 1; }); });
     Object.keys(nbF).forEach(function (o) { var f = S.f[o]; if (f.alive && (!big || f.troops + (f.away || 0) > big.troops + (big.away || 0))) big = f; });
     if (big) tF += sec('맞닿은 세력 중 가장 큰 곳') + bossHTML(big.id, kindFor(big.id)) + (big.adv ? bossHTML(big.id, 'adv', '', true) : '') + '<p class="why num"><span class="dot" style="background:' + fCol(big.id) + '"></span><b>' + esc(big.name) + '</b>' + (big.id === S.rival ? ' · 숙적' : '') + (E.inCoal(S, big.id) ? ' · 연합' : '') + (moodWord(big.id) ? ' · ' + moodWord(big.id) : '') + ' · ' + E.dongsOf(S, big.id).length + '개 동 · ' + people(big.troops + (big.away || 0)) + (me.pact && me.pact[big.id] > S.month ? ' · 협정 ' + (me.pact[big.id] - S.month) + '달' : '') + '</p>';
     var anyHid = fl.slice(0, 7).some(function (f) { return f.id !== 0 && S.seenGu && !S.seenGu[D[f.cap].g]; });
@@ -1767,8 +1808,8 @@
       return '<div class="row"><span><span class="dot" style="background:' + (hid ? '#C3CBC1' : fCol(f.id)) + '"></span>' + esc(f.id === 0 ? '우리' : hid ? '안개 속 어느 세력' : f.name) + (f.id === S.rival ? ' · 숙적' : '') + (isPupO(f.id) ? ' · 괴뢰국' : '') + esc(pct) + '</span><span>' + (hid ? fuzzy(f.n, 1) + '개 동 · ' + fuzzy(f.troops, 100) + '명' : f.n + '개 동 · ' + people(f.troops)) + '</span></div>';
     }).join('') + '</div>';
     var pl0 = E.puppets(S);
-    if (pl0.length || S.rank >= 1) tF = sec('괴뢰국 · ' + pl0.length + '/' + E.pupMax(S), '구역 화면에서 구역을 괴뢰국으로 독립시킬 수 있습니다. 한도: ' + R1N + ' 1 · ' + RANK2 + ' 3 · ' + MAYOR + ' 5.<br>괴뢰국 동을 누르면 받아오기·다른 괴뢰국으로 옮기기, 우리 동을 누르면 괴뢰국에 넘기기.') + (pl0.length ? '<div class="rows num">' + pl0.map(function (f) { return '<button class="row rowBtn" type="button" data-pg="' + f.cap + '"><span><span class="dot" style="background:' + pupCol() + '"></span>' + esc(f.name) + ' · 충성 ' + Math.round(f.puppet.loyal) + (f.puppet.loyal <= 30 ? ' <b class="bad">위험</b>' : '') + '</span><span>' + E.dongsOf(S, f.id).length + '개 · 월 +' + money(E.tribOf(S, f)) + ' ›</span></button>'; }).join('') + '</div>' : '<p class="why">아직 없음</p>') + tF;
-    var TABS = [['now', '현황', tN], ['pol', '정책', tP], ['zone', '구역', tZ], ['fac', '세력', tF]];
+    if (pl0.length || S.rank >= 1) tF = sec('괴뢰국 · ' + pl0.length + '/' + E.pupMax(S), '구역 화면에서 구역을 괴뢰국으로 독립시킬 수 있습니다. 한도: ' + R1N + ' 1 · ' + RANK2 + ' 3 · ' + MAYOR + ' 5.<br>괴뢰국 동을 누르면 받아오기·다른 괴뢰국으로 옮기기, 우리 동을 누르면 괴뢰국에 넘기기.') + (pl0.length ? '<div class="rows num">' + pl0.map(function (f) { return '<button class="row rowBtn" type="button" data-pg="' + f.cap + '"><span><span class="dot" style="background:' + pupCol() + '"></span>' + esc(f.name) + ' · 충성 ' + Math.round(f.puppet.loyal) + (f.puppet.loyal <= 30 ? ' <b class="bad">위험</b>' : '') + '</span><span>' + E.dongsOf(S, f.id).length + '개 · 월 +' + money(E.tribOf(S, f)) + ' ›</span></button><div class="chips pq" data-p="' + f.id + '">' + E.PUP_RATES.map(function (r) { return '<button class="chip num' + (f.puppet.rate === r ? ' on' : '') + '" type="button" data-r="' + r + '" aria-label="상납 ' + Math.round(r * 100) + '%">' + Math.round(r * 100) + '%</button>'; }).join('') + '<i></i>' + STANCE.map(function (x) { return '<button class="chip' + (f.puppet.stance === x[0] ? ' on' : '') + '" type="button" data-s="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>'; }).join('') + '</div>' : '<p class="why">아직 없음</p>') + tF;
+    var TABS = [['now', '현황', tN], ['pol', '정책', tP], ['zone', '구역', tZ], ['occ', '점령', tO], ['fac', '세력', tF]];
     if (!TABS.some(function (t) { return t[0] === realmTab; })) realmTab = 'now';
     html += '<div class="tabs" role="tablist">' + TABS.map(function (t) { return '<button class="tab' + (realmTab === t[0] ? ' on' : '') + '" type="button" role="tab" aria-selected="' + (realmTab === t[0]) + '" data-tab="' + t[0] + '">' + t[1] + '</button>'; }).join('') + '</div>';
     html += TABS.map(function (t) { return '<div class="tabp" role="tabpanel" data-tp="' + t[0] + '"' + (realmTab === t[0] ? '' : ' hidden') + '>' + t[2] + '</div>'; }).join('');
@@ -1780,6 +1821,7 @@
       sh.scrollTop = 0;
     }); });
     Array.prototype.forEach.call(sh.querySelectorAll('[data-cgo],[data-pg],[data-go1]'), function (b) { b.addEventListener('click', function () { goDong(+(b.dataset.cgo || b.dataset.pg || b.dataset.go1)); }); });
+    Array.prototype.forEach.call(sh.querySelectorAll('.pq .chip'), function (b) { b.addEventListener('click', function () { var pid = +b.parentNode.dataset.p; if (b.dataset.r) E.pupSet(S, pid, 'rate', +b.dataset.r); else E.pupSet(S, pid, 'stance', b.dataset.s); save(); sync(); }); });
     Array.prototype.forEach.call(sh.querySelectorAll('[data-gs]'), function (b) { b.addEventListener('click', function () { guSel = +b.dataset.gs; sel = null; sheetMode = 'gu'; renderSheet(); dirty(); }); });
     Array.prototype.forEach.call(sh.querySelectorAll('.chip[data-dt]'), function (b) { b.addEventListener('click', function () { devT = +b.dataset.dt; renderSheet(); }); });
     Array.prototype.forEach.call(sh.querySelectorAll('.chip[data-db]'), function (b) { b.addEventListener('click', function () { devB = +b.dataset.db; renderSheet(); }); });
@@ -1788,13 +1830,13 @@
       setNews(v ? '매달 자동 개발 · ' + (devT < 0 ? '추천' : DEVN[devT]) + ' · 월수입의 ' + Math.round(v * 100) + '%' : '매달 자동 개발 끔'); save(); sync();
     }); });
     bind('realmDev', guard(function () {
-      var r = E.realmDevelop(S, devT, Math.floor(S.f[0].money * devB));
+      var r = undoable(function () { return E.realmDevelop(S, devT, Math.floor(S.f[0].money * devB)); });
       if (r.err) { errMsg = r.err; } else { errMsg = ''; sfx('coin'); setNews('전체 개발 · ' + r.by.map(function (n, k) { return n ? DEVN[k] + ' ' + n : ''; }).filter(Boolean).join(' · ') + '곳 · ' + money(r.cost)); }
       save(); sync();
     }));
     Array.prototype.forEach.call(sh.querySelectorAll('.chip[data-m]'), function (b) {
       b.addEventListener('click', function () {
-        var v = b.dataset.m === 'all' ? me.money : +b.dataset.m, r = E.recruit(S, v);
+        var v = b.dataset.m === 'all' ? me.money : +b.dataset.m, r = undoable(function () { return E.recruit(S, v); });
         if (!r.err) sfx('coin');
         if (r.ok) setNews('모집 +' + people(r.n));
         save(); sync();
@@ -1827,7 +1869,7 @@
   function menuSheet(sh) {
     var html = '<div class="head"><div><h2>메뉴</h2></div><button class="x" type="button" aria-label="닫기">×</button></div>';
     html += '<div class="sec">게임 방법</div><ul class="prose"><li>빨간 테두리 동을 눌러 인원을 보내면 공격합니다. 공격과 설득은 결재를 씁니다.</li><li>보낸 인원은 다음 달에 돌아옵니다. 그동안 우리 동 방어가 약해지니 나눠서 쓰세요.</li><li>수입는 실제 직장인 수(주민 수 일부 포함), 동원은 실제 주민 수, 방어는 낮 인구(주민 + 직장인 절반)에 거의 비례합니다. 규모가 4배면 약 2.8배, 10배면 약 5.6배입니다. 작은 동은 관리비도 적게 듭니다. 동네 유형마다 특성이 있습니다.</li><li>우리 동을 누르면 개발합니다. 값은 어느 동이나 같고, 버튼 옆에 실제로 늘어나는 양이 나옵니다. 우리 동이 3개 이하일 때는 지원금이 나옵니다.</li><li>한 ' + GRP + '의 동을 절반 이상 차지하면 ' + R1N + ', 그런 ' + Jm(GRP, '이', '가') + ' ' + R2 + '개면 ' + R2S + ', ' + CNAME + ' 인구 60%면 ' + MAYOR + '입니다. 인구는 통계 기준으로 고정이라 개발해도 늘지 않습니다.</li><li>' + Jm(GRP, '을', '를') + ' 통째로 먹으면 그 ' + GRP + '의 재정자립도만큼 수입가 늘어납니다.' + (SEOUL ? '' : ' (' + (CITY_ID === 'busan' ? '부산은 보도된 수치, 중구만 추정' : '상가·직장인 밀도로 만든 게임용 추정치' + (KIND !== 'metro' && KIND !== 'nation' && /부산/.test(DATA.full) ? ', 부산 구는 보도된 수치' : '')) + ')') + '</li><li>' + R1N + '부터는 ' + GRP + ' 현황에서 한꺼번에 공격·설득·개발할 수 있습니다.</li><li>처음에는 우리 ' + Jm(GRP, '과', '와') + ' 맞닿은 ' + GRP + '만 보입니다. 땅을 넓히면 안개가 걷힙니다. 동네 통계는 안개 속에서도 볼 수 있습니다.</li><li>개발은 단계마다 이름 붙은 시설이 생깁니다. 3단계·5단계 시설은 옆 우리 동까지 효과가 미칩니다. 예: 자치경찰대(치안 3단계)는 옆 우리 동 방어 +15%, 자치소방서(치안 5단계)는 그 일대 독립을 막습니다.</li><li>동네 조합: 일터 동과 맞닿은 주거 동 둘(직주근접, 동원 +20%), 이어진 상권 동 셋(골목상권, 상권 개발비 −30%), 지하철로 이어진 역세권 셋(환승, 기습 불이익 없음)을 모으면 그 동들에만 보너스가 붙습니다. 종류마다 한 판에 한 번입니다.</li><li>시설의 옆 동 효과는 같은 종류끼리 2곳까지만 겹칩니다(수입·동원 최대 +20%, 방어 최대 +30%). 자치소방서는 독립만 막고, 민심이 낮아 줄어드는 수입·동원은 그대로입니다. 시설이 있는 동을 빼앗기면 그 효과는 그 즉시 사라집니다.</li><li>몇 달마다 정부 공모가 열립니다. 공공기관은 오래 벌고, 공공병원은 민심을 지키고, 자원회수시설은 지원금을 착공·준공 두 번에 나눠 주는 대신 민심을 깎습니다. 후반에는 바로 효과가 나는 안전센터 공모가 섞입니다. 다른 세력도 조건과 부담금을 채워야 신청할 수 있고, 아무도 없으면 유찰됩니다. 효과는 게임용으로 지어낸 것입니다.</li><li>숙적은 우리가 크게 진 직후, 우리 인원이 대부분 나가 있을 때, 공사 중이거나 많이 키운 동이 국경에 있을 때 움직입니다. 힘이 다 빠진 숙적은 본거지만 남겨 달라며 협상을 걸어옵니다. ' + R2S + '부터는 작은 세력도 협상을 제안합니다.</li><li>지도의 작은 색 점은 우리 동의 개발 단계입니다. 노랑 상권, 파랑 교통, 초록 주거, 회색 치안. ' + (SEOUL ? '산 무늬는 산을 낀 동네를 대략 표시한 것입니다.' : '') + '</li><li>시작한 동의 유형에 따라 한 판 내내 대표 능력 하나를 씁니다. 점령한 동은 특성 보너스만 줍니다.</li><li>설득·주민투표·통합·협상으로 들어온 동은 민심이 높지만 첫 달 수입이 50%이고 매달 15%p씩 늘어 약 4달 뒤 정상이 됩니다. 주거·치안을 올리면 더 빨라집니다. 공격으로 뺏은 동은 대신 민심 35에서 시작합니다.</li><li>숙적은 공격하기 한 달 전에 어느 동 앞에 모이는지, 몇 명인지 알려 줍니다. 그 동을 누르면 막는 방법(인원 남기기, 치안, 협정, 선제공격)이 나옵니다. 대비가 돼 있으면 저쪽이 공격을 접습니다.</li><li>민심이 40 아래인 동은 독립할 수 있습니다. ' + R1N + '부터 주민 화합 사업으로 막을 수 있습니다.</li><li>세력의 본거지(검은 점)를 빼앗으면 그 세력은 무너지고 동 일부가 따라옵니다. 큰 세력일수록 본거지가 단단하고, 본거지는 지하철로 칠 수 없습니다.</li><li>새로 얻은 동은 그달 말부터 수입에 들어오지만, 민심이 회복될 때까지는 적게 들어옵니다.</li><li>승진할 때와 반년마다 정책 카드 세 장 중 하나를 고릅니다. 고른 카드는 한 판 내내 적용됩니다.</li><li>' + CNAME + ' 인구 45%를 넘기면 남은 세력이 반동장 연합을 맺습니다. 연합 세력은 서로 싸우지 않고 우리만 노리며, 협정·통합을 받지 않습니다.</li><li>인구 60%를 넘기면 ' + E.C.ELECT_WAIT + '달 뒤 ' + MAYOR + ' 선거가 열립니다. 우리 동 주민은 민심에 따라 35~90%, 맞닿은 독립 동은 35%, 그 밖의 독립 동은 25%, 다른 세력 동은 10%(협정 중이면 20%)가 우리를 찍습니다. 과반이면 취임, 못 넘기면 6달 뒤 재선거입니다.</li><li>세력마다 회장이 있습니다. 얼굴과 대사는 지어낸 것입니다. 우리가 치면 원한이, 협정을 끝까지 지키면 호감이 쌓입니다. 원한이 깊은 회장은 먼저 쳐들어오고, 호감이 있는 회장은 덜 치고 협정이 싸지며 연합에도 잘 안 듭니다. 우리에게 무너진 회장은 다른 세력의 고문으로 들어가 그 세력을 더 독하게 만듭니다.</li><li>개발에는 대가가 있습니다. 상권은 주거 동네 민심을, 교통은 그 동 방어를, 주거는 그 동 수입를, 번화가의 치안은 그 동 수입를 조금씩 깎습니다.</li><li>선거가 잡히면 공약 두 개를 고르고, ' + GRP + ' 화면에서 결재 1건으로 유세합니다. 한 ' + GRP + '에서 세 번까지. 원한 많은 회장은 맞불 유세를 합니다.</li><li>' + Jm(R1N, '이', '가') + ' 되면 이어진 우리 ' + UNITN + ' 3~8개를 묶어 이름 붙인 행정구역을 만들 수 있습니다. 구역은 한 번에 작전·개발하고 수입 +5%. 원래 ' + GRP + '가 다른 ' + UNITN + '을 넣으면 그 동 민심이 떨어집니다.</li><li>판이 끝나면 땅을 넓혀 온 기록을 처음부터 다시 볼 수 있습니다.</li><li>' + Jm(MAYOR, '이', '가') + ' 된 뒤에도 남은 동까지 계속 먹을 수 있습니다.</li></ul>';
-    html += '<div class="sec">소리</div><div class="acts"><button class="btn" id="sndBtn" type="button">' + (soundOn ? '효과음 켜짐 · 끄기' : '효과음 꺼짐 · 켜기') + '</button></div>';
+    html += '<div class="sec">소리</div><div class="acts"><button class="btn" id="sndBtn" type="button">' + (soundOn ? '효과음 켜짐 · 끄기' : '효과음 꺼짐 · 켜기') + '</button><button class="btn" id="musBtn" type="button">' + (bgmBad ? '배경음악 파일 없음' : musicOn ? '배경음악 켜짐 · 끄기' : '배경음악 꺼짐 · 켜기') + '</button></div>';
     html += '' + sec('상대 턴 보기', '다음 달을 누르면 다른 세력이 한 일을 하나씩 보여 줍니다. 우리 땅에서 난 일은 항상, 우리 근처 다툼은 몇 건만 보여 주고 나머지는 지도에 바로 반영합니다. 보는 중에 화면을 누르면 빨라지고, 한 번 더 누르면 건너뜁니다.') + '<div class="chips" id="rpMode">' + [['normal', '보통'], ['fast', '빠르게'], ['off', '끄기']].map(function (m) { return '<button class="chip' + (RPM === m[0] ? ' on' : '') + '" type="button" data-m="' + m[0] + '"' + (RPM === m[0] ? ' aria-pressed="true"' : '') + '>' + m[1] + '</button>'; }).join('') + '</div>';
     html += '<div class="sec">저장</div><p class="why">이 기기 브라우저에 자동 저장 · 기기를 바꾸거나 기록을 지우기 전에 저장 코드 복사</p><div class="two" style="margin-top:6px"><button class="btn" id="expBtn" type="button">저장 코드 복사</button><button class="btn" id="impBtn" type="button">코드 불러오기</button></div><textarea id="expText" readonly hidden></textarea>';
     html += '<div class="acts"><button class="btn" id="newGame" type="button">' + (confirmNew ? '정말 처음부터 시작 (지금 판은 사라집니다)' : '새 게임') + '</button></div>';
@@ -1835,6 +1877,7 @@
     else html += '<div class="sec">자료 출처</div><p class="src">서울특별시 서울 열린데이터광장: <a href="https://data.seoul.go.kr/dataList/OA-22183/S/1/datasetView.do" target="_blank" rel="noopener">상권분석서비스(상주인구-행정동)</a>, <a href="https://data.seoul.go.kr/dataList/OA-22184/S/1/datasetView.do" target="_blank" rel="noopener">상권분석서비스(직장인구-행정동)</a>, 상권분석서비스(집객시설-행정동). 2023~2024년 기준이라 지금과 다를 수 있습니다. 직장인 수가 빠진 26개 동과 시설 수가 빠진 관악구 신사동은 같은 구의 값으로 추정했습니다.<br>재정자립도: <a href="https://m.go.seoul.co.kr/news/2024/07/16/20240716500023" target="_blank" rel="noopener">서울시의회 자료 보도(서울신문)</a>, 2023년 기준.<br>생활 점수의 소득 항목은 237개 동만 확보해 나머지는 같은 구의 중간값을 썼습니다.<br>행정동 경계: 통계청·행정안전부 자료를 정리한 admdongkor(MIT), 2026년 10월 기준.</p><p class="src">경제·인프라·생활 점수와 동네 유형은 통계를 바탕으로 계산한 게임용 값으로, 실제 매출이나 소득 순위가 아니며 동네의 우열을 뜻하지 않습니다. 등장 단체와 사건은 모두 지어낸 것입니다.</p>';
     html = html.replace(/<div class="sec">게임 방법<\/div><ul class="prose">([\s\S]*?)<\/ul>/, function (m, body) { return '<div class="sec">게임 방법</div>' + rulesFold(body); });
     sh.innerHTML = tx(html);
+    bind('musBtn', function () { setMusic(!musicOn); renderSheet(); });
     bind('sndBtn', function () { setSound(!soundOn); if (soundOn) sfx('stamp'); renderSheet(); });
     Array.prototype.forEach.call(sh.querySelectorAll('#rpMode .chip'), function (b) { b.addEventListener('click', function () { setReplayMode(b.dataset.m); renderSheet(); }); });
     bind('expBtn', function () {
@@ -2027,7 +2070,7 @@
     if (S.promo && S.promo < 3) {
       var r = S.promo; S.promo = 0; sfx('fanfare');
       var name = title();
-      showCard('<div class="seal">' + E.C.RANKS[r] + '</div><h2>' + esc(name) + '</h2><p>' + (r === 1 ? '한 달 기본 결재가 3건으로 늘었습니다. 이제 ' + GRP + ' 현황에서 한꺼번에 공격·설득·개발할 수 있고, 세력 화면의 행정구역 개편으로 이어진 ' + UNITN + '을 묶어 직접 이름 붙인 구역을 만들 수 있습니다. 다음 목표는 ' + GRP + ' ' + R2 + '곳입니다.' : '한 달 기본 결재가 5건으로 늘었고, ' + GRP + ' 작전은 결재 3건에 5개 동까지 됩니다. 이제 ' + CNAME + ' 인구 60%를 모아 선거에서 이기면 됩니다.') + '</p><div class="acts"><button class="btn red" id="cardOk" type="button">계속</button></div>');
+      showCard('<div class="seal">' + E.C.RANKS[r] + '</div><h2>' + esc(name) + '</h2><p class="unlT">새로 열린 것</p><ul class="unl">' + (r === 1 ? '<li><b>결재 3건</b> · 매달</li><li><b>' + GRP + ' 작전</b> · ' + GRP + ' 화면에서 한꺼번에 공격·설득·개발</li><li><b>행정구역</b> · 세력 화면 → 구역 · 이어진 ' + UNITN + '을 묶어 이름 붙이기</li><li><b>괴뢰국 1개</b> · 구역 화면에서 독립 · 상납·자율 공격</li><li><b>전체 개발</b> · 세력 화면 → 현황</li></ul><p>다음 목표 · ' + GRP + ' ' + R2 + '곳</p>' : '<li><b>결재 5건</b> · 매달</li><li><b>' + GRP + ' 작전</b> · 결재 3건에 5개 동까지</li><li><b>구역 크기 12개</b> · 구역 합병</li><li><b>괴뢰국 3개</b></li></ul><p>다음 목표 · ' + CNAME + ' 인구 60% → 선거</p>') + '<div class="acts"><button class="btn red" id="cardOk" type="button">계속</button></div>');
       bind('cardOk', function () { hideCard(); checkOverlay(); });
       return;
     }
@@ -2115,6 +2158,11 @@
     dirty(); c.done();
   }
   $('turnCal').addEventListener('click', calEnd);
+  $('undo').addEventListener('click', function () {
+    if (!UNDO.length || RPS || TLS || CAL) return;
+    S = JSON.parse(UNDO.pop()); errMsg = ''; undoKeep = UNDO.length > 0;
+    setNews('되돌렸습니다 · 예산 ' + money(S.f[0].money) + ' · 대기 ' + people(S.f[0].troops)); sfx('page'); save(); sync(); dirty();
+  });
   $('sheet').addEventListener('click', function (e) { var q = e.target.closest ? e.target.closest('.q') : null; if (!q) return; var hp = q.parentNode.nextElementSibling; if (hp && hp.classList.contains('hp')) { hp.hidden = !hp.hidden; q.setAttribute('aria-expanded', !hp.hidden); } });
   var bannerTimer = 0;
   function turnBanner() {

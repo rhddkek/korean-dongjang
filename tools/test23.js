@@ -34,7 +34,7 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
     const btn = await p.$('.pg2[data-p="' + r.A + '"]'); ok(!!btn, '우리 동 화면에 "가국에 넘기기"');
     const l0 = await G(a => __game.S.f[a].puppet.loyal, r.A);
     await p.screenshot({ path: OUT + '/t1_give.png' });
-    if (btn) { await btn.tap(); await p.waitForTimeout(300); }
+    if (btn) { await btn.tap(); await p.waitForTimeout(150); await p.tap('.pg2.arm'); await p.waitForTimeout(300); }
     const g1 = await G(([i, a]) => ({ o: __game.S.owner[i], l: __game.S.f[a].puppet.loyal }), [r.give, r.A]);
     ok(g1.o === r.A && g1.l === Math.min(100, l0 + 3), '넘김 → 주인 가국, 충성 ' + l0 + '→' + g1.l);
   } else ok(false, '넘길 우리 동을 못 찾음');
@@ -58,7 +58,7 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   await p.tap('.zrow[data-z="' + r.C + '"]'); await p.waitForTimeout(300);
   const zg = await p.$('.zg:not([disabled])'); ok(!!zg, '구역 화면에 "괴뢰국에 편입"');
   await p.screenshot({ path: OUT + '/t3_zone_give.png' });
-  if (zg) { await zg.tap(); await p.waitForTimeout(400); }
+  if (zg) { await zg.tap(); await p.waitForTimeout(150); await p.tap('.zg.arm'); await p.waitForTimeout(400); }
   const zc = await G(c => ({ zones: __game.S.zones.length, log: __game.S.log[0].t }), r.C);
   ok(zc.zones === 0 && /편입했습니다/.test(zc.log), zc.log);
   // 세력 탭 괴뢰국 수
