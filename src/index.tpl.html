@@ -31,13 +31,14 @@ button{cursor:pointer;touch-action:manipulation}
 #who{font-family:var(--display);font-weight:700;font-synthesis:none;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 #when{color:var(--mute);font-size:13px;white-space:nowrap}
 #menuBtn{margin-left:auto;background:none;border:1px solid var(--ink);border-radius:4px;padding:4px 10px;font-size:13px;font-weight:500;white-space:nowrap}
-#cells{display:grid;grid-template-columns:1.05fr 1.05fr .8fr 1.1fr;margin-top:6px;border:1px solid var(--ink);border-radius:4px;background:var(--sheet);width:100%;padding:0;text-align:left}
+#cells{display:grid;grid-template-columns:1fr 1fr .76fr 1.24fr;margin-top:6px;border:1px solid var(--ink);border-radius:4px;background:var(--sheet);width:100%;padding:0;text-align:left}
 .cell{padding:4px 8px;border-left:1px solid var(--line);min-width:0}
 .cell:first-child{border-left:0}
 .cell small{display:block;color:var(--mute);font-size:12px;line-height:1.2}
 .cell b{display:block;font-size:17px;line-height:1.25;font-weight:500;white-space:nowrap}
 .cell i{font-style:normal;font-size:12px;color:var(--good);display:block;line-height:1.2;white-space:nowrap}
 .cell i.neg{color:var(--stamp)}
+#cPop{letter-spacing:-.3px}
 
 /* 아래쪽 */
 #bottom{position:absolute;left:0;right:0;bottom:0;z-index:6;display:flex;flex-direction:column;pointer-events:none}
@@ -197,6 +198,10 @@ button.pcard:active{transform:translateY(1px)}button.pcard:hover{border-color:va
 .pv{display:inline-block;margin-top:4px;color:#1B4C78;font-weight:500}
 #evBar{background:var(--paper);border:0;border-top:2px solid var(--ink);box-shadow:inset 4px 0 0 #A4661B;padding:6px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));font-weight:500;font-size:14px;text-align:left;color:var(--ink);width:100%;min-height:36px}
 .linkish{background:none;border:0;padding:0;color:#1B4C78;text-decoration:underline;font-size:inherit}
+.rows .side{color:#8A2A1C;font-size:12px}
+.devTop .row span:last-child,.devList .row span:last-child{text-align:right;font-size:13px}
+.devList .row span:first-child{text-align:left}
+#nbView{padding:8px 2px;margin:-8px 0}
 .ch{text-align:left;padding:8px 12px}
 .ch small{font-weight:400;font-size:12px;color:var(--mute)}
 .ch:disabled small{color:inherit}

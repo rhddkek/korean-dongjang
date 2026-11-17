@@ -1,11 +1,12 @@
 // 추천 줄만 따라 누르는 사람 흉내: 달마다 탭 수·기다린 시간·끼어든 창·남긴 결재를 잰다
 const { chromium, devices } = require('playwright'); const http = require('http'), fs = require('fs');
-const OUT = process.argv[2], START = process.argv[3] || '서교', RP = process.argv[4] || 'normal', MAXM = +(process.argv[5] || 70);
+const OUT = process.argv[2], START = process.argv[3] || '서교', RP = process.argv[4] || 'normal', MAXM = +(process.argv[5] || 70), CITY = process.argv[6] || '';
 const srv = http.createServer((q, r) => { if (/bgm\//.test(q.url)) { r.statusCode = 404; r.end(); return; } r.setHeader('content-type', 'text/html;charset=utf-8'); r.end(fs.readFileSync('index.html')); }).listen(8170 + (process.pid % 20));
 (async () => {
   const port = srv.address().port; const b = await chromium.launch(); const ctx = await b.newContext({ ...devices['iPhone 13'] }); const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message));
   await p.addInitScript(rp => { try { localStorage.setItem('dongjang-replay', rp); } catch (e) {} }, RP);
   await p.goto('http://localhost:' + port, { waitUntil: 'load' }); await p.waitForTimeout(500);
+  if (CITY) { await p.tap('#cities .city[data-c="' + CITY + '"]'); await p.waitForLoadState('load'); await p.waitForTimeout(700); }
   await p.fill('#q', START); await p.waitForTimeout(100); await p.tap('#results button'); await p.waitForTimeout(150); await p.tap('#begin'); await p.waitForTimeout(500);
   let taps = 0; const tap = async sel => { try { await p.tap(sel, { timeout: 2500 }); taps++; return true; } catch (e) { return false; } };
   const st = () => p.evaluate(() => { const S = __game.S, E = __game.E; return { m: S.month, ap: S.ap, n: E.dongsOf(S, 0).length, rank: S.rank, won: !!S.won, over: !!S.over, coal: !!S.coal, elect: !!S.elect, money: Math.round(S.f[0].money), troops: Math.round(S.f[0].troops), share: +(E.popShare(S, 0) * 100).toFixed(1), todo: document.getElementById('todo').hidden ? '' : document.getElementById('todo').textContent, over2: !document.getElementById('over').hidden, card: document.getElementById('over').hidden ? '' : (document.querySelector('#card h2') || {}).textContent || 'card' }; });

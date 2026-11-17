@@ -31,13 +31,14 @@ button{cursor:pointer;touch-action:manipulation}
 #who{font-family:var(--display);font-weight:700;font-synthesis:none;font-size:20px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 #when{color:var(--mute);font-size:13px;white-space:nowrap}
 #menuBtn{margin-left:auto;background:none;border:1px solid var(--ink);border-radius:4px;padding:4px 10px;font-size:13px;font-weight:500;white-space:nowrap}
-#cells{display:grid;grid-template-columns:1.05fr 1.05fr .8fr 1.1fr;margin-top:6px;border:1px solid var(--ink);border-radius:4px;background:var(--sheet);width:100%;padding:0;text-align:left}
+#cells{display:grid;grid-template-columns:1fr 1fr .76fr 1.24fr;margin-top:6px;border:1px solid var(--ink);border-radius:4px;background:var(--sheet);width:100%;padding:0;text-align:left}
 .cell{padding:4px 8px;border-left:1px solid var(--line);min-width:0}
 .cell:first-child{border-left:0}
 .cell small{display:block;color:var(--mute);font-size:12px;line-height:1.2}
 .cell b{display:block;font-size:17px;line-height:1.25;font-weight:500;white-space:nowrap}
 .cell i{font-style:normal;font-size:12px;color:var(--good);display:block;line-height:1.2;white-space:nowrap}
 .cell i.neg{color:var(--stamp)}
+#cPop{letter-spacing:-.3px}
 
 /* 아래쪽 */
 #bottom{position:absolute;left:0;right:0;bottom:0;z-index:6;display:flex;flex-direction:column;pointer-events:none}
@@ -197,6 +198,10 @@ button.pcard:active{transform:translateY(1px)}button.pcard:hover{border-color:va
 .pv{display:inline-block;margin-top:4px;color:#1B4C78;font-weight:500}
 #evBar{background:var(--paper);border:0;border-top:2px solid var(--ink);box-shadow:inset 4px 0 0 #A4661B;padding:6px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));font-weight:500;font-size:14px;text-align:left;color:var(--ink);width:100%;min-height:36px}
 .linkish{background:none;border:0;padding:0;color:#1B4C78;text-decoration:underline;font-size:inherit}
+.rows .side{color:#8A2A1C;font-size:12px}
+.devTop .row span:last-child,.devList .row span:last-child{text-align:right;font-size:13px}
+.devList .row span:first-child{text-align:left}
+#nbView{padding:8px 2px;margin:-8px 0}
 .ch{text-align:left;padding:8px 12px}
 .ch small{font-weight:400;font-size:12px;color:var(--mute)}
 .ch:disabled small{color:inherit}
@@ -3006,12 +3011,14 @@ if (typeof module !== 'undefined') module.exports = Engine;
     var tk = $('rpTalk');
     if (e.k === 'atk' && e.o === 0 && e.f > 0 && bossOf(e.f)) { tk.innerHTML = e.win && S.f[e.f].adv ? bossHTML(e.f, 'revenge', D[e.t].n, true) : bossHTML(e.f, e.win ? 'win' : 'lose', D[e.t].n); tk.hidden = false; }
     else tk.hidden = true;
-    // 우리 땅 일만 지도를 옮겨 보여 줌
-    if (e.o === 0 || e.k === 'rebel') {
-      var r = viewRect(), d = D[e.t], sx = d.x * cam.s + cam.x, sy = d.y * cam.s + cam.y;
-      if (sx < r.x + 30 || sx > r.x + r.w - 30 || sy < r.y + 40 || sy > r.y + r.h - 30) {
-        var ns = Math.max(cam.s, fitS * 2, zoomFor(e.t) * 0.6);
-        tweenTo({ s: ns, x: r.x + r.w / 2 - d.x * ns, y: r.y + r.h / 2 - d.y * ns });
+    // 우리 땅 일과 맞닿은 전투는 지도를 옮겨 보여 줌. 위쪽 상대 턴 줄·회장 말 상자에 말풍선이 가리지 않게
+    var r = viewRect(), rb0 = $('rpBar').getBoundingClientRect().bottom, tb0 = tk.hidden ? 0 : tk.getBoundingClientRect().bottom;
+    RPS.top = Math.max(r.y, rb0, tb0);
+    if (e.o === 0 || e.k === 'rebel' || (e.k === 'atk' && D[e.t].a.some(function (j) { return S.owner[j] === 0; }))) {
+      var d = D[e.t], sx = d.x * cam.s + cam.x, sy = d.y * cam.s + cam.y, top = RPS.top, bot = r.y + r.h;
+      if (sx < r.x + 30 || sx > r.x + r.w - 30 || sy < top + 56 || sy > bot - 30) {
+        var ns = Math.max(cam.s, fitS * 2, zoomFor(e.t) * 0.6), cy = bot - top > 140 ? (top + 40 + bot) / 2 : r.y + r.h / 2;
+        tweenTo({ s: ns, x: r.x + r.w / 2 - d.x * ns, y: cy - d.y * ns });
       }
     }
     return true;
@@ -3043,9 +3050,10 @@ if (typeof module !== 'undefined') module.exports = Engine;
     R.done(R.quick);
   }
   function rpSkip() { if (!RPS) return; RPS.cur = null; RPS.i = RPS.steps.length; rpEnd(); }
+  var rpTags = {};
   function drawReplay(c) {
     if (!RPS || !RPS.cur) return;
-    var st = RPS.cur, e = st.e, p = Math.min(1, (performance.now() - st.t0) / rpDur());
+    var st = RPS.cur, e = st.e, p = Math.max(0, Math.min(1, (performance.now() - st.t0) / rpDur()));
     var d = D[e.t], col = e.f != null && e.f >= 0 && S.f[e.f] ? fCol(e.f) : '#5D6A60';
     c.save(); c.setTransform(DPR * cam.s, 0, 0, DPR * cam.s, DPR * cam.x, DPR * cam.y);
     var px = 1 / cam.s;
@@ -3082,16 +3090,32 @@ if (typeof module !== 'undefined') module.exports = Engine;
     var fn = e.f != null && e.f >= 0 && S.f[e.f] ? S.f[e.f].name : '';
     var t = e.k === 'rebel' ? D[e.t].n + ' 주민 독립 선언' : e.k === 'split' ? S.f[e.o].name + ' 내분 · ' + fn + ' 독립' : e.k === 'rise' ? fn + ' 등장' : fn + ' → ' + D[e.t].n;
     var res = st.applied ? (e.k !== 'atk' ? '' : e.win ? (e.col ? '본거지 함락 · ' + e.col + ' 해체' : e.o === 0 ? '빼앗김' : '점령') : '막아냄') : '';
-    c.setTransform(DPR, 0, 0, DPR, 0, 0);
-    c.font = '700 13px "IBM Plex Sans KR","Apple SD Gothic Neo",sans-serif'; c.textAlign = 'left'; c.textBaseline = 'middle';
-    var line = tx(t), w1 = c.measureText(line).width, w2 = res ? c.measureText(res).width + 14 : 0, w = w1 + w2 + 18, h = 24;
-    var x = Math.max(8, Math.min(W - w - 8, d.x * cam.s + cam.x - w / 2)), y = d.y * cam.s + cam.y - 30;
-    c.fillStyle = 'rgba(23,35,28,.92)'; c.beginPath(); if (c.roundRect) c.roundRect(x, y - h / 2, w, h, 5); else c.rect(x, y - h / 2, w, h); c.fill();
-    c.fillStyle = '#fff'; c.fillText(line, x + 9, y + 0.5);
-    if (res) {
-      var good = !e.win && e.o === 0, bad = e.win && e.o === 0;
-      c.fillStyle = bad ? '#FF8A7A' : good ? '#8FE0B9' : '#FFD27A'; c.fillText(res, x + 9 + w1 + 10, y + 0.5);
+    // 우리 동이 대상이면 '우리 동 피습', 우리 땅과 맞닿은 남의 동이면 '인접 전투'. 결과는 같은 자리에서 바뀜
+    var bg = 'rgba(23,35,28,.92)', subC = '#FFD27A', sub = res;
+    if (e.k === 'atk' && e.o === 0) {
+      sub = fn; subC = 'rgba(255,255,255,.78)';
+      if (!st.applied) { t = '우리 동 피습 · ' + D[e.t].n; bg = '#B4261A'; }
+      else { t = D[e.t].n + (e.win ? ' 함락' : ' 방어 성공'); bg = e.win ? '#17231C' : '#1F6B52'; }
+    } else if (e.k === 'atk' && D[e.t].a.some(function (j) { return S.owner[j] === 0; })) {
+      t = '인접 전투 · ' + D[e.t].n;
+      sub = st.applied ? (e.win ? (e.col ? '본거지 함락 · ' + e.col + ' 해체' : fn + ' 점령') : '막아냄') : fn;
+      subC = st.applied ? '#FFD27A' : 'rgba(255,255,255,.78)';
     }
+    c.setTransform(DPR, 0, 0, DPR, 0, 0);
+    c.textAlign = 'left'; c.textBaseline = 'middle';
+    var F1 = '700 13px "IBM Plex Sans KR","Apple SD Gothic Neo",sans-serif', F2 = (sub === res ? '700 13px' : '500 11px') + ' "IBM Plex Sans KR","Apple SD Gothic Neo",sans-serif';
+    var line = tx(t), sub2 = sub ? tx(sub) : '';
+    c.font = F1; var w1 = c.measureText(line).width;
+    c.font = F2; var w2 = sub2 ? c.measureText(sub2).width + 10 : 0;
+    var w = w1 + w2 + 18, h = 24;
+    var x = Math.max(8, Math.min(W - w - 8, d.x * cam.s + cam.x - w / 2)), y = Math.max((RPS.top || 0) + h / 2 + 6, d.y * cam.s + cam.y - 30);
+    c.fillStyle = bg; c.beginPath(); if (c.roundRect) c.roundRect(x, y - h / 2, w, h, 5); else c.rect(x, y - h / 2, w, h); c.fill();
+    c.font = F1; c.fillStyle = '#fff'; c.fillText(line, x + 9, y + 0.5);
+    if (sub2) {
+      if (sub === res && res) { var good = !e.win && e.o === 0, bad = e.win && e.o === 0; subC = bad ? '#FF8A7A' : good ? '#8FE0B9' : '#FFD27A'; }
+      c.font = F2; c.fillStyle = subC; c.fillText(sub2, x + 9 + w1 + 10, y + 0.5);
+    }
+    rpTags[line + (sub2 ? ' ' + sub2 : '')] = 1;
   }
   function drawMarks(c) {
     if (!S || lens) return;
@@ -3456,14 +3480,20 @@ if (typeof module !== 'undefined') module.exports = Engine;
       Object.keys(reach).forEach(function (k) { if (reach[k] !== 1 || S.owner[k] !== -1) return; var n = E.needFor(S, +k, 0.8); if (n < bestN) { bestN = n; recDong = +k; } });
     }
   }
+  // 승진에 가장 가까운 구: 우리 동이 있거나 맞닿은 구 중 '절반까지 남은 수'가 가장 적은 곳 (같으면 우리 비율이 높은 곳)
+  // 동을 더 얻어서 남은 수가 늘어나는 일이 없도록 비율이 아니라 남은 수로 고름
   function bestGu() {
-    var list = E.guDongs(), best = -1, bk = -1;
+    var list = E.guDongs(), best = -1, bn = 1e9, bk = -1;
     list.forEach(function (ds, g) {
-      var k = ds.filter(function (i) { return S.owner[i] === 0; }).length / ds.length;
-      if (k > bk) { bk = k; best = g; }
+      var own = 0, touch = false;
+      ds.forEach(function (i) { if (S.owner[i] === 0) own++; else if (!touch && D[i].a.some(function (j) { return S.owner[j] === 0; })) touch = true; });
+      if (!own && !touch) return;
+      var need = Math.max(0, Math.ceil(ds.length / 2) - own), k = own / ds.length + (own ? 1 : 0);
+      if (need < bn || (need === bn && k > bk)) { bn = need; bk = k; best = g; }
     });
-    return best;
+    return best < 0 ? D[S.f[0].cap].g : best;
   }
+  function unitN(n) { return n + (UNITN.length > 1 ? '곳' : UNITN); }
   function bestRegion() {
     var c = {};
     E.guDongs().forEach(function (ds, g) {
@@ -3480,7 +3510,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
     return hd(D[S.f[0].cap].n);
   }
   function goalShort() {
-    if (S.rank < 1) return R1S + ' ' + E.guStatus(S, bestGu()).need + '개 더';
+    if (S.rank < 1) { var g0 = bestGu(); return hd(gShort(g0)) + '까지 ' + unitN(E.guStatus(S, g0).need); }
     if (S.rank < 2) return R2S + ' ' + Math.max(0, R2 - E.guHeld(S, 0)) + (KIND === 'metro' ? '구' : '곳') + ' 더';
     if (S.elect && !S.won) return '선거 ' + Math.max(0, S.elect.at - S.month) + '달·' + (E.voteShare(S) * 100).toFixed(0) + '%';
     return '인구 ' + (E.popShare(S, 0) * 100).toFixed(1) + '%';
@@ -3498,7 +3528,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
     return '<i style="background:linear-gradient(90deg,var(--good) ' + pc.toFixed(1) + '%,var(--line) ' + pc.toFixed(1) + '%)"></i>';
   }
   function goalLong() {
-    if (S.rank < 1) { var g = bestGu(); return hd(GU[g].n) + '까지 ' + E.guStatus(S, g).need + '개 ' + UNITN; }
+    if (S.rank < 1) { var g = bestGu(); return hd(GU[g].n) + '까지 ' + unitN(E.guStatus(S, g).need); }
     if (S.rank < 2) return R2S + '까지 ' + GRP + ' ' + Math.max(0, R2 - E.guHeld(S, 0)) + '곳';
     if (S.elect && !S.won) return MAYOR + ' 선거 ' + Math.max(0, S.elect.at - S.month) + '달 뒤 · 예상 득표 ' + (E.voteShare(S) * 100).toFixed(1) + '% / 과반';
     return CNAME + ' 인구 ' + (E.popShare(S, 0) * 100).toFixed(1) + '% / 60%';
@@ -3507,7 +3537,23 @@ if (typeof module !== 'undefined') module.exports = Engine;
     if (S.firstWinShown) return;
     S.firstWinShown = 1;
     var e = E.economy(S, 0);
-    showCard('<div class="seal">접수</div><h2>' + esc(name) + ' 접수</h2><div class="rows num" style="text-align:left;margin-top:10px"><div class="row"><span>우리 동</span><span>' + before.n + '개 → ' + e.n + '개</span></div><div class="row"><span>월 수입</span><span>' + signed(e.tax - before.tax, money) + '</span></div><div class="row"><span>월 동원</span><span>' + signed(e.draft - before.draft, people) + '</span></div><div class="row"><span>집에 간 인원</span><span>' + people(lost) + '</span></div><div class="row"><span>다음 달 복귀</span><span>' + people(back) + '</span></div><div class="row"><span>다음 목표</span><span>' + esc(goalLong()) + '</span></div></div><p>새로 얻은 동은 민심이 낮아 수입가 적지만 달마다 회복합니다. 남은 결재를 쓰거나 다음 달로 넘어가세요.</p><div class="acts"><button class="btn red" id="cardOk" type="button">계속</button></div>');
+    showCard('<div class="seal">접수</div><h2>' + esc(name) + ' 접수</h2><div class="rows num" style="text-align:left;margin-top:10px"><div class="row"><span>우리 동</span><span>' + before.n + '개 → ' + e.n + '개</span></div><div class="row"><span>월 수입</span><span>' + signed(e.tax - before.tax, money) + '</span></div><div class="row"><span>월 동원</span><span>' + signed(e.draft - before.draft, people) + '</span></div><div class="row"><span>집에 간 인원</span><span>' + people(lost) + '</span></div><div class="row"><span>다음 달 복귀</span><span>' + people(back) + '</span></div><div class="row"><span>다음 목표</span><span>' + esc(goalLong()) + '</span></div></div><p>새로 얻은 동은 민심이 낮아 수입이 적지만 달마다 회복합니다. 남은 결재를 쓰거나 다음 달로 넘어가세요.</p><div class="acts"><button class="btn red" id="cardOk" type="button">계속</button></div>');
+    bind('cardOk', hideCard);
+  }
+  // 설득·통합으로 들어온 동의 수입: 지금(정착 중)과 정착 후
+  function joinFx(t) {
+    var fm = E.fullMapOf(S, 0, E.dongsOf(S, 0)), now = E.taxOf(S, t, fm) + E.govTaxOf(S, t);
+    var sv = S.settle ? S.settle[t] : undefined; if (sv !== undefined) delete S.settle[t];
+    var full = E.taxOf(S, t, fm) + E.govTaxOf(S, t);
+    if (sv !== undefined) S.settle[t] = sv;
+    return { now: now, full: full, left: E.settleLeft(S, t) };
+  }
+  function joinText(t, cost) { var j = joinFx(t); return D[t].n + ' 합류 · ' + money(cost) + ' 사용 · 첫 달 수입 ' + money(j.now) + ' → 정착 후 ' + money(j.full) + '/월'; }
+  function joinCard(t, before, cost) {
+    if (S.firstWinShown) return;
+    S.firstWinShown = 1;
+    var e = E.economy(S, 0), j = joinFx(t);
+    showCard('<div class="seal">합류</div><h2>' + esc(D[t].n) + ' 합류</h2><div class="rows num" style="text-align:left;margin-top:10px"><div class="row"><span>우리 동</span><span>' + before.n + '개 → ' + e.n + '개</span></div><div class="row"><span>설득 비용</span><span>' + money(cost) + '</span></div><div class="row"><span>' + esc(D[t].n) + ' 수입</span><span>첫 달 <b>' + money(j.now) + '</b> → 정착 후 <b>' + money(j.full) + '/월</b></span></div><div class="row"><span>다음 목표</span><span>' + esc(goalLong()) + '</span></div></div><p>싸우지 않고 들어와 인원은 그대로입니다. 수입·동원은 절반에서 시작해 ' + (j.left ? j.left + '달 뒤' : '곧') + ' 정상이 됩니다.</p><div class="acts"><button class="btn red" id="cardOk" type="button">계속</button></div>');
     bind('cardOk', hideCard);
   }
   function checkFullGu() {
@@ -3547,7 +3593,9 @@ if (typeof module !== 'undefined') module.exports = Engine;
     $('cTroopsD').textContent = me.away >= 1 ? '출동 ' + people(me.away) : signed(e.draft - e.decay, people) + '/월';
     $('cAp').textContent = S.ap + '건';
     $('cN').textContent = e.n + '개';
-    $('cPop').textContent = tx(goalShort());
+    var cp = $('cPop'); cp.textContent = tx(goalShort());
+    // 칸이 좁으면 '까지'를 빼고, 그래도 넘치면 예전처럼 짧게
+    if (S.rank < 1 && cp.scrollWidth > cp.clientWidth + 1) { var g1 = bestGu(), nd = E.guStatus(S, g1).need; cp.textContent = tx(hd(gShort(g1)) + ' ' + unitN(nd)); if (cp.scrollWidth > cp.clientWidth + 1) cp.textContent = tx(R1S + ' ' + nd + '개 더'); }
     $('cSeg').innerHTML = goalSeg();
     $('lens').textContent = '지도: ' + LENS[lens];
     $('next').className = S.ap <= 0 ? 'go' : '';
@@ -3583,6 +3631,15 @@ if (typeof module !== 'undefined') module.exports = Engine;
     if (me.money >= 300) { var pl = E.realmDevPlan(S, -1, Math.floor(me.money * 0.5)); if (pl.n) return { k: 'rec', txt: '추천 · 전체 개발 ' + pl.n + '곳 · 예산 ' + money(me.money) + ' 남음' }; }
     return null;
   }
+  function gShort(g) { return GU[g].n.split(' ').pop(); }
+  function recReason(j) {
+    if (S.rivalPlan && S.rivalPlan.src === j) return '침공 출발지';
+    var cp = E.comboPreview(S, j); if (cp.length) return cp[0].n.replace(/ (생활권|연합)$/, '') + ' 완성';
+    var g = D[j].g, st = E.guStatus(S, g);
+    if (S.rank < 1 && g === bestGu()) return hd(gShort(g)) + (st.need === 1 ? ' 승진' : ' 목표');
+    if (S.rank >= 1 && S.rank < 2 && !st.half && st.need <= 2) return gShort(g) + ' 절반까지 ' + st.need;
+    return st.have ? gShort(g) + ' 확장' : gShort(g) + ' 진출';
+  }
   function recommend() {
     if (!S || S.over) return null;
     var lowP = E.puppets(S).filter(function (f) { return f.puppet.loyal <= 30; }).sort(function (a, b) { return a.puppet.loyal - b.puppet.loyal; })[0];
@@ -3600,7 +3657,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
       GU.forEach(function (x, gi) { var pv = E.guAttackPreview(S, gi, 0.25); if (pv.can >= 2 && S.ap >= pv.ap && (!bg || pv.can > bg.can)) bg = { g: gi, can: pv.can }; });
       if (bg) return { k: 'gu', g: bg.g, txt: '추천 · ' + GU[bg.g].n + ' 작전 ' + bg.can + '곳' };
     }
-    var me = S.f[0], mine = E.dongsOf(S, 0), seen = {}, best = null, bestP = null, max = Math.floor(me.troops), held0 = false;
+    var me = S.f[0], mine = E.dongsOf(S, 0), seen = {}, best = null, bestP = null, max = Math.floor(me.troops), held0 = false, goalG = S.rank < 1 ? bestGu() : -1;
     var threatN = S.rivalPlan && S.owner[S.rivalPlan.t] === 0 ? S.rivalPlan.n : 0;
     var keep = Math.max(threatN, S.coal && !S.won ? Math.min(1500, mine.length * 6) : 0);
     mine.forEach(function (a) { D[a].a.forEach(function (j) {
@@ -3609,9 +3666,9 @@ if (typeof module !== 'undefined') module.exports = Engine;
       var n = E.needFor(S, j, 0.8); if (!n || n > max) return;
       if (n > max - keep) { held0 = true; return; }
       var pv = E.preview(S, j, n); if (!pv.ok) return;
-      var v = D[j].pop + (D[j].work || 0) * 0.5 + (S.rivalPlan && S.rivalPlan.src === j ? 1e7 : 0);
+      var v = (D[j].pop + (D[j].work || 0) * 0.5) * (D[j].g === goalG ? 1.4 : 1) + (S.rivalPlan && S.rivalPlan.src === j ? 1e7 : 0);
       if (!best || v > best.v) best = { t: j, v: v, n: n, pct: pv.pct };
-      if (o === -1 && pv.route && pv.route.via !== 'subway') { var c = E.persuadeCost(S, j); if (c <= me.money && (!bestP || D[j].pop > bestP.v)) bestP = { t: j, v: D[j].pop, c: c }; }
+      if (o === -1 && pv.route && pv.route.via !== 'subway') { var c = E.persuadeCost(S, j); var pv2 = D[j].pop * (D[j].g === goalG ? 1.4 : 1); if (c <= me.money && (!bestP || pv2 > bestP.v)) bestP = { t: j, v: pv2, c: c }; }
     }); });
     if (!best && !bestP) {
       Object.keys(reach || {}).some(function (k) { var j = +k; if (S.owner[j] === 0 || fogged(j) || S.owner[j] > 0) return false; var pv = E.preview(S, j, 1); if (!pv.route || pv.route.via === 'subway') return false; var c = E.persuadeCost(S, j); if (c <= me.money) { bestP = { t: j, v: D[j].pop, c: c }; return true; } return false; });
@@ -3626,8 +3683,8 @@ if (typeof module !== 'undefined') module.exports = Engine;
     var thin0 = me.money >= 150 && (me.troops < Math.min(1500, Math.max(150, mine.length * 25)) || (S.rivalPlan && S.owner[S.rivalPlan.t] === 0 && me.troops < S.rivalPlan.n * 1.2));
     if (thin0) return idleRec();
     if (back) return { k: 'atk', t: back.t, txt: '추천 · ' + D[back.t].n + ' 되찾기 ' + Math.round(back.pct * 100) + '% · ' + shortCombo(back.k) + ' 재가동' };
-    if (best) return { k: 'atk', t: best.t, txt: '추천 · ' + D[best.t].n + ' 치기 ' + Math.round(best.pct * 100) + '%' };
-    if (bestP) return { k: 'per', t: bestP.t, txt: '추천 · ' + D[bestP.t].n + ' 설득 ' + money(bestP.c) };
+    if (best) { var w1 = recReason(best.t); return { k: 'atk', t: best.t, why: w1, txt: '추천 · ' + D[best.t].n + ' 치기 ' + Math.round(best.pct * 100) + '% · ' + w1 }; }
+    if (bestP) { var w2 = recReason(bestP.t); return { k: 'per', t: bestP.t, why: w2, txt: '추천 · ' + D[bestP.t].n + ' 설득 ' + money(bestP.c) + ' · ' + w2 }; }
     var ir = idleRec(!best && !bestP); if (ir) return ir;
     if (held0) return { k: 'hold', txt: '추천 · 대기 ' + people(keep) + ' 남기고 다음 달 (' + (threatN ? '침공 대비' : '연합 대비') + ')' };
     var hs = S.seenHint || {};
@@ -3674,6 +3731,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
   // ---- 시트 ----
   function select(i, quick) {
     if (i !== sel) { diploOpen = false; devOpen = {}; }
+    if (i !== justTook) justTook = null;
     peek = !!quick && i !== null && !isWide();
     sel = i; errMsg = '';
     sheetMode = i === null ? 'none' : 'dong';
@@ -3696,7 +3754,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
     if (el.dataset.k === 'zone') { openZone(+el.dataset.z); return; }
     var t = +el.dataset.t; select(t, true); requestAnimationFrame(function () { ensureVisible(t); });
   });
-  function closeSheet() { sel = null; sheetMode = 'none'; errMsg = ''; confirmNew = false; renderSheet(); dirty(); }
+  function closeSheet() { justTook = null; sel = null; sheetMode = 'none'; errMsg = ''; confirmNew = false; renderSheet(); dirty(); }
   function renderSheet() {
     var sh = $('sheet'), key = sheetMode + ':' + sel + ':' + guSel;
     if (S) syncTodo();
@@ -3718,6 +3776,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
     var x = sh.querySelector('.x');
     if (x) x.addEventListener('click', closeSheet);
     bind('qMore', function () { peek = false; renderSheet(); sfx('page'); });
+    bind('nbView', function () { if (sel !== null) showNeighbors(sel); });
   }
   function moreBtn(label) { return '<button class="btn qmore" id="qMore" type="button">' + (label || '자세히') + ' ▾</button>'; }
   function idleColumn() {
@@ -3884,9 +3943,24 @@ if (typeof module !== 'undefined') module.exports = Engine;
     bind('guLink', function () { openGu(d.g); });
   }
   function persuadeNow() {
-    var t = sel, before = E.economy(S, 0), r = E.persuade(S, t);
-    act(r, true);
-    if (!r.err) { stampAt(t, true); if (!S.won && !S.firstWinShown) { firstWinCard(D[t].n, before, 0, 0); save(); } }
+    var t = sel, before = E.economy(S, 0), cost = E.persuadeCost(S, t), r = E.persuade(S, t);
+    act(r, false);
+    if (r.err) return;
+    setNews(joinText(t, cost));
+    keepTook(t);
+    stampAt(t, true, '합류');
+    if (!S.won && !S.firstWinShown) { joinCard(t, before, cost); save(); }
+  }
+  // 방금 얻은 동: 선택과 지도 위치를 그대로 두고, 정보창 머리에 '인접 동 보기'
+  var justTook = null;
+  function keepTook(t) { justTook = t; select(t, true); }
+  function tookSub(d) { return justTook === sel ? ' · <b class="good">방금 확보</b> <button class="linkish" id="nbView" type="button">인접 동 보기 ›</button>' : ''; }
+  function showNeighbors(t) {
+    var b = [D[t].b[0], D[t].b[1], D[t].b[2], D[t].b[3]];
+    flash = {};
+    D[t].a.forEach(function (j) { var q = D[j].b; b[0] = Math.min(b[0], q[0]); b[1] = Math.min(b[1], q[1]); b[2] = Math.max(b[2], q[2]); b[3] = Math.max(b[3], q[3]); if (S.owner[j] !== 0) flash[j] = 1; });
+    fitBox(b, 28, true);
+    clearTimeout(flashTimer); flashTimer = setTimeout(function () { flash = {}; dirty(); }, 1800);
   }
   function updateFight() {
     var p = E.preview(S, sel, sendN);
@@ -3919,7 +3993,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
     if (res.err) { errMsg = res.err; renderSheet(); return; }
     var after = E.economy(S, 0);
     setNews(res.win ? D[t].n + ' 접수. ' + res.lost + '명 귀가, 수입 ' + signed(after.tax - before.tax, money) + '/월.' + (res.collapse ? ' ' + E.collapseText(res.collapse) : '') + (res.quick ? ' 급행으로 바로 복귀.' : '') : D[t].n + ' 공격 실패. ' + res.lost + '명 귀가.', !res.win);
-    if (res.win) { sel = null; sheetMode = 'none'; }
+    if (res.win) keepTook(t);
     else { var n2 = E.needFor(S, t, 0.8); sendN = Math.max(1, Math.min(Math.floor(S.f[0].troops), n2)); }
     if (res.collapse && S.stat.rivalDown === res.collapse.name && !S.rivalShown) {
       S.rivalShown = res.collapse.name;
@@ -3957,7 +4031,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
     var gtx = E.govTaxOf(S, sel), base = E.taxOf(S, sel, fm), nowTax = base + gtx, nowDr = E.draftOf(S, sel) * dk, nowDef = def.total;
     if (peek) {
       var zq = E.zoneOf(S, sel);
-      var q = headHTML(d, GU[d.g].n + ' · 우리 동' + (capt ? ' · 본거지' : '') + (zq ? ' · ' + esc(zq.nm) : '')) + '<div class="quick">';
+      var q = headHTML(d, GU[d.g].n + ' · 우리 동' + (capt ? ' · 본거지' : '') + (zq ? ' · ' + esc(zq.nm) : '') + tookSub(d)) + '<div class="quick">';
       q += '<p class="qstat num">월수입 <b>+' + money(nowTax) + '</b> · 동원 <b>+' + people(nowDr) + '</b> · 방어 <b>' + people(nowDef) + '</b> · 민심 <b>' + Math.round(S.min[sel]) + '</b></p>';
       if (S.rivalPlan && S.rivalPlan.t === sel) { var pi = E.planInfo(S); q += '<p class="qstat warn"><b>' + esc(pi.name) + '</b> 다음 달 침공 예고 · ' + people(S.rivalPlan.n) + ' · 대기 인원을 남기면 방어 상승</p>'; }
       else if (S.min[sel] < 40 && !capt) q += '<p class="qstat warn">민심 40 아래 · 독립 위험 · 치안 올리기</p>';
@@ -3978,7 +4052,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
       return;
     }
     var zf = E.zoneOf(S, sel);
-    var html = headHTML(d, GU[d.g].n + ' · 우리 동' + (capt ? ' · 본거지' : '') + (zf ? ' · ' + esc(zf.nm) : '')) + typeLine(d) + govBadge(sel) + comboHTML(sel);
+    var html = headHTML(d, GU[d.g].n + ' · 우리 동' + (capt ? ' · 본거지' : '') + (zf ? ' · ' + esc(zf.nm) : '') + tookSub(d)) + typeLine(d) + govBadge(sel) + comboHTML(sel);
     var one = function (v) { return (Math.round(v * 10) / 10).toLocaleString('ko-KR'); };
     html += '<div class="mini num"><div><small>월수입</small><b>+' + money(nowTax) + '</b></div><div><small>동원</small><b>+' + people(nowDr) + '</b></div><div><small>방어</small><b>' + people(nowDef) + '</b></div><div><small>민심</small><b>' + Math.round(S.min[sel]) + '</b></div></div>';
     if (gtx) html += '<p class="why num">월수입 ' + money(nowTax) + ' = 기본 ' + money(base) + (gtx > 0 ? ' + 정부 사업 ' + money(gtx) : ' − 정부 사업 부담 ' + money(-gtx)) + '</p>';
@@ -4314,16 +4388,37 @@ if (typeof module !== 'undefined') module.exports = Engine;
     plan.list.forEach(function (x) { by[x[1]]++; if (E.devSide(S, x[0], x[1]).text) side++; });
     return { tax: b.net - a.net, dr: b.draft - a.draft, by: by, side: side };
   }
+  // 전체 개발 동별 효과 (이 동만 보면): 수입·동원 변화와 대가
+  var devDet = null, devListOpen = false;
+  function sideScore(sd) { return sd.t === 0 ? (sd.mood || 0) + 2 * (sd.nb ? sd.nb.length : 0) : sd.t === 1 ? 5 : sd.t === 2 ? (/8%/.test(sd.text) ? 8 : 4) : sd.text ? 5 : 0; }
+  function realmDevRows(plan) {
+    var key = S.month + '|' + plan.cost + '|' + plan.list.join(';') + '|' + S.dev.reduce(function (a, v) { return a + v; }, 0);
+    if (devDet && devDet.k === key) return devDet.v;
+    var list = E.dongsOf(S, 0), fm = E.fullMapOf(S, 0, list), dk = E.drafted(E.nEff(list));
+    var rows = plan.list.map(function (x) {
+      var i = x[0], k = x[1], l = E.lv(S, i, k), t0 = E.taxOf(S, i, fm), d0 = E.draftOf(S, i) * dk;
+      S.dev[i * 4 + k]++; var t1 = E.taxOf(S, i, fm), d1 = E.draftOf(S, i) * dk; S.dev[i * 4 + k]--;
+      var sd = E.devSide(S, i, k);
+      return { i: i, k: k, l: l, tax: t1 - t0, dr: d1 - d0, side: sd.text, ss: sd.text ? sideScore(sd) : 0 };
+    });
+    devDet = { k: key, v: rows };
+    return rows;
+  }
+  function devGain(r) { return [r.tax >= 0.5 ? '수입 +' + money(r.tax) : '', r.dr >= 0.5 ? '동원 +' + people(r.dr) : '', r.k === 1 ? '공격↑' : '', r.k === 3 ? '방어·민심↑' : ''].filter(Boolean).join(' · ') || '단계↑'; }
   function realmDevHTML(me) {
     if (devT === null) devT = S.devPlan ? S.devPlan.t : -1;
     var mine = E.dongsOf(S, 0).length;
+    if (mine < 2) return sec('개발') + '<div class="rows"><button class="row rowBtn" type="button" data-go1="' + me.cap + '"><span>우리 ' + UNITN + ' 1곳 · ' + esc(D[me.cap].n) + '</span><span>개발하기 ›</span></button></div>';
     var h = sec('전체 개발 · 우리 동 ' + mine + '곳', '우리 동 전체에서 단계 낮은 곳부터 한 단계씩 올립니다. 결재는 쓰지 않습니다.<br>추천: 동 성격에 맞춰 상권·주거 등을 고르고, 민심 45 아래 동은 치안부터.<br>매달 자동: 다음 달부터 월수입의 일정 비율로 알아서 짓습니다.');
     h += '<div class="chips dt" role="group" aria-label="무엇을 지을지">' + [[-1, '추천']].concat(DEVN.map(function (n, k) { return [k, n]; })).map(function (x) { return '<button class="chip' + (devT === x[0] ? ' on' : '') + '" type="button" data-dt="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>';
     h += '<div class="chips db" role="group" aria-label="예산">' + [[0.3, '예산 30%'], [0.5, '절반'], [1, '전액']].map(function (x) { return '<button class="chip num' + (devB === x[0] ? ' on' : '') + '" type="button" data-db="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>';
     var pl = E.realmDevPlan(S, devT, Math.floor(me.money * devB));
     if (pl.n) {
       var fx = realmDevFx(pl);
-      h += '<p class="why num">' + pl.n + '곳 · ' + money(pl.cost) + ' → ' + [fx.tax >= 0.5 ? '월수입 <b>+' + money(fx.tax) + '</b>' : '', fx.dr >= 0.5 ? '동원 <b>+' + people(fx.dr) + '/월</b>' : '', fx.by[1] ? '공격 전력↑ ' + fx.by[1] + '곳' : '', fx.by[3] ? '방어·민심↑ ' + fx.by[3] + '곳' : ''].filter(Boolean).join(' · ') + (devT < 0 ? '<br>' + fx.by.map(function (n, k) { return n ? DEVN[k] + ' ' + n : ''; }).filter(Boolean).join(' · ') : '') + (fx.side ? '<br><span class="side">대가 있는 곳 ' + fx.side + '곳 · 민심·방어·수입 소폭 감소</span>' : '') + '</p>';
+      h += '<p class="why num">' + pl.n + '곳 · ' + money(pl.cost) + ' → ' + [fx.tax >= 0.5 ? '월수입 <b>+' + money(fx.tax) + '</b>' : '', fx.dr >= 0.5 ? '동원 <b>+' + people(fx.dr) + '/월</b>' : '', fx.by[1] ? '공격 전력↑ ' + fx.by[1] + '곳' : '', fx.by[3] ? '방어·민심↑ ' + fx.by[3] + '곳' : ''].filter(Boolean).join(' · ') + (devT < 0 ? '<br>' + fx.by.map(function (n, k) { return n ? DEVN[k] + ' ' + n : ''; }).filter(Boolean).join(' · ') : '') + '</p>';
+      var rows = realmDevRows(pl), up = rows.slice().sort(function (a, b) { return b.tax + b.dr * 0.5 - a.tax - a.dr * 0.5; })[0], dn = rows.filter(function (r) { return r.ss; }).sort(function (a, b) { return b.ss - a.ss; })[0];
+      h += '<div class="rows num devTop">' + (up ? '<div class="row"><span>가장 큰 이득 · ' + esc(D[up.i].n) + ' ' + DEVN[up.k] + ' ' + up.l + '→' + (up.l + 1) + '</span><span class="good">' + devGain(up) + '</span></div>' : '') + (dn ? '<div class="row"><span>가장 큰 손해 · ' + esc(D[dn.i].n) + ' ' + DEVN[dn.k] + '</span><span class="side">' + esc(dn.side) + '</span></div>' : '') + '</div>';
+      h += '<details class="more rule devList"' + (devListOpen ? ' open' : '') + '><summary>대상 ' + pl.n + '곳 보기' + (fx.side ? ' · 대가 있는 곳 ' + fx.side : '') + '</summary><div class="rows num">' + rows.map(function (r) { return '<button class="row rowBtn" type="button" data-go1="' + r.i + '"><span>' + esc(D[r.i].n) + ' · ' + DEVN[r.k] + ' ' + r.l + '→' + (r.l + 1) + (r.side ? '<br><small class="side">' + esc(r.side) + '</small>' : '') + '</span><span>' + devGain(r) + '</span></button>'; }).join('') + '</div></details>';
     } else h += '<p class="why">' + (pl.all ? '예산 부족 · 가장 싼 곳 ' + money(Math.min.apply(null, E.dongsOf(S, 0).map(function (i) { var tt = devT >= 0 ? devT : E.autoDevType(S, i); var c = tt < 0 ? null : E.devCost(S, i, tt); return c === null ? 1e9 : c; }))) : '모두 최고 단계') + '</p>';
     h += '<div class="acts"><button class="btn" id="realmDev" type="button"' + (pl.n ? '' : ' disabled') + '>' + (pl.n ? (devT < 0 ? '추천대로' : DEVN[devT]) + ' ' + pl.n + '곳 짓기 · ' + money(pl.cost) : '지을 곳 없음') + '</button></div>';
     var dp = S.devPlan;
@@ -4355,9 +4450,14 @@ if (typeof module !== 'undefined') module.exports = Engine;
     var tN = '', tP = '', tZ = '', tF = '';
     // ---- 현황 ----
     var share = E.popShare(S, 0);
+    if (S.rank < 1) {
+      var g = bestGu(), st = E.guStatus(S, g);
+      tN += sec(hd(GU[g].n) + '까지 ' + unitN(st.need), '한 ' + GRP + '의 ' + UNITN + ' 절반 이상을 차지하면 ' + R1N + '으로 승진합니다. 지금 가장 가까운 ' + GRP + '를 보여 줍니다.') + '<p class="why num">' + GU[g].n + ' <b>' + st.have + '/' + Math.ceil(st.total / 2) + '개</b> <span class="hpi">(전체 ' + st.total + '개 중 절반)</span></p>';
+      var fr0 = S.stat.took === 0 ? recommend() : null;
+      if (fr0 && (fr0.k === 'atk' || fr0.k === 'per')) tN += '<div class="acts"><button class="btn red" type="button" data-go1="' + fr0.t + '">' + esc(D[fr0.t].n) + ' 살펴보기' + (fr0.why ? ' · ' + esc(fr0.why) : '') + '</button></div>';
+    }
     tN += sec(MAYOR + '까지', CNAME + ' 인구 60%를 넘기면 ' + E.C.ELECT_WAIT + '달 뒤 ' + MAYOR + ' 선거가 열리고, 과반을 얻으면 취임합니다.' + (!S.coal && !S.won ? ' 45%를 넘기면 남은 세력이 반동장 연합을 맺습니다.' : '')) + '<div class="bar"><u style="width:' + Math.min(100, share * 100) + '%"></u><s style="left:60%"></s></div><p class="why num">' + CNAME + ' 인구 <b>' + (share * 100).toFixed(1) + '%</b> 장악 · 목표 60%' + (!S.coal && !S.won ? ' · 45%부터 연합' : '') + '</p>';
-    if (S.rank < 1) { var g = bestGu(), st = E.guStatus(S, g); tN += '<p class="why num">' + R1N + ' · ' + GU[g].n + ' <b>' + st.have + '/' + Math.ceil(st.total / 2) + '개</b> <span class="hpi">(한 ' + GRP + '의 ' + UNITN + ' 절반 이상 · 전체 ' + st.total + '개)</span></p>'; }
-    else if (S.rank < 2) tN += '<p class="why num">' + RANK2 + ' · 절반 넘긴 ' + GRP + ' <b>' + held + '/' + R2 + '개</b></p>';
+    if (S.rank >= 1 && S.rank < 2) tN += '<p class="why num">' + RANK2 + ' · 절반 넘긴 ' + GRP + ' <b>' + held + '/' + R2 + '개</b></p>';
     if (S.elect && !S.won) {
       var vs = E.voteShare(S);
       tN += sec('선거 예측 · ' + Math.max(0, S.elect.at - S.month) + '달 뒤' + (S.elect.n > 1 ? ' (재선거)' : ''), '우리 동 민심이 높을수록, 인구가 많을수록 표가 늘어납니다. 유세는 ' + GRP + ' 화면에서 결재 1건으로 합니다.') + '<div class="bar"><u style="width:' + Math.min(100, vs * 100) + '%"></u><s style="left:50%"></s></div><p class="why num">지금 치르면 득표율 <b>' + (vs * 100).toFixed(1) + '%</b> · ' + (vs > 0.5 ? '당선권' : '과반에 ' + (50 - vs * 100).toFixed(1) + '%p 모자람') + ' · 민심 평균 ' + Math.round(E.avgMood(S)) + '</p>';
@@ -4427,6 +4527,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
       Array.prototype.forEach.call(sh.querySelectorAll('.tabp'), function (x) { x.hidden = x.dataset.tp !== realmTab; });
       sh.scrollTop = 0;
     }); });
+    var dl0 = sh.querySelector('.devList'); if (dl0) dl0.addEventListener('toggle', function () { devListOpen = dl0.open; });
     Array.prototype.forEach.call(sh.querySelectorAll('[data-cgo],[data-pg],[data-go1]'), function (b) { b.addEventListener('click', function () { goDong(+(b.dataset.cgo || b.dataset.pg || b.dataset.go1)); }); });
     Array.prototype.forEach.call(sh.querySelectorAll('.pq .chip'), function (b) { b.addEventListener('click', function () { var pid = +b.parentNode.dataset.p; if (b.dataset.r) E.pupSet(S, pid, 'rate', +b.dataset.r); else E.pupSet(S, pid, 'stance', b.dataset.s); save(); sync(); }); });
     Array.prototype.forEach.call(sh.querySelectorAll('[data-gs]'), function (b) { b.addEventListener('click', function () { guSel = +b.dataset.gs; sel = null; sheetMode = 'gu'; renderSheet(); dirty(); }); });
@@ -4933,7 +5034,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
     if (res) { resumeGame(res); }
     else requestAnimationFrame(function () { fitAll(false); });
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { labelW = {}; dirty(); });
-    window.__game = { get S() { return S; }, E: E, D: D, cam: function () { return cam; }, select: select, sync: function () { sync(); }, tab: function (t) { realmTab = t; if (sheetMode === 'realm') renderSheet(); } };
+    window.__game = { get S() { return S; }, E: E, D: D, cam: function () { return cam; }, select: select, sync: function () { sync(); }, tab: function (t) { realmTab = t; if (sheetMode === 'realm') renderSheet(); }, tags: function () { var k = Object.keys(rpTags); rpTags = {}; return k; }, rec: function () { return recommend(); } };
   }
   var hot = window.claude && window.claude.hot;
   if (hot && hot.snapshot) { try { hot.snapshot(function () { return { save: S }; }); } catch (e) {} }
