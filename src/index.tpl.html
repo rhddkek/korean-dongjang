@@ -55,7 +55,7 @@ button{cursor:pointer;touch-action:manipulation}
 #next.go{background:var(--ink)}
 #next small{display:block;font-size:11px;font-weight:500;opacity:.85;line-height:1.1;margin-top:1px}
 #dock{flex-wrap:wrap}#newsRow{flex:0 0 100%;display:flex;gap:8px;align-items:center;min-width:0}
-#todo{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:4px;text-align:left;background:#FFF7D6;border:1px solid var(--ink);border-radius:4px;padding:2px 8px 2px 10px;font-size:13px;font-weight:500;min-height:44px;line-height:1.25}
+#todo,#todo2{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:4px;text-align:left;background:#FFF7D6;border:1px solid var(--ink);border-radius:4px;padding:2px 8px 2px 10px;font-size:13px;font-weight:500;min-height:44px;line-height:1.25}
 #todo[hidden]~#lens{margin-left:auto}
 #todo span{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;overflow:hidden}#todo span b{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#todo span small{font-size:12px;font-weight:400;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}#todo>i{font-style:normal;font-size:18px;line-height:1}#todo .tg{font-style:normal;font-size:11px;font-weight:600;color:#fff;background:#1B4C78;border-radius:3px;padding:1px 4px;vertical-align:1px}#todo .tg.bad{background:var(--stamp)}
 #todo[hidden]{display:none}
@@ -349,6 +349,16 @@ details.diplo .acts{margin-top:2px}
 .linkish{position:relative}.linkish::after{content:'';position:absolute;left:-4px;right:-4px;top:-12px;bottom:-12px}
 #quest:active,.btn:active,.chip:active,.rowBtn:active,#todo:active{transform:translateY(1px)}
 .tabs .tab{font-size:14px;padding:0 2px;white-space:nowrap}
+.fx{position:absolute;pointer-events:none;transform:translate(-50%,-50%);z-index:6}
+.fx.ft{font:700 15px "IBM Plex Sans KR","Apple SD Gothic Neo",sans-serif;color:#B4261A;white-space:nowrap;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 2px #fff;animation:ftUp 1s ease-out forwards}
+@keyframes ftUp{0%{opacity:0;transform:translate(-50%,-20%)}15%{opacity:1}100%{opacity:0;transform:translate(-50%,-190%)}}
+.fx.ring{width:18px;height:18px;border:3px solid #1F6B52;border-radius:50%;animation:fxRing .55s ease-out forwards}.fx.ring.bad{border-color:#B4261A}
+@keyframes fxRing{to{width:96px;height:96px;opacity:0;border-width:1px}}
+#todo2{background:#fff}
+#dock.dual #todo,#dock.dual #todo2{flex:1 1 calc(50% - 4px);order:1}#dock.dual #lens,#dock.dual #next{order:2;flex:1 1 0}#dock.dual #newsRow{order:0}
+#todo2 span{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;overflow:hidden}#todo2 span b{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#todo2 span small{font-size:12px;font-weight:400;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}#todo2>i{font-style:normal;font-size:18px;line-height:1}
+#card .seal{animation:sealIn .5s cubic-bezier(.2,1.5,.4,1) both}@keyframes sealIn{0%{transform:scale(2.4) rotate(-20deg);opacity:0}60%{opacity:1}100%{transform:rotate(-9deg);opacity:1}}
+@media (prefers-reduced-motion:reduce){#card .seal,.fx{animation:none!important}}
 </style>
 <div id="app">
   <canvas id="map" aria-label="서울 행정동 지도. 동을 누르면 정보가 열립니다."></canvas>
@@ -375,6 +385,7 @@ details.diplo .acts{margin-top:2px}
     <div id="dock">
       <div id="newsRow"><button id="pin" type="button" hidden></button><button id="news" type="button" aria-label="지역 소식 열기"></button><button id="undo" type="button" hidden>되돌리기</button></div>
       <button id="todo" type="button" hidden></button>
+      <button id="todo2" type="button" hidden></button>
       <button id="lens" type="button"></button>
       <button id="next" type="button">다음 달</button>
     </div>

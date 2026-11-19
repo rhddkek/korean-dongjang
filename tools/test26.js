@@ -43,7 +43,7 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   // 살림 탭
   await p.tap('#cells'); await p.waitForTimeout(300);
   const tabs = await G(() => [...document.querySelectorAll('#sheet .tab')].map(t => t.textContent));
-  ok(tabs.join(',') === '현황,살림,정책,구역,점령,세력', '동장실 탭: ' + tabs.join(','));
+  ok(/^현황,살림/.test(tabs.join(',')) && tabs.indexOf('구역') > 0, '동장실 탭(단계 공개): ' + tabs.join(','));
   const now = await G(() => { const sh = document.getElementById('sheet'); return { dev: !!sh.querySelector('.tabp[data-tp="now"] .chips.dt'), link: !!sh.querySelector('.tabp[data-tp="now"] .linkish[data-tab="dev"]') }; });
   ok(!now.dev && now.link, '현황 탭엔 개발 칩 없음 · 살림 바로가기');
   await p.tap('.tabp[data-tp="now"] .linkish[data-tab="dev"]'); await p.waitForTimeout(250);

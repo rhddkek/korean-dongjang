@@ -26,10 +26,11 @@ var Engine = (function () {
     home: { n: '주택가', t: '조용하지만 손댈 곳이 많습니다', e: '상권·주거 개발 효과 +40%', devx: 1.4 }
   };
   var TRAITS = {
-    fight: { word: '싸움을 좋아함', tries: 1, rec: 0.9, dev: 0.15, money: 1 },
-    build: { word: '동네 개발 우선', tries: 0, rec: 0.55, dev: 0.6, money: 1 },
-    rich: { word: '돈이 많음', tries: 0, rec: 0.7, dev: 0.35, money: 1.25 },
-    talk: { word: '협상에 잘 응함', tries: -1, rec: 0.75, dev: 0.35, money: 1, deal: 0.7 }
+    fight: { word: '공격형 · 방어 약함', tries: 1, rec: 0.9, dev: 0.15, money: 1, def: 0.85 },
+    build: { word: '개발형 · 동네에 돈을 씀', tries: 0, rec: 0.55, dev: 0.6, money: 1 },
+    rich: { word: '부자형 · 포섭비 2배', tries: 0, rec: 0.7, dev: 0.35, money: 1.25, bribe: 2, deal: 1.4 },
+    talk: { word: '협상형 · 공작이 잘 먹힘', tries: -1, rec: 0.75, dev: 0.35, money: 1, deal: 0.7, spy: 0.1 },
+    tight: { word: '결속형 · 포섭·내분 안 통함 · 무너지면 통째로', tries: 0, rec: 0.75, dev: 0.4, money: 1, tight: 1 }
   };
   // 정책 카드: 승진할 때와 6달마다 3장 중 1장. 한 판에 같은 카드는 한 번
   var CARDS = {
@@ -68,7 +69,7 @@ var Engine = (function () {
   // 세력 회장: 이름과 얼굴(화면에서 그림)의 씨앗
   var SUR = ['김', '이', '박', '최', '정', '강', '조', '윤', '장', '임', '한', '오', '서', '신', '권', '황', '안', '송', '류', '홍'];
   var GIV = ['덕배', '순자', '영수', '말순', '춘자', '상철', '미숙', '용팔', '복남', '정자', '만수', '옥자', '기철', '금순', '동팔', '영자', '봉구', '경숙', '칠성', '점례', '갑수', '명자', '태식', '두리'];
-  var GROUP_TRAIT = { '조기축구회': 'fight', '청년회': 'fight', '방범대': 'fight', '자율방재단': 'fight', '학부모회': 'build', '입주자대표회의': 'build', '반상회': 'build', '노인회': 'build', '상인회': 'rich', '번영회': 'rich', '통장협의회': 'talk', '부녀회': 'talk', '산악회': 'talk', '배드민턴클럽': 'talk', '테니스동호회': 'talk' };
+  var GROUP_TRAIT = { '조기축구회': 'fight', '청년회': 'fight', '방범대': 'fight', '자율방재단': 'fight', '학부모회': 'build', '입주자대표회의': 'build', '반상회': 'tight', '노인회': 'tight', '상인회': 'rich', '번영회': 'rich', '통장협의회': 'talk', '부녀회': 'talk', '산악회': 'talk', '배드민턴클럽': 'talk', '테니스동호회': 'talk' };
   // 시작 동 유형별 대표 능력 (시작 동 유형에만 붙고 한 판 내내 유지)
   // 개발 단계마다 이름 붙은 시설. 3단계·5단계에는 주변까지 미치는 효과가 있다.
   var FAC = [
@@ -532,6 +533,7 @@ var Engine = (function () {
     var share = 0;
     if (o >= 0) {
       var isCap = s.f[o].cap === i;
+      if (o > 0) base *= traitOf(s, o).def || 1;
       if (isCap) base *= 1.35 * (o === 0 ? 1 : 1 + Math.min(1.2, dongsOf(s, o).length * 0.06));   // 큰 세력일수록 본거지가 단단함
       if (o === 0) {
         if (hasCard(s, 'patrol')) base *= 1.2;
@@ -609,6 +611,7 @@ var Engine = (function () {
     e.ch = e.ch || ch; RP.ev.push(e);
   }
   function resolve(s, fid, t, n, r, plan) {
+    if (fid === 0 && s.owner[t] > 0) hitBy(s, s.owner[t]);
     var b0 = RP && fid > 0 ? s.owner.slice() : null;
     var att = s.f[fid], o = s.owner[t];
     var def = defense(s, t);
@@ -662,7 +665,7 @@ var Engine = (function () {
           mine.sort(function (a, b) { return D.d[b].base - D.d[a].base; });
           s.f[0].cap = mine[0];
           s.f[0].troops *= 0.75;
-          res.movedCap = mine[0];
+          res.movedCap = mine[0]; s.capLost = s.month;
         }
       } else collapse(s, o, fid, res);
     }
@@ -673,7 +676,7 @@ var Engine = (function () {
     var list = dongsOf(s, o), joined = 0;
     if (fid === 0) s.stat.took += 0;
     list.forEach(function (i) {
-      if (rnd(s) < (list.length >= 15 ? 0.3 : 0.4)) { s.owner[i] = fid; s.min[i] = 30; joined++; if (fid === 0) s.stat.took++; }
+      if ((fid === 0 && traitOf(s, o).tight) || rnd(s) < (list.length >= 15 ? 0.3 : 0.4)) { s.owner[i] = fid; s.min[i] = 30; joined++; if (fid === 0) s.stat.took++; }
       else { s.owner[i] = -1; s.min[i] = 60; }
     });
     s.f[o].alive = false;
@@ -681,9 +684,26 @@ var Engine = (function () {
     if (fid === 0 && s.rival === o) { s.stat.rivalDown = s.f[o].name; s.rival = -1; pushLog(s, s.f[o].name + ' 회장이 마지막 회의를 열었습니다. 안건은 해산입니다.', 'riv'); }
     if (res) res.collapse = { name: s.f[o].name, joined: joined, freed: list.length - joined };
     if (fid === 0) advMove(s, o, list.length, res);
+    if (fid === 0 && res && (s.rank >= 2 || popShare(s, 0) >= 0.4)) { var sv = surrender(s, o); if (sv) res.collapse.surr = sv; }
     return joined;
   }
 
+  // 연쇄 투항: 판이 기운 뒤 큰 세력이 무너지면 작고 약한 세력들이 손을 듦 (최대 3곳)
+  function surrender(s, gone) {
+    var me = s.f[0], power0 = me.troops + (me.away || 0), c = [];
+    s.f.forEach(function (f) {
+      if (!f.ai || !f.alive || f.puppet || f.id === gone) return;
+      var n = dongsOf(s, f.id).length;
+      if (n && n <= 6 && f.troops < power0 * 0.35 && touchesMe(s, f.id)) c.push({ f: f, n: n });
+    });
+    if (!c.length) return null;
+    c.sort(function (a, b) { return b.n - a.n; }); c = c.slice(0, 3);
+    var tot = 0;
+    c.forEach(function (x) { dongsOf(s, x.f.id).forEach(function (i) { s.owner[i] = 0; s.min[i] = Math.min(s.min[i], 50); joinSoft(s, i); tot++; }); x.f.alive = false; x.f.troops = 0; x.f.away = 0; if (s.rival === x.f.id) { s.stat.rivalDown = x.f.name; s.rival = -1; } });
+    s.stat.took += tot; s.stat.surr = (s.stat.surr || 0) + c.length;
+    pushLog(s, '연쇄 투항 · ' + c.map(function (x) { return x.f.name; }).join(', ') + ' · ' + tot + '곳 합류', 'good');
+    return { names: c.map(function (x) { return x.f.name; }), n: tot };
+  }
   // 우리에게 무너진 회장은 사라지지 않고 우리와 맞닿은 다른 세력의 고문으로 들어감
   function advMove(s, o, size, res) {
     var gone = s.f[o];
@@ -784,11 +804,12 @@ var Engine = (function () {
     money = Math.min(Math.floor(money), Math.floor(s.f[0].money));
     if (money <= 0) return { err: '예산이 없습니다.' };
     s.f[0].money -= money;
-    var n = Math.round(money * C.RECRUIT * (hasCard(s, 'hire') ? 1.25 : 1));
+    var n = Math.round(money * C.RECRUIT * (hasCard(s, 'hire') ? 1.25 : 1) * (downOn(s) ? 2 : 1));
     s.f[0].troops += n;
     return { ok: true, n: n };
   }
-  function persuadeCost(s, i) { return Math.round(D.d[i].base * 0.65 * (1 + 0.35 * lv(s, i, 3)) * (hasCard(s, 'talk') ? 0.7 : 1)); }
+  function persuadeCost(s, i) { return Math.round(D.d[i].base * 0.65 * (1 + 0.35 * lv(s, i, 3)) * (hasCard(s, 'talk') ? 0.7 : 1) * (downOn(s) ? 0.7 : 1) * (s.cheap && s.cheap[i] > s.month ? 0.6 : 1)); }
+  function downOn(s) { return !!(s.down && s.down.until >= s.month); }
   function persuade(s, i) {
     if (s.owner[i] !== -1) return { err: '독립 동만 설득할 수 있습니다.' };
     var r = route(s, 0, i);
@@ -802,6 +823,100 @@ var Engine = (function () {
     pushLog(s, J(D.d[i].n, '이', '가') + ' 설득에 넘어왔습니다.', 'good');
     afterChange(s);
     return { ok: true };
+  }
+  // ---- 정치공작: 이간질 · 내부 포섭 · 내분 조장 · 여론전 ----
+  var OPS = {
+    feud: { n: '이간질', ap: 1, p: 0.55, e: '맞닿은 두 세력이 3달 동안 서로 싸움', bad: '두 세력 모두 우리를 미워함' },
+    bribe: { n: '내부 포섭', ap: 1, p: 0.5, e: '싸우지 않고 이 동이 넘어옴 (안 맞닿아도 됨)', bad: '돈만 날리고 다음 달 보복' },
+    split: { n: '내분 조장', ap: 2, p: 0.45, e: '세력이 갈라져 일부 동이 독립 · 6달 설득비 40% 할인', bad: '6달 동안 경계해서 다시 못 함' },
+    smear: { n: '여론전', ap: 1, p: 0.6, e: '이 구 세력 동 민심 급락 → 몇 달 안에 독립', bad: '이 구 근처 우리 동 민심 −10' }
+  };
+  function opOdds(s, fid, k) {
+    var tr = traitOf(s, fid), f = s.f[fid], mine = dongsOf(s, 0), sec = 0, n = mine.length;
+    mine.forEach(function (i) { sec += lv(s, i, 3); });
+    var p = OPS[k].p + Math.min(0.2, sec / Math.max(1, n) * 0.08) + (s.month > C.GRACE && n < 5 ? 0.12 : s.month > C.GRACE && n < 10 ? 0.05 : 0) + (tr.spy || 0) - ((f.hate || 0) >= 55 ? 0.1 : 0) - 0.12 * (f.heat || 0) + (downOn(s) ? 0.1 : 0);
+    return Math.max(0.1, Math.min(0.9, p));
+  }
+  function feudPartner(s, fid) {
+    var best = -1, bp = -1, seen = {};
+    dongsOf(s, fid).forEach(function (i) { D.d[i].a.forEach(function (j) { var o = s.owner[j]; if (o > 0 && o !== fid && !seen[o] && s.f[o].alive && !s.f[o].puppet) { seen[o] = 1; if (s.f[o].troops > bp) { bp = s.f[o].troops; best = o; } } }); });
+    return best;
+  }
+  function opInfo(s, k, t) {
+    var o = s.owner[t], f = o > 0 ? s.f[o] : null, x = OPS[k];
+    var r = { k: k, n: x.n, e: x.e, bad: x.bad, ap: x.ap, ok: false, why: '' };
+    if (!f || f.puppet || !f.ai || !f.alive) { r.why = '다른 세력의 동이어야 합니다.'; return r; }
+    var tr = traitOf(s, o), nF = dongsOf(s, o).length;
+    r.f = o; r.odds = opOdds(s, o, k);
+    if (k === 'feud') { r.b = feudPartner(s, o); r.cost = Math.round(30 + (nF + (r.b > 0 ? dongsOf(s, r.b).length : 0)) * 3); if (r.b < 0) r.why = '맞닿은 다른 세력이 없습니다.'; else { r.bn = s.f[r.b].name; if (f.war && f.war.until > s.month) r.why = '이미 ' + s.f[f.war.f].name + '와 싸우는 중'; } }
+    else if (k === 'bribe') { r.cost = Math.round(persuadeCost(s, t) * 1.5 * (tr.bribe || 1)); if (tr.tight) r.why = '결속형이라 포섭이 안 통합니다.'; else if (f.cap === t) r.why = '본거지는 포섭할 수 없습니다.'; else if (nF < 3) r.why = '동이 3곳 이상인 세력만 됩니다.'; }
+    else if (k === 'split') { r.cost = Math.round(60 + nF * 8); if (tr.tight) r.why = '결속형이라 내분이 안 일어납니다.'; else if (nF < 5) r.why = '동이 5곳 이상인 세력만 됩니다.'; else if ((f.tightUntil || 0) > s.month) r.why = '경계 중 · ' + (f.tightUntil - s.month) + '달 뒤 가능'; else r.free = splitPart(s, o).length; }
+    else if (k === 'smear') { var g = D.d[t].g; r.g = g; r.gn = D.gu[g].n; r.cnt = GUDONGS[g].filter(function (i) { var w = s.owner[i]; return w > 0 && !isPup(s, w) && s.f[w].cap !== i; }).length; r.cost = Math.round(30 + r.cnt * 4); if (!r.cnt) r.why = '이 구에 흔들 세력 동이 없습니다.'; else if ((s.smearAt && s.smearAt[g] || -99) + 4 > s.month) r.why = '이 구는 ' + (s.smearAt[g] + 4 - s.month) + '달 뒤 다시'; }
+    if (!r.why && s.ap < x.ap) r.why = '결재가 ' + x.ap + '건 필요합니다.';
+    if (!r.why && s.f[0].money < r.cost) r.why = '예산이 ' + Math.ceil(r.cost - s.f[0].money) + '억 모자랍니다.';
+    r.ok = !r.why;
+    return r;
+  }
+  // 내분 때 떨어져 나갈 동: 본거지와 다른 구에 있는 가장 큰 덩어리, 없으면 본거지에서 먼 절반
+  function splitPart(s, fid) {
+    var f = s.f[fid], list = dongsOf(s, fid).filter(function (i) { return i !== f.cap; }), groups = {}, cg = D.d[f.cap].g;
+    list.forEach(function (i) { var g = D.d[i].g; if (g !== cg) (groups[g] = groups[g] || []).push(i); });
+    var best = null; Object.keys(groups).forEach(function (g) { if (!best || groups[g].length > best.length) best = groups[g]; });
+    if (best && best.length >= 2) return best;
+    var c = D.d[f.cap]; list.sort(function (a, b) { return Math.hypot(D.d[b].x - c.x, D.d[b].y - c.y) - Math.hypot(D.d[a].x - c.x, D.d[a].y - c.y); });
+    return list.slice(0, Math.max(1, Math.floor(list.length / 2)));
+  }
+  function doOp(s, k, t) {
+    var r = opInfo(s, k, t);
+    if (!r.ok) return { err: r.why };
+    var me = s.f[0], f = s.f[r.f];
+    me.money -= r.cost; s.ap -= r.ap; f.heat = (f.heat || 0) + 1;
+    s.stat.ops = (s.stat.ops || 0) + 1;
+    var win = rnd(s) < r.odds, out = { ok: true, win: win, k: k, n: r.n, name: f.name, cost: r.cost };
+    if (win) {
+      s.stat.opsWon = (s.stat.opsWon || 0) + 1;
+      if (k === 'feud') { var b = s.f[r.b]; f.war = { f: r.b, until: s.month + 3 }; b.war = { f: r.f, until: s.month + 3 }; out.b = b.name; pushLog(s, '이간질 성공 · ' + f.name + ' ↔ ' + b.name + ' 3달 동안 싸움', 'good'); }
+      else if (k === 'bribe') { s.owner[t] = 0; s.min[t] = 55; joinSoft(s, t); s.stat.took++; out.t = t; pushLog(s, '포섭 성공 · ' + D.d[t].n + ' 합류', 'good', t); }
+      else if (k === 'split') {
+        var part = splitPart(s, r.f); if (!s.cheap) s.cheap = {};
+        part.forEach(function (i) { s.owner[i] = -1; s.min[i] = 55; s.cheap[i] = s.month + 6; });
+        f.troops *= 1 - part.length / (part.length + dongsOf(s, r.f).length);
+        out.freed = part.length; out.t = part[0];
+        rpPush(s, { k: 'split', f: -1, o: r.f, t: part[0], ch: part.map(function (i) { return [i, -1]; }) });
+        pushLog(s, '내분 성공 · ' + f.name + '에서 ' + part.length + '곳 독립 · 6달 설득비 40% 할인', 'good', part[0]);
+      }
+      else { var hit = 0; GUDONGS[r.g].forEach(function (i) { var w = s.owner[i]; if (w > 0 && !isPup(s, w) && s.f[w].cap !== i) { s.min[i] = Math.max(5, s.min[i] - 45); hit++; } }); if (!s.smearAt) s.smearAt = {}; s.smearAt[r.g] = s.month; out.hit = hit; pushLog(s, '여론전 성공 · ' + r.gn + ' 세력 동 ' + hit + '곳 민심 급락', 'good'); }
+    } else {
+      if (k === 'feud') { feel(s, r.f, 25, 0); feel(s, r.b, 25, 0); pushLog(s, '이간질 들킴 · ' + f.name + '·' + s.f[r.b].name + '이 우리를 미워합니다', 'bad'); }
+      else if (k === 'bribe') { feel(s, r.f, 20, 0); pushLog(s, '포섭 들킴 · ' + r.cost + '억 날림', 'bad', t); setRetal(s, r.f, '포섭 시도'); }
+      else if (k === 'split') { feel(s, r.f, 20, 0); f.tightUntil = s.month + 6; pushLog(s, '내분 공작 들킴 · ' + f.name + ' 6달 경계', 'bad'); }
+      else { var mh = 0; dongsOf(s, 0).forEach(function (i) { if (D.d[i].g === r.g || D.d[i].a.some(function (j) { return D.d[j].g === r.g; })) { s.min[i] = Math.max(5, s.min[i] - 10); mh++; } }); if (!s.smearAt) s.smearAt = {}; s.smearAt[r.g] = s.month; pushLog(s, '여론전 들킴 · 우리 동 ' + mh + '곳 민심 −10', 'bad'); }
+    }
+    out.msg = s.log[0] ? s.log[0].t : '';
+    if (!win && k === 'bribe' && f.retal) out.msg = '포섭 들킴 · ' + r.cost + '억 날림 · ' + f.name + ' 보복 예고 ' + D.d[f.retal.t].n;
+    afterChange(s);
+    return out;
+  }
+  // 상대 세력도 우리 동을 포섭하려 함: 한 달 전에 예고, 치안이 높을수록 잘 막음
+  function foeOpDef(s, t) { return Math.min(0.92, 0.35 + lv(s, t, 3) * 0.12 + 0.08 * Math.min(2, nbLv(s, t, 3, 3))); }
+  function tickFoeOp(s) {
+    var q = s.foeOp;
+    if (q && s.month >= q.at) {
+      var f = s.f[q.f];
+      if (s.owner[q.t] === 0 && f.alive && s.f[0].cap !== q.t && !(s.f[0].pact && s.f[0].pact[q.f] > s.month)) {
+        if (rnd(s) < foeOpDef(s, q.t)) { pushLog(s, D.d[q.t].n + ' 포섭 시도를 막았습니다 (' + f.name + ')', 'good', q.t); s.stat.foeOpStop = (s.stat.foeOpStop || 0) + 1; }
+        else { s.owner[q.t] = q.f; s.min[q.t] = 50; if (RP) rpPush(s, { k: 'atk', f: q.f, o: 0, t: q.t, win: true, ch: [[q.t, q.f]] }); s.stat.lost++; pushLog(s, f.name + '에게 ' + D.d[q.t].n + ' 포섭당함', 'bad', q.t); }
+      }
+      s.foeOp = null;
+    }
+    if (s.foeOp || s.month <= C.GRACE + 4 || s.won || rnd(s) > 0.14) return;
+    var cand = s.f.filter(function (f) { return f.ai && f.alive && !f.puppet && touchesMe(s, f.id) && !(s.f[0].pact && s.f[0].pact[f.id] > s.month) && (f.id === s.rival || (f.hate || 0) >= 30 || inCoal(s, f.id)); });
+    if (!cand.length) return;
+    var f = pick(s, cand), best = -1, bv = 1e9;
+    dongsOf(s, f.id).forEach(function (i) { D.d[i].a.forEach(function (j) { if (s.owner[j] !== 0 || s.f[0].cap === j) return; var v = foeOpDef(s, j) * 100 + D.d[j].base * 0.01; if (v < bv) { bv = v; best = j; } }); });
+    if (best < 0) return;
+    s.foeOp = { f: f.id, t: best, at: s.month + 1 };
+    pushLog(s, f.name + '이 ' + D.d[best].n + ' 주민 포섭 중 · 다음 달 · 치안을 올리면 막기 쉬움', 'bad', best);
   }
   function dealX(s, fid) { return traitOf(s, fid).deal || 1; }
   function pactCost(s, fid) { return Math.round((20 + dongsOf(s, fid).length * 5) * dealX(s, fid) * (hasCard(s, 'diplo') ? 0.6 : 1) * ((s.f[fid].warm || 0) >= 40 ? 0.8 : 1)); }
@@ -1363,6 +1478,18 @@ var Engine = (function () {
     return { ok: true };
   }
   // ---- 숙적 작전 ----
+  // 한 달에 같은 세력을 두 번 넘게 치면 다음 달 보복 예고
+  function hitBy(s, o) {
+    var f = s.f[o]; if (!f || !f.ai || f.puppet) return;
+    if (f.hitM === s.month) f.hitN++; else { f.hitM = s.month; f.hitN = 1; }
+    if (f.hitN === 2 && !f.retal && s.month > C.GRACE && !inCoal(s, o) && (f.retalAt || -99) + 6 <= s.month && f.troops >= Math.max(60, s.f[0].troops * 0.1)) setRetal(s, o, '연달아 맞은');
+  }
+  function setRetal(s, o, why) {
+    var f = s.f[o], wb = weakBorder(s, o);
+    if (!wb || !f.alive) return;
+    f.retal = { at: s.month + 1, t: wb.t }; f.retalAt = s.month;
+    pushLog(s, f.name + ' 보복 예고 · ' + D.d[wb.t].n + ' (' + why + ' 앙갚음)', 'bad', wb.t);
+  }
   function weakBorder(s, fid) {
     var best = -1, bv = 1e9;
     dongsOf(s, fid).forEach(function (i) {
@@ -1887,6 +2014,15 @@ var Engine = (function () {
     s.stat.biggest = Math.max(s.stat.biggest, dongsOf(s, 0).length);
     var sh = popShare(s, 0);
     if (!s.won && !s.coal && sh >= C.COAL_POP && s.month > 0) coalForm(s);
+    if (!s.won && !s.elect && sh >= C.WIN_POP - 0.05 && sh < C.WIN_POP) {
+      var ps = {}, top = 0; for (var pi = 0; pi < s.owner.length; pi++) { var po = s.owner[pi]; if (po > 0 && !isPup(s, po)) ps[po] = (ps[po] || 0) + D.d[pi].pop; }
+      Object.keys(ps).forEach(function (k) { top = Math.max(top, ps[k] / TOTALPOP); });
+      if (top < 0.12) {
+        s.elect = { at: s.month + C.ELECT_WAIT, n: 1, early: 1 };
+        s.camp = { pl: [], g: {}, u: {} };
+        pushLog(s, '인구 ' + Math.round(sh * 100) + '% · 남은 세력이 모두 작음 · ' + C.ELECT_WAIT + '달 뒤 조기 선거', 'rank');
+      }
+    }
     if (!s.won && !s.elect && sh >= C.WIN_POP) {
       s.elect = { at: s.month + C.ELECT_WAIT, n: 1 };
       s.camp = { pl: [], g: {}, u: {} };
@@ -1925,6 +2061,7 @@ var Engine = (function () {
       f.troops += spend * C.RECRUIT;
     }
     var tries = Math.max(1, Math.min(3, 1 + Math.floor(list.length / 12)) + tr.tries);
+    f.heat = Math.max(0, (f.heat || 0) - 0.34);
     var touching = !P && list.some(function (i) { return D.d[i].a.some(function (j) { return s.owner[j] === 0; }); });
     if (P) { if (P.stance === 'def' || P.stance === 'dev') tries = 0; else tries = Math.min(2, tries + (P.target > 0 ? 1 : 0)); }
     var pounce = touching && s.weakAt === s.month - 1 && s.month > C.GRACE && dongsOf(s, 0).length > 5 && f.id === s.rival && !(s.f[0].pact && s.f[0].pact[f.id] > s.month);
@@ -1943,7 +2080,11 @@ var Engine = (function () {
     var grudge = touching && !meP && s.month > C.GRACE + 2 && ((f.hate || 0) >= 55 || (f.adv && (f.hate || 0) >= 35));
     if (grudge && !f.hateSaid) { f.hateSaid = 1; pushLog(s, (f.adv ? f.adv.nm + ' 고문' : f.boss.nm + ' 회장') + '(' + f.name + ')이 우리 이름만 들어도 이를 갑니다. 먼저 노릴 겁니다.', 'riv'); }
     if ((f.hate || 0) < 30) f.hateSaid = 0;
-    var hunt = pounce || opp || (inCoal(s, f.id) && touching) || grudge;
+    var war = f.war && f.war.until >= s.month && s.f[f.war.f] && s.f[f.war.f].alive ? f.war.f : -1;
+    var retal = f.retal && f.retal.at <= s.month && touching ? f.retal : null; if (f.retal && f.retal.at <= s.month) f.retal = null;
+    if (war > 0) tries += 1;
+    if (retal) tries += 1;
+    var hunt = pounce || opp || (inCoal(s, f.id) && touching && war < 0) || grudge || !!retal;
     // 본거지가 위협받으면 확장을 멈추고 지킨다
     var capDef = defense(s, f.cap).total, threat = 0;
     D.d[f.cap].a.forEach(function (j) { var o = s.owner[j]; if (P && (o === 0 || isPup(s, o))) return; if (o >= 0 && o !== f.id) threat = Math.max(threat, s.f[o].troops + (o === 0 ? s.f[o].away || 0 : 0)); });
@@ -1987,12 +2128,14 @@ var Engine = (function () {
           if (seen[t2] || s.owner[t2] === f.id) continue;
           seen[t2] = 1;
           var o = s.owner[t2];
-          if (o > 0 && inCoal(s, f.id) && inCoal(s, o)) continue;
+          if (o > 0 && inCoal(s, f.id) && inCoal(s, o) && o !== war) continue;
           if (P && (o === 0 || isPup(s, o))) continue;
           if (o === 0) {
             if (s.month <= C.GRACE) continue;
             if (s.f[0].pact && s.f[0].pact[f.id] > s.month) continue;
             if (!hunt && rnd(s) < ((f.warm || 0) >= 40 ? 0.85 : 0.58)) continue;
+            if (war > 0 && !retal) continue;
+            if (downOn(s) && rnd(s) < (hunt ? 0.4 : 0.7)) continue;
           }
           var def = defense(s, t2).total;
           var r = route(s, f.id, t2);
@@ -2004,6 +2147,8 @@ var Engine = (function () {
           if (D.d[t2].g === D.d[f.cap].g) val *= 1.5;
           if (o >= 0 && s.f[o].cap === t2) val *= 1.8;
           if (P && P.target > 0 && o === P.target) val *= 4;
+          if (war > 0 && o === war) val *= 5;
+          if (retal && t2 === retal.t) val *= 6;
           if (P && P.target > 0 && o !== P.target && o > 0) val *= 0.5;
           var sc = val / def * (0.8 + rnd(s) * 0.4);
           if (sc > bestScore) { bestScore = sc; bestT = t2; bestR = r; }
@@ -2109,6 +2254,18 @@ var Engine = (function () {
       }
     }
     me.troops += me.away || 0; me.away = 0;   // 출동 인원은 AI 턴이 끝난 뒤 복귀
+    if (!s.over) tickFoeOp(s);
+    // 여론전 등으로 민심이 바닥인 세력 동은 독립할 수 있음
+    for (var ri = 0; ri < s.owner.length; ri++) { var ro0 = s.owner[ri]; if (ro0 > 0 && !isPup(s, ro0) && s.min[ri] < 30 && s.f[ro0].cap !== ri && rnd(s) < 0.22) { s.owner[ri] = -1; s.min[ri] = 55; if (s.cheap === undefined) s.cheap = {}; s.cheap[ri] = s.month + 6; rpPush(s, { k: 'rebel', t: ri, o: ro0, ch: [[ri, -1]] }); pushLog(s, D.d[ri].n + ' 주민이 ' + s.f[ro0].name + '에서 독립', undefined, ri); if (!dongsOf(s, ro0).length) s.f[ro0].alive = false; } }
+    // 재기의 기회: 본거지를 잃었거나 동이 4곳 이하로 줄면 3달 동안 도움 (8달에 한 번)
+    var nMe = dongsOf(s, 0).length;
+    if (!s.over && !s.won && s.month > C.GRACE && (s.capLost === s.month || (nMe > 0 && nMe <= 4)) && (s.downAt || -99) + 8 <= s.month) {
+      s.down = { until: s.month + 2 }; s.downAt = s.month; s.stat.down = (s.stat.down || 0) + 1;
+      pushLog(s, '재기의 기회 · 3달 동안 모집 2배 · 설득 30% 할인 · 공작 성공률↑ · 다른 세력이 덜 노림', 'good');
+    }
+    // 깔끔한 패배: 12달 동안 동이 5곳 미만이면 끝
+    if (!s.over && !s.won && s.month > 12 && nMe < 5) { if (s.lowFrom === undefined) s.lowFrom = s.month; if (s.month - s.lowFrom >= 12) { s.over = true; s.overWhy = 'stall'; pushLog(s, '12달 동안 동 5곳을 넘지 못했습니다. 재기에 실패했습니다.', 'bad'); } }
+    else delete s.lowFrom;
     tickVote(s); tickRivalPlan(s); tickGov(s);
     Object.keys(me.pact || {}).forEach(function (fid) {
       if (me.pact[fid] === s.month + 1 && s.f[fid].alive) pushLog(s, J(s.f[fid].name, '과', '와') + '의 협정이 다음 달 끝납니다.');
@@ -2149,6 +2306,7 @@ var Engine = (function () {
     PLEDGES: PLEDGES, devSide: devSide, moodOf: moodOf, voteOf: voteOf, voteGu: voteGu, campInfo: campInfo, campaign: campaign, choosePledges: choosePledges,
     zoneOf: zoneOf, zoneById: zoneById, zoneMax: zoneMax, zoneCheck: zoneCheck, zoneMake: zoneMake, zoneDissolve: zoneDissolve, zoneAttack: zoneAttack, zoneAttackPreview: zoneAttackPreview, zoneDevelop: zoneDevelop, zoneDevelopPreview: zoneDevelopPreview, zoneTargets: zoneTargets, nameOk: nameOk,
     C: C, setData: setData, setCity: setCity, city: function () { return CITY; }, replay: function () { return RP; }, CARDS: CARDS, hasCard: hasCard, chooseCard: chooseCard, offerCards: offerCards, voteShare: voteShare, inCoal: inCoal, SUR: SUR, GIV: GIV, headOf: headOf, stem: stem, create: create, preview: preview, needFor: needFor, attack: attack, develop: develop, devCost: devCost,
+    OPS: OPS, opInfo: opInfo, doOp: doOp, opOdds: opOdds, foeOpDef: foeOpDef, downOn: downOn, splitPart: splitPart, surrender: surrender,
     recruit: recruit, persuade: persuade, persuadeCost: persuadeCost, pact: pact, pactCost: pactCost, pactCheck: pactCheck, breakPact: breakPact,
     merge: merge, mergeCost: mergeCost, mergeCheck: mergeCheck, endTurn: endTurn, economy: economy, defense: defense, route: route,
     dongsOf: dongsOf, guHeld: guHeld, popShare: popShare, rankNow: rankNow, maxAP: maxAP, factionList: factionList, lv: lv, taxOf: taxOf, draftOf: draftOf, drafted: drafted, nEff: nEff,
