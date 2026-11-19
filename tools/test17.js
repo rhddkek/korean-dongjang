@@ -22,7 +22,7 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   // 자세히 → 전체 시트(슬라이더·칩)
   await p.tap('#qMore'); await p.waitForTimeout(300);
   const fl = await G(() => ({ peek: document.getElementById('sheet').classList.contains('peek'), slider: !!document.querySelector('#sheet #send'), chips: document.querySelectorAll('#sheet .chip').length }));
-  ok(!fl.peek && fl.slider && fl.chips === 4, '자세히 → 인원 슬라이더·승률 칩');
+  ok(!fl.peek && fl.slider && fl.chips >= 5, '자세히 → 승률 칩 4개 + 직접(슬라이더)');
   await p.tap('.x'); await p.waitForTimeout(150);
   // 할 일 줄 누르면 그 동 간단 보기, 그동안 할 일 줄은 숨김
   await p.tap('#todo'); await p.waitForTimeout(350);

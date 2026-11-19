@@ -16,6 +16,13 @@ for f in sorted(glob.glob('raw/sfx/*.mp3')):
     k = os.path.basename(f)[:-4]
     sfx[k] = base64.b64encode(open(f, 'rb').read()).decode()
 ui = re.sub(r'/\*SFX\*/\{\}/\*SFX_END\*/', lambda m: json.dumps(sfx), ui, count=1)
+# PixelLab 도트: 아이콘 줄·회장 얼굴 판 (raw/px/*.png)
+def px_inline(src):
+    for k, f in (('ICONS', 'raw/px/icons.png'), ('FACES', 'raw/px/faces.png')):
+        if os.path.exists(f):
+            src = src.replace("/*%s*/''" % k, json.dumps('data:image/png;base64,' + base64.b64encode(open(f, 'rb').read()).decode()), 1)
+    return src
+ui = px_inline(ui)
 print('sfx files', list(sfx))
 for x in (data, eng, ui, pre, *cities.values()):
     assert '</script' not in x
@@ -39,6 +46,7 @@ print('built KB', len(t.encode()) // 1024)
 lite = open('src/index.tpl.html', encoding='utf-8').read()
 lite = re.sub(r'<script type="(?:application/json|text/plain)" id="data-(?!seoul")[a-z]+"[^>]*>/\*DATA_[a-z]+\*/</script>\n?', '', lite)
 ui_lite = open('src/ui.js', encoding='utf-8').read()
+ui_lite = px_inline(ui_lite)
 lite = lite.replace('/*DATA_seoul*/', data).replace('/*PRESETS*/', pre).replace('/*ENGINE*/', eng).replace('/*UI*/', ui_lite)
 assert '/*DATA_' not in lite
 lite = ('<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'

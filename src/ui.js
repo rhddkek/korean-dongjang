@@ -98,6 +98,14 @@
   function signed(v, f) { return (v >= 0 ? '+' : '−') + f(Math.abs(v)); }
   function dateOf(m) { var t = 2027 * 12 + m; return Math.floor(t / 12) + '년 ' + (t % 12 + 1) + '월'; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  // ---- PixelLab 도트: 24×24 아이콘 줄 하나 + 32×32 얼굴 판 (build.py가 data URL로 채움) ----
+  var ICON_SRC = /*ICONS*/'', FACE_SRC = /*FACES*/'';
+  var ICK = ['coin', 'people', 'doc', 'flag', 'bag', 'bus', 'house', 'badge', 'handshake', 'envelope', 'split', 'megaphone', 'arrow', 'fist', '번영회', '부녀회', '상인회', '조기축구회', '통장협의회', '노인회', '청년회', '산악회', '입주자대표회의', '배드민턴클럽', '학부모회', '방범대', '반상회', '테니스동호회', '자율방재단'];
+  var DEVI = ['bag', 'bus', 'house', 'badge'], OPI = { feud: 'handshake', bribe: 'envelope', split: 'split', smear: 'megaphone' };
+  function ic(k, cls) { var i = ICK.indexOf(k); return i < 0 || !ICON_SRC ? '' : '<i class="ic' + (cls ? ' ' + cls : '') + '" style="background-position:-' + i * 24 + 'px 0" aria-hidden="true"></i>'; }
+  function emb(fid) { var f = S && S.f[fid], i = f ? ICK.indexOf(f.grp) : -1; return i < 0 || !ICON_SRC ? '' : '<i class="ic emb" style="background-position:-' + i * 24 + 'px 0;--fc:' + fCol(fid) + '" aria-hidden="true"></i>'; }
+  var ICON_IMG = null;
+  if (ICON_SRC) { (function () { var st = document.createElement('style'); st.textContent = '.ic{background-image:url(' + ICON_SRC + ')}'; (document.head || document.documentElement).appendChild(st); ICON_IMG = new Image(); ICON_IMG.src = ICON_SRC; })(); }
   function fCol(id) { return id === 0 ? PAL[0] : S && S.f[id] && S.f[id].puppet ? pupCol() : PAL[1 + (id - 1) % (PAL.length - 1)]; }
   var PUPCOL = null;
   function pupCol() { if (PUPCOL) return PUPCOL; var n = parseInt(PAL[0].slice(1), 16), k = 0.5, m = function (v) { return Math.round(v + (255 - v) * k); }; return (PUPCOL = 'rgb(' + m(n >> 16) + ',' + m(n >> 8 & 255) + ',' + m(n & 255) + ')'); }
@@ -382,9 +390,9 @@
     var out = [];
     if (!S) return out;
     if (S.marks && S.marks.m === S.month) S.marks.list.forEach(function (x) { out.push(x); });
-    if (S.rivalPlan && S.owner[S.rivalPlan.t] === 0) out.push({ t: S.rivalPlan.t, k: 'threat' });
-    if (S.foeOp && S.owner[S.foeOp.t] === 0) out.push({ t: S.foeOp.t, k: 'threat' });
-    S.f.forEach(function (f) { if (f.ai && f.alive && f.retal && S.owner[f.retal.t] === 0) out.push({ t: f.retal.t, k: 'threat' }); });
+    if (S.rivalPlan && S.owner[S.rivalPlan.t] === 0) out.push({ t: S.rivalPlan.t, k: 'threat', s: 'arrow' });
+    if (S.foeOp && S.owner[S.foeOp.t] === 0) out.push({ t: S.foeOp.t, k: 'threat', s: 'envelope' });
+    S.f.forEach(function (f) { if (f.ai && f.alive && f.retal && S.owner[f.retal.t] === 0) out.push({ t: f.retal.t, k: 'threat', s: 'fist' }); });
     E.puppets(S).forEach(function (f) { if (f.puppet.loyal <= 30) out.push({ t: f.cap, k: 'loyal' }); });
     return out;
   }
@@ -563,6 +571,15 @@
       c.restore();
       // 아이콘 + 글자 꼬리표 (화면 좌표)
       var x = d.x * cam.s + cam.x, y = d.y * cam.s + cam.y - 27;
+      var spr = m.s && ICON_IMG && ICON_IMG.complete && ICON_IMG.naturalWidth ? ICK.indexOf(m.s) : -1;
+      if (spr >= 0) {   // 도트 아이콘 꼬리표: 종이색 바탕 + 예고 종류별 그림
+        var lb = { arrow: '침공 예고', envelope: '포섭 예고', fist: '보복 예고' }[m.s], ww = c.measureText(lb).width + 36, hh = 28;
+        c.fillStyle = '#FDFDF9'; c.strokeStyle = st[0]; c.lineWidth = 2;
+        c.beginPath(); if (c.roundRect) c.roundRect(x - ww / 2, y - hh / 2, ww, hh, 5); else c.rect(x - ww / 2, y - hh / 2, ww, hh); c.fill(); c.stroke();
+        c.imageSmoothingEnabled = false; c.drawImage(ICON_IMG, spr * 24, 0, 24, 24, Math.round(x - ww / 2 + 3), Math.round(y - 12), 24, 24); c.imageSmoothingEnabled = true;
+        c.fillStyle = st[0]; c.fillText(lb, x - ww / 2 + 29, y + 0.5);
+        return;
+      }
       var w = c.measureText(st[2]).width + 26, h = 20;
       c.fillStyle = st[0]; c.strokeStyle = '#fff'; c.lineWidth = 1.5;
       c.beginPath(); if (c.roundRect) c.roundRect(x - w / 2, y - h / 2, w, h, 5); else c.rect(x - w / 2, y - h / 2, w, h); c.fill(); c.stroke();
@@ -1179,16 +1196,16 @@
   }
   // 추천 줄: 굵은 한 줄(할 일) + 작은 한 줄(이유). '추천 ·' 머리말은 노란 바탕이 대신함
   function todoHTML(t) {
-    var m = /^(추천|경고|새 기능) · (.*)$/.exec(tx(t)), tag = m ? m[1] : '', parts = (m ? m[2] : tx(t)).split(' · ');
+    var m = /^(추천|경고|새 기능|공작) · (.*)$/.exec(tx(t)), tag = m ? m[1] : '', parts = (m ? m[2] : tx(t)).split(' · ');
     var main = parts.shift(), sub = parts.join(' · ');
     if (/^(모집|다음 달)$/.test(main) && sub) { main = main + ' · ' + sub.split(' · ')[0]; sub = sub.split(' · ').slice(1).join(' · '); }
-    return '<span><b>' + (tag && tag !== '추천' ? '<em class="tg' + (tag === '경고' ? ' bad' : '') + '">' + tag + '</em> ' : '') + esc(main) + '</b>' + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</span><i>›</i>';
+    return '<span><b>' + (tag && tag !== '추천' ? '<em class="tg' + (tag === '경고' ? ' bad' : tag === '공작' ? ' op' : '') + '">' + tag + '</em> ' : '') + esc(main) + '</b>' + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</span><i>›</i>';
   }
   function opsAlt() {
     var seen = {}, b = null, me = S.f[0];
     E.dongsOf(S, 0).forEach(function (a) { D[a].a.forEach(function (j) { var o = S.owner[j]; if (o <= 0 || seen[o] || fogged(j) || !opsOk(j) || (me.pact && me.pact[o] > S.month)) return; seen[o] = 1;
       var r = opsBest(j); if (r && r.odds >= 0.55 && r.cost <= me.money * 0.7) { var v = r.odds * (r.k === 'split' ? 3 : r.k === 'feud' ? 2 : 1.4); if (!b || v > b.v) b = { v: v, t: j, r: r }; } }); });
-    return b ? { k: 'op', t: b.t, txt: '공작 · ' + S.f[S.owner[b.t]].name + ' ' + b.r.n + ' ' + Math.round(b.r.odds * 100) + '% · ' + money(b.r.cost) } : null;
+    return b ? { k: 'op', t: b.t, txt: '공작 · ' + S.f[S.owner[b.t]].name + ' ' + b.r.n + ' ' + Math.round(b.r.odds * 100) + '% · ' + money(b.r.cost) + (b.r.ap > 1 ? ' · 결재 ' + b.r.ap : '') } : null;
   }
   function altRec(r) {
     if (!r || S.stat.took < 2 || S.ap <= 0 || !/^(atk|per|gu|zone)$/.test(r.k)) return null;
@@ -1351,7 +1368,7 @@
     }
     var sub = GU[d.g].n + ' · ';
     if (o === -1) sub += '독립 동';
-    else sub += '<span class="dot" style="background:' + fCol(o) + '"></span>' + esc(S.f[o].name) + (S.f[o].cap === sel ? ' 본거지' : '') + (o === S.rival ? ' · 숙적' : '') + (E.inCoal(S, o) ? ' · 연합' : '') + (moodWord(o) ? ' · <b class="mw ' + E.moodOf(S, o) + '">' + moodWord(o) + '</b>' : '') + ' · ' + E.traitOf(S, o).word;
+    else sub += (emb(o) || '<span class="dot" style="background:' + fCol(o) + '"></span>') + esc(S.f[o].name) + (S.f[o].cap === sel ? ' 본거지' : '') + (o === S.rival ? ' · 숙적' : '') + (E.inCoal(S, o) ? ' · 연합' : '') + (moodWord(o) ? ' · <b class="mw ' + E.moodOf(S, o) + '">' + moodWord(o) + '</b>' : '') + ' · ' + E.traitOf(S, o).word;
     var max = Math.floor(me.troops);
     sendN = Math.max(max > 0 ? 1 : 0, Math.min(max, sendN));
     var p = E.preview(S, sel, sendN), pacted = o > 0 && me.pact && me.pact[o] > S.month;
@@ -1398,11 +1415,11 @@
       html += '<p class="why" style="margin-top:10px">불가침 협정이 ' + (me.pact[o] - S.month) + '달 남았습니다.</p><div class="acts"><button class="btn" id="bp" type="button">협정 깨기 (모든 우리 동 민심 −10)</button></div>';
     } else {
       html += '<div class="fight"><div><small>상대 방어</small><div class="big num">' + people(p.def.total) + '</div><div class="via">' + esc(viaText(p.route)) + '</div></div><div class="pct"><small>승률</small><div class="big num" id="pctV">' + Math.round(p.pct * 100) + '%</div></div></div>';
-      html += '<div class="send"><input id="send" type="range" min="' + (max > 0 ? 1 : 0) + '" max="' + max + '" step="1" value="' + sendN + '" aria-label="보낼 인원"><output id="sendV" class="num">' + people(sendN) + '</output></div>';
-      html += '<div class="chips">' + [[0.6, '60%'], [0.8, '80%'], [0.95, '95%']].map(function (x) {
+      html += '<div class="chips sendc">' + [[0.6, '60%'], [0.8, '80%'], [0.95, '95%']].map(function (x) {
         var nn = E.needFor(S, sel, x[0]);
-        return '<button class="chip" type="button" data-n="' + nn + '"' + (nn > max ? ' disabled' : '') + '>승률 ' + x[1] + '</button>';
-      }).join('') + '<button class="chip" type="button" data-n="' + max + '"' + (max < 1 ? ' disabled' : '') + '>전원</button></div>';
+        return '<button class="chip' + (nn === sendN ? ' on' : '') + '" type="button" data-n="' + nn + '"' + (nn > max ? ' disabled' : '') + '>승률 ' + x[1] + '</button>';
+      }).join('') + '<button class="chip' + (max === sendN ? ' on' : '') + '" type="button" data-n="' + max + '"' + (max < 1 ? ' disabled' : '') + '>전원</button><button class="chip' + (sendOpen ? ' on' : '') + '" type="button" id="sendMore">직접</button></div>';
+      html += '<div class="send"' + (sendOpen ? '' : ' hidden') + '><input id="send" type="range" min="' + (max > 0 ? 1 : 0) + '" max="' + max + '" step="1" value="' + sendN + '" aria-label="보낼 인원"><output id="sendV" class="num">' + people(sendN) + '</output></div>';
       html += '<p class="est num" id="estV">' + estHTML(p) + '</p>';
       var atk = '<button class="btn red" id="atk" type="button"' + (p.ok ? '' : ' disabled') + '>쳐들어가기<small><span id="atkN">' + people(sendN) + '</span> 보냄</small></button>';
       var perB = per ? '<button class="btn" id="per" type="button"' + (me.money >= c && S.ap > 0 ? '' : ' disabled') + '>돈으로 설득<small>' + money(c) + (me.money >= c ? ' · 남는 돈 ' + money(me.money - c) : ' · ' + money(c - me.money) + ' 모자람') + '</small></button>' : '';
@@ -1444,9 +1461,10 @@
     var range = $('send');
     if (range) {
       range.addEventListener('input', function () { sendN = +range.value; updateFight(); });
-      Array.prototype.forEach.call(sh.querySelectorAll('.chip'), function (b) {
-        b.addEventListener('click', function () { sendN = Math.min(max, +b.dataset.n); range.value = sendN; updateFight(); });
+      Array.prototype.forEach.call(sh.querySelectorAll('.sendc .chip[data-n]'), function (b) {
+        b.addEventListener('click', function () { sendN = Math.min(max, +b.dataset.n); range.value = sendN; updateFight(); Array.prototype.forEach.call(sh.querySelectorAll('.sendc .chip[data-n]'), function (x) { x.classList.toggle('on', x === b); }); });
       });
+      bind('sendMore', function () { sendOpen = !sendOpen; renderSheet(); });
     }
     bind('atk', guard(doAttack));
     bind('per', guard(persuadeNow));
@@ -1459,7 +1477,7 @@
     bindOps(sh);
   }
   // ---- 정치공작 ----
-  var OPK = ['bribe', 'feud', 'split', 'smear'], opsFocus = false;
+  var OPK = ['bribe', 'feud', 'split', 'smear'], opsFocus = false, sendOpen = false;
   function recRate() { return E.C.RECRUIT * (E.hasCard(S, 'hire') ? 1.25 : 1) * (E.downOn(S) ? 2 : 1); }
   function opsOk(t) { var o = S.owner[t]; return o > 0 && S.f[o].ai && !S.f[o].puppet; }
   function opsBest(t) { var b = null; OPK.forEach(function (k) { var r = E.opInfo(S, k, t); if (r.ok && (!b || r.odds > b.odds)) b = r; }); return b; }
@@ -1467,7 +1485,7 @@
     if (!opsOk(t)) return '';
     var rows = OPK.map(function (k) {
       var r = E.opInfo(S, k, t), tg = k === 'feud' ? (r.bn ? ' ↔ ' + r.bn : '') : k === 'smear' ? ' · ' + (r.gn || GU[D[t].g].n) : k === 'split' && r.free ? ' · ' + r.free + '곳 독립' : '';
-      return '<button class="row rowBtn opb" type="button" data-op="' + k + '"' + (r.ok ? '' : ' disabled') + '><span><b>' + r.n + esc(tg) + '</b><br><small class="mute">' + esc(r.e) + '</small><br><small class="side">' + esc(r.ok ? '들키면 ' + r.bad : r.why) + '</small></span><span class="num">' + (r.odds !== undefined ? '<b>' + Math.round(r.odds * 100) + '%</b><br>' : '') + '<small>' + (r.cost !== undefined ? money(r.cost) : '') + (r.ap > 1 ? ' · 결재 ' + r.ap : '') + '</small></span></button>';
+      return '<button class="row rowBtn opb" type="button" data-op="' + k + '"' + (r.ok ? '' : ' disabled') + '><span class="opt">' + ic(OPI[k]) + '<span><b>' + r.n + esc(tg) + '</b><br><small class="mute">' + esc(r.e) + '</small><br><small class="side">' + esc(r.ok ? '들키면 ' + r.bad : r.why) + '</small></span></span><span class="num">' + (r.odds !== undefined ? '<b>' + Math.round(r.odds * 100) + '%</b><br>' : '') + '<small>' + (r.cost !== undefined ? money(r.cost) : '') + (r.ap > 1 ? ' · 결재 ' + r.ap : '') + '</small></span></button>';
     });
     return '<div id="opsSec">' + sec('공작', '돈과 결재로 세력을 흔듭니다. 성공률은 우리 동 치안 개발, 상대 성향, 같은 세력에 최근 한 공작 수로 정해지고, 우리 땅이 작을수록 잘 먹힙니다. 들키면 적힌 대가를 치릅니다. 결속형 세력에는 포섭·내분이 안 통합니다.') + '<div class="rows ops">' + rows.join('') + '</div></div>';
   }
@@ -1603,7 +1621,7 @@
       q += '<p class="qlbl">개발 · 빨간 글자는 대가</p><div class="qdevs">';
       E.C.TRACKS.forEach(function (t, k) {
         var l = E.lv(S, sel, k), c = E.devCost(S, sel, k);
-        q += '<button class="qdev" type="button" data-k="' + k + '"' + (c !== null && me.money >= c ? '' : ' disabled') + '><i class="dd" style="background:' + DEV_COL[k] + '"></i>' + t + '<em>' + '●'.repeat(l) + '○'.repeat(5 - l) + '</em><b class="num">' + (c === null ? '완성' : money(c)) + '</b>' + (c !== null && sideShort(k) ? '<em class="sd">' + sideShort(k) + '</em>' : '') + '</button>';
+        q += '<button class="qdev" type="button" data-k="' + k + '"' + (c !== null && me.money >= c ? '' : ' disabled') + '>' + (ic(DEVI[k]) || '<i class="dd" style="background:' + DEV_COL[k] + '"></i>') + '' + t + '<em>' + '●'.repeat(l) + '○'.repeat(5 - l) + '</em><b class="num">' + (c === null ? '완성' : money(c)) + '</b>' + (c !== null && sideShort(k) ? '<em class="sd">' + sideShort(k) + '</em>' : '') + '</button>';
       });
       q += '</div>';
       var sides = E.C.TRACKS.map(function (t, k) { var sd = E.devSide(S, sel, k); return E.lv(S, sel, k) < 5 && sd.text ? t + ': ' + sd.text.replace('이 동 ', '') : ''; }).filter(Boolean);
@@ -1644,7 +1662,7 @@
       var spLine = Object.keys(sp).map(function (lv) { return '<span class="' + (l >= +lv ? 'spOn' : 'spOff') + '">' + lv + '단계 ' + sp[lv] + (l >= +lv ? ' (작동 중)' : '') + '</span>'; }).join('<br>');
       var pv = E.spPreview(S, sel, k);
       var more = '지금: ' + cur + '<br>' + spLine + (pv ? '<br><span class="pv">' + pv.lv + '단계 ' + esc(pv.name) + '까지 남은 투자 ' + money(pv.cost) + ' · ' + (/^지금/.test(pv.text) ? '' : '지금 기준 ') + esc(pv.text) + '</span>' : '') + (k === 3 ? '<br>방어는 동 자체 방어(치안·민심·동네 유형)에 대기 인원 일부가 더해진 값입니다.' : '');
-      html += '<div class="dev"><h4 role="button" tabindex="0" aria-expanded="' + !!devOpen[k] + '" data-dk="' + k + '"><i class="dd" style="background:' + DEV_COL[k] + '"></i>' + t + ' · ' + esc(now) + '<em>' + '●'.repeat(l) + '○'.repeat(5 - l) + '</em><span class="dtog" aria-hidden="true">' + (devOpen[k] ? '▴' : '▾') + '</span></h4><p>' + nx + '</p><button class="btn" data-k="' + k + '" type="button"' + (c !== null && me.money >= c ? '' : ' disabled') + '>' + (c === null ? '최고 단계' : esc(next) + '<br>' + money(c)) + '</button><div class="dmore"' + (devOpen[k] ? '' : ' hidden') + '><p>' + more + '</p></div></div>';
+      html += '<div class="dev"><h4 role="button" tabindex="0" aria-expanded="' + !!devOpen[k] + '" data-dk="' + k + '">' + (ic(DEVI[k]) || '<i class="dd" style="background:' + DEV_COL[k] + '"></i>') + '' + t + ' · ' + esc(now) + '<em>' + '●'.repeat(l) + '○'.repeat(5 - l) + '</em><span class="dtog" aria-hidden="true">' + (devOpen[k] ? '▴' : '▾') + '</span></h4><p>' + nx + '</p><button class="btn" data-k="' + k + '" type="button"' + (c !== null && me.money >= c ? '' : ' disabled') + '>' + (c === null ? '최고 단계' : esc(next) + '<br>' + money(c)) + '</button><div class="dmore"' + (devOpen[k] ? '' : ' hidden') + '><p>' + more + '</p></div></div>';
     });
     var adjP = E.puppets(S).filter(function (f) { return d.a.some(function (j) { return S.owner[j] === f.id; }); });
     if (adjP.length && sel !== S.f[0].cap) html += sec('괴뢰국에 넘기기', '이 ' + UNITN + '을 맞닿은 괴뢰국에 넘깁니다. 결재 없음 · 충성 +3.') + '<div class="chips wrap">' + adjP.map(function (f) { return '<button class="chip pg2" type="button" data-p="' + f.id + '"><span class="dot" style="background:' + pupCol() + '"></span>' + esc(f.name) + '에 넘기기</button>'; }).join('') + '</div>';
@@ -2073,12 +2091,12 @@
     var fl = E.factionList(S), nbF = {}, big = null;
     E.dongsOf(S, 0).forEach(function (i) { D[i].a.forEach(function (j) { var o = S.owner[j]; if (o > 0 && !isPupO(o)) nbF[o] = 1; }); });
     Object.keys(nbF).forEach(function (o) { var f = S.f[o]; if (f.alive && (!big || f.troops + (f.away || 0) > big.troops + (big.away || 0))) big = f; });
-    if (big) tF += sec('맞닿은 세력 중 가장 큰 곳') + bossHTML(big.id, kindFor(big.id)) + (big.adv ? bossHTML(big.id, 'adv', '', true) : '') + '<p class="why num"><span class="dot" style="background:' + fCol(big.id) + '"></span><b>' + esc(big.name) + '</b>' + (big.id === S.rival ? ' · 숙적' : '') + (E.inCoal(S, big.id) ? ' · 연합' : '') + (moodWord(big.id) ? ' · ' + moodWord(big.id) : '') + ' · ' + E.dongsOf(S, big.id).length + '개 동 · ' + people(big.troops + (big.away || 0)) + (me.pact && me.pact[big.id] > S.month ? ' · 협정 ' + (me.pact[big.id] - S.month) + '달' : '') + '</p>';
+    if (big) tF += sec('맞닿은 세력 중 가장 큰 곳') + bossHTML(big.id, kindFor(big.id)) + (big.adv ? bossHTML(big.id, 'adv', '', true) : '') + '<p class="why num">' + (emb(big.id) || '<span class="dot" style="background:' + fCol(big.id) + '"></span>') + '<b>' + esc(big.name) + '</b>' + (big.id === S.rival ? ' · 숙적' : '') + (E.inCoal(S, big.id) ? ' · 연합' : '') + (moodWord(big.id) ? ' · ' + moodWord(big.id) : '') + ' · ' + E.dongsOf(S, big.id).length + '개 동 · ' + people(big.troops + (big.away || 0)) + (me.pact && me.pact[big.id] > S.month ? ' · 협정 ' + (me.pact[big.id] - S.month) + '달' : '') + '</p>';
     var anyHid = fl.slice(0, 7).some(function (f) { return f.id !== 0 && S.seenGu && !S.seenGu[D[f.cap].g]; });
     tF += sec('세력 순위', anyHid ? '안개 속 세력은 대략적인 규모만 보입니다.' : '') + '<div class="rows num">' + fl.slice(0, 7).map(function (f) {
       var pct = me.pact && me.pact[f.id] > S.month ? ' · 협정 ' + (me.pact[f.id] - S.month) + '달' : '';
       var hid = f.id !== 0 && S.seenGu && !S.seenGu[D[f.cap].g];
-      return '<div class="row"><span><span class="dot" style="background:' + (hid ? '#C3CBC1' : fCol(f.id)) + '"></span>' + esc(f.id === 0 ? '우리' : hid ? '안개 속 어느 세력' : f.name) + (f.id === S.rival ? ' · 숙적' : '') + (isPupO(f.id) ? ' · 괴뢰국' : '') + esc(pct) + '</span><span>' + (hid ? fuzzy(f.n, 1) + '개 동 · ' + fuzzy(f.troops, 100) + '명' : f.n + '개 동 · ' + people(f.troops)) + '</span></div>';
+      return '<div class="row"><span>' + ((!hid && f.id && emb(f.id)) || '<span class="dot" style="background:' + (hid ? '#C3CBC1' : fCol(f.id)) + '"></span>') + esc(f.id === 0 ? '우리' : hid ? '안개 속 어느 세력' : f.name) + (f.id === S.rival ? ' · 숙적' : '') + (isPupO(f.id) ? ' · 괴뢰국' : '') + esc(pct) + '</span><span>' + (hid ? fuzzy(f.n, 1) + '개 동 · ' + fuzzy(f.troops, 100) + '명' : f.n + '개 동 · ' + people(f.troops)) + '</span></div>';
     }).join('') + '</div>';
     var pl0 = E.puppets(S);
     if (pl0.length || S.rank >= 1) tF = sec('괴뢰국 · ' + pl0.length + '/' + E.pupMax(S), '구역 화면에서 구역을 괴뢰국으로 독립시킬 수 있습니다. 한도: ' + R1N + ' 1 · ' + RANK2 + ' 3 · ' + MAYOR + ' 5.<br>괴뢰국 동을 누르면 받아오기·다른 괴뢰국으로 옮기기, 우리 동을 누르면 괴뢰국에 넘기기.') + (pl0.length ? '<div class="rows num">' + pl0.map(function (f) { return '<button class="row rowBtn" type="button" data-pg="' + f.cap + '"><span><span class="dot" style="background:' + pupCol() + '"></span>' + esc(f.name) + ' · 충성 ' + Math.round(f.puppet.loyal) + (f.puppet.loyal <= 30 ? ' <b class="bad">위험</b>' : '') + '</span><span>' + E.dongsOf(S, f.id).length + '개 · 월 +' + money(E.tribOf(S, f)) + ' ›</span></button><div class="chips pq" data-p="' + f.id + '">' + E.PUP_RATES.map(function (r) { return '<button class="chip num' + (f.puppet.rate === r ? ' on' : '') + '" type="button" data-r="' + r + '" aria-label="상납 ' + Math.round(r * 100) + '%">' + Math.round(r * 100) + '%</button>'; }).join('') + '<i></i>' + STANCE.map(function (x) { return '<button class="chip' + (f.puppet.stance === x[0] ? ' on' : '') + '" type="button" data-s="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>'; }).join('') + '</div>' : '<p class="why">아직 없음</p>') + tF;
@@ -2148,6 +2166,8 @@
   }
   function menuSheet(sh) {
     var html = '<div class="head"><div><h2>메뉴</h2></div><button class="x" type="button" aria-label="닫기">×</button></div>';
+    // 한눈에 보기: 규칙 전체 대신 여섯 줄
+    html += '<div class="sec">한눈에 보기</div><ol class="prose brief"><li>빨간 테두리 동을 눌러 <b>공격</b>(인원) · <b>설득</b>(돈) · <b>공작</b>(돈+결재)</li><li>한 달에 <b>결재</b> 수만큼 하고 <b>다음 달</b></li><li>한 ' + GRP + ' 절반 → ' + R1N + ' · 인구 60% → 선거 → ' + MAYOR + '</li><li>개발은 수입·인원을 늘리지만 <b>대가</b>가 있음</li><li><b>이달 과제</b>·정책 카드·조합이 보너스</li><li><b>예고</b>(침공·포섭·보복)가 뜨면 그 동을 눌러 대비</li></ol>';
     html += '<div class="sec">게임 방법</div><ul class="prose"><li>빨간 테두리 동을 눌러 인원을 보내면 공격합니다. 공격과 설득은 결재를 씁니다.</li><li>보낸 인원은 다음 달에 돌아옵니다. 그동안 우리 동 방어가 약해지니 나눠서 쓰세요.</li><li>지도 왼쪽 위의 이달 과제를 해내면 예산 보상을 받습니다. 연달아 해내면 보상이 10%씩 커집니다(최대 +50%).</li><li>다른 세력의 동을 누르면 공격 옆에 공작이 있습니다. 이간질·내부 포섭·내분 조장·여론전. 성공률은 우리 치안 개발과 상대 성향으로 정해지고 들키면 대가가 있습니다. 상대가 우리 동을 포섭하려 하면 치안을 올려 막으세요.</li><li>한 달에 같은 세력을 두 번 넘게 치면 그 세력이 보복을 예고합니다.</li><li>본거지를 잃거나 동이 4곳 이하가 되면 3달 동안 재기의 기회가 옵니다. 12달 동안 동 5곳을 못 넘기면 패배입니다.</li><li>수입는 실제 직장인 수(주민 수 일부 포함), 동원은 실제 주민 수, 방어는 낮 인구(주민 + 직장인 절반)에 거의 비례합니다. 규모가 4배면 약 2.8배, 10배면 약 5.6배입니다. 작은 동은 관리비도 적게 듭니다. 동네 유형마다 특성이 있습니다.</li><li>우리 동을 누르면 개발합니다. 값은 어느 동이나 같고, 버튼 옆에 실제로 늘어나는 양이 나옵니다. 우리 동이 3개 이하일 때는 지원금이 나옵니다.</li><li>한 ' + GRP + '의 동을 절반 이상 차지하면 ' + R1N + ', 그런 ' + Jm(GRP, '이', '가') + ' ' + R2 + '개면 ' + R2S + ', ' + CNAME + ' 인구 60%면 ' + MAYOR + '입니다. 인구는 통계 기준으로 고정이라 개발해도 늘지 않습니다.</li><li>' + Jm(GRP, '을', '를') + ' 통째로 먹으면 그 ' + GRP + '의 재정자립도만큼 수입가 늘어납니다.' + (SEOUL ? '' : ' (' + (CITY_ID === 'busan' ? '부산은 보도된 수치, 중구만 추정' : '상가·직장인 밀도로 만든 게임용 추정치' + (KIND !== 'metro' && KIND !== 'nation' && /부산/.test(DATA.full) ? ', 부산 구는 보도된 수치' : '')) + ')') + '</li><li>' + R1N + '부터는 ' + GRP + ' 현황에서 한꺼번에 공격·설득·개발할 수 있습니다.</li><li>처음에는 우리 ' + Jm(GRP, '과', '와') + ' 맞닿은 ' + GRP + '만 보입니다. 땅을 넓히면 안개가 걷힙니다. 동네 통계는 안개 속에서도 볼 수 있습니다.</li><li>개발은 단계마다 이름 붙은 시설이 생깁니다. 3단계·5단계 시설은 옆 우리 동까지 효과가 미칩니다. 예: 자치경찰대(치안 3단계)는 옆 우리 동 방어 +15%, 자치소방서(치안 5단계)는 그 일대 독립을 막습니다.</li><li>동네 조합: 일터 동과 맞닿은 주거 동 둘(직주근접, 동원 +20%), 이어진 상권 동 셋(골목상권, 상권 개발비 −30%), 지하철로 이어진 역세권 셋(환승, 기습 불이익 없음)을 모으면 그 동들에만 보너스가 붙습니다. 종류마다 한 판에 한 번입니다.</li><li>시설의 옆 동 효과는 같은 종류끼리 2곳까지만 겹칩니다(수입·동원 최대 +20%, 방어 최대 +30%). 자치소방서는 독립만 막고, 민심이 낮아 줄어드는 수입·동원은 그대로입니다. 시설이 있는 동을 빼앗기면 그 효과는 그 즉시 사라집니다.</li><li>몇 달마다 정부 공모가 열립니다. 공공기관은 오래 벌고, 공공병원은 민심을 지키고, 자원회수시설은 지원금을 착공·준공 두 번에 나눠 주는 대신 민심을 깎습니다. 후반에는 바로 효과가 나는 안전센터 공모가 섞입니다. 다른 세력도 조건과 부담금을 채워야 신청할 수 있고, 아무도 없으면 유찰됩니다. 효과는 게임용으로 지어낸 것입니다.</li><li>숙적은 우리가 크게 진 직후, 우리 인원이 대부분 나가 있을 때, 공사 중이거나 많이 키운 동이 국경에 있을 때 움직입니다. 힘이 다 빠진 숙적은 본거지만 남겨 달라며 협상을 걸어옵니다. ' + R2S + '부터는 작은 세력도 협상을 제안합니다.</li><li>지도의 작은 색 점은 우리 동의 개발 단계입니다. 노랑 상권, 파랑 교통, 초록 주거, 회색 치안. ' + (SEOUL ? '산 무늬는 산을 낀 동네를 대략 표시한 것입니다.' : '') + '</li><li>시작한 동의 유형에 따라 한 판 내내 대표 능력 하나를 씁니다. 점령한 동은 특성 보너스만 줍니다.</li><li>설득·주민투표·통합·협상으로 들어온 동은 민심이 높지만 첫 달 수입이 50%이고 매달 15%p씩 늘어 약 4달 뒤 정상이 됩니다. 주거·치안을 올리면 더 빨라집니다. 공격으로 뺏은 동은 대신 민심 35에서 시작합니다.</li><li>숙적은 공격하기 한 달 전에 어느 동 앞에 모이는지, 몇 명인지 알려 줍니다. 그 동을 누르면 막는 방법(인원 남기기, 치안, 협정, 선제공격)이 나옵니다. 대비가 돼 있으면 저쪽이 공격을 접습니다.</li><li>민심이 40 아래인 동은 독립할 수 있습니다. ' + R1N + '부터 주민 화합 사업으로 막을 수 있습니다.</li><li>세력의 본거지(검은 점)를 빼앗으면 그 세력은 무너지고 동 일부가 따라옵니다. 큰 세력일수록 본거지가 단단하고, 본거지는 지하철로 칠 수 없습니다.</li><li>새로 얻은 동은 그달 말부터 수입에 들어오지만, 민심이 회복될 때까지는 적게 들어옵니다.</li><li>승진할 때와 반년마다 정책 카드 세 장 중 하나를 고릅니다. 고른 카드는 한 판 내내 적용됩니다.</li><li>' + CNAME + ' 인구 45%를 넘기면 남은 세력이 반동장 연합을 맺습니다. 연합 세력은 서로 싸우지 않고 우리만 노리며, 협정·통합을 받지 않습니다.</li><li>인구 60%를 넘기면 ' + E.C.ELECT_WAIT + '달 뒤 ' + MAYOR + ' 선거가 열립니다. 우리 동 주민은 민심에 따라 35~90%, 맞닿은 독립 동은 35%, 그 밖의 독립 동은 25%, 다른 세력 동은 10%(협정 중이면 20%)가 우리를 찍습니다. 과반이면 취임, 못 넘기면 6달 뒤 재선거입니다.</li><li>세력마다 회장이 있습니다. 얼굴과 대사는 지어낸 것입니다. 우리가 치면 원한이, 협정을 끝까지 지키면 호감이 쌓입니다. 원한이 깊은 회장은 먼저 쳐들어오고, 호감이 있는 회장은 덜 치고 협정이 싸지며 연합에도 잘 안 듭니다. 우리에게 무너진 회장은 다른 세력의 고문으로 들어가 그 세력을 더 독하게 만듭니다.</li><li>개발에는 대가가 있습니다. 상권은 주거 동네 민심을, 교통은 그 동 방어를, 주거는 그 동 수입를, 번화가의 치안은 그 동 수입를 조금씩 깎습니다.</li><li>선거가 잡히면 공약 두 개를 고르고, ' + GRP + ' 화면에서 결재 1건으로 유세합니다. 한 ' + GRP + '에서 세 번까지. 원한 많은 회장은 맞불 유세를 합니다.</li><li>' + Jm(R1N, '이', '가') + ' 되면 이어진 우리 ' + UNITN + ' 3~8개를 묶어 이름 붙인 행정구역을 만들 수 있습니다. 구역은 한 번에 작전·개발하고 수입 +5%. 원래 ' + GRP + '가 다른 ' + UNITN + '을 넣으면 그 동 민심이 떨어집니다.</li><li>판이 끝나면 땅을 넓혀 온 기록을 처음부터 다시 볼 수 있습니다.</li><li>' + Jm(MAYOR, '이', '가') + ' 된 뒤에도 남은 동까지 계속 먹을 수 있습니다.</li></ul>';
     html += '<div class="sec">소리</div><div class="acts"><button class="btn" id="sndBtn" type="button">' + (soundOn ? '효과음 켜짐 · 끄기' : '효과음 꺼짐 · 켜기') + '</button><button class="btn" id="musBtn" type="button">' + (bgmBad ? '배경음악 파일 없음' : musicOn ? '배경음악 켜짐 · 끄기' : '배경음악 꺼짐 · 켜기') + '</button></div>';
     html += '' + sec('상대 턴 보기', '다음 달을 누르면 다른 세력이 한 일을 하나씩 보여 줍니다. 우리 땅에서 난 일은 항상, 우리 근처 다툼은 몇 건만 보여 주고 나머지는 지도에 바로 반영합니다. 보는 중에 화면을 누르면 빨라지고, 한 번 더 누르면 건너뜁니다.') + '<div class="chips" id="rpMode">' + [['normal', '보통'], ['fast', '빠르게'], ['off', '끄기']].map(function (m) { return '<button class="chip' + (RPM === m[0] ? ' on' : '') + '" type="button" data-m="' + m[0] + '"' + (RPM === m[0] ? ' aria-pressed="true"' : '') + '>' + m[1] + '</button>'; }).join('') + '</div>';
@@ -2155,7 +2175,9 @@
     html += '<div class="acts"><button class="btn" id="newGame" type="button">' + (confirmNew ? '정말 처음부터 시작 (지금 판은 사라집니다)' : '새 게임') + '</button></div>';
     if (!SEOUL) html += '<div class="sec">자료 출처</div>' + (KIND === 'metro' ? METRO_SRC : MODE_SRC);
     else html += '<div class="sec">자료 출처</div><p class="src">서울특별시 서울 열린데이터광장: <a href="https://data.seoul.go.kr/dataList/OA-22183/S/1/datasetView.do" target="_blank" rel="noopener">상권분석서비스(상주인구-행정동)</a>, <a href="https://data.seoul.go.kr/dataList/OA-22184/S/1/datasetView.do" target="_blank" rel="noopener">상권분석서비스(직장인구-행정동)</a>, 상권분석서비스(집객시설-행정동). 2023~2024년 기준이라 지금과 다를 수 있습니다. 직장인 수가 빠진 26개 동과 시설 수가 빠진 관악구 신사동은 같은 구의 값으로 추정했습니다.<br>재정자립도: <a href="https://m.go.seoul.co.kr/news/2024/07/16/20240716500023" target="_blank" rel="noopener">서울시의회 자료 보도(서울신문)</a>, 2023년 기준.<br>생활 점수의 소득 항목은 237개 동만 확보해 나머지는 같은 구의 중간값을 썼습니다.<br>행정동 경계: 통계청·행정안전부 자료를 정리한 admdongkor(MIT), 2026년 10월 기준.</p><p class="src">경제·인프라·생활 점수와 동네 유형은 통계를 바탕으로 계산한 게임용 값으로, 실제 매출이나 소득 순위가 아니며 동네의 우열을 뜻하지 않습니다. 등장 단체와 사건은 모두 지어낸 것입니다.</p>';
-    html = html.replace(/<div class="sec">게임 방법<\/div><ul class="prose">([\s\S]*?)<\/ul>/, function (m, body) { return '<div class="sec">게임 방법</div>' + rulesFold(body); });
+    var rulesHtml = '';
+    html = html.replace(/<div class="sec">게임 방법<\/div><ul class="prose">([\s\S]*?)<\/ul>/, function (m, body) { rulesHtml = '<details class="more rule"><summary>자세한 규칙</summary>' + rulesFold(body).replace(' open>', '>') + '</details>'; return ''; });
+    html = html.replace('<div class="sec">자료 출처</div>', rulesHtml + '<details class="more rule"><summary>자료 출처</summary>') + '</details>';
     sh.innerHTML = tx(html);
     bind('musBtn', function () { setMusic(!musicOn); renderSheet(); });
     bind('sndBtn', function () { setSound(!soundOn); if (soundOn) sfx('stamp'); renderSheet(); });
@@ -2203,9 +2225,20 @@
   }
   function moodWord(fid) { var m = E.moodOf(S, fid); return m === 'grudge' ? '원한 깊음' : m === 'wary' ? '경계' : m === 'warm' ? '호감' : ''; }
   function kindFor(fid) { var m = E.moodOf(S, fid); return m === 'grudge' ? 'grudge' : m === 'warm' ? 'warm' : 'meet'; }
+  // PixelLab으로 뽑은 32×32 회장 얼굴 48장(남 24 · 여 24). 이름으로 성별을 고르고 face 씨앗으로 얼굴을 고름
+  var FEM = ['순자', '말순', '춘자', '미숙', '정자', '옥자', '금순', '영자', '경숙', '점례', '명자', '두리'];
+  var FACE_IMG = null;
+  if (FACE_SRC && typeof Image !== 'undefined') { FACE_IMG = new Image(); FACE_IMG.onload = function () { FACE = {}; try { if (S) renderSheet(); } catch (e) {} }; FACE_IMG.src = FACE_SRC; }
   function faceURL(fid, adv) {
     var b = bossOf(fid, adv); if (!b) return '';
     var key = (adv ? 'a' : '') + fid + ':' + b.face; if (FACE[key]) return FACE[key];
+    if (FACE_IMG && FACE_IMG.complete && FACE_IMG.naturalWidth) {
+      var fem = FEM.indexOf(b.nm.split(' ')[0].slice(1)) >= 0, ix = ((b.face >>> 0) % 24) + (fem ? 24 : 0);
+      var kc = document.createElement('canvas'); kc.width = kc.height = 32; var cx = kc.getContext('2d');
+      cx.fillStyle = '#F3F1E7'; cx.fillRect(0, 0, 32, 32); cx.imageSmoothingEnabled = false;
+      cx.drawImage(FACE_IMG, (ix % 8) * 32, Math.floor(ix / 8) * 32, 32, 32, 0, 0, 32, 32);
+      return (FACE[key] = kc.toDataURL());
+    }
     var seed = b.face >>> 0 || 1, r = function () { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
     var k = document.createElement('canvas'); k.width = k.height = 16; var c = k.getContext('2d');
     var px = function (x, y, w, h, col) { c.fillStyle = col; c.fillRect(x, y, w, h); };
@@ -2247,7 +2280,8 @@
     px(4, 10, 1, 1, '#E79A86'); px(11, 10, 1, 1, '#E79A86');
     return (FACE[key] = k.toDataURL());
   }
-  function faceImg(fid, sz, adv) { var u = faceURL(fid, adv); return u ? '<img class="face" src="' + u + '" width="' + (sz || 40) + '" height="' + (sz || 40) + '" alt="">' : ''; }
+  // 테두리 2px 포함 크기: 36 → 그림 32(1배), 52 → 48(1.5배). 도트가 고르게 보이도록 이 둘만 씀
+  function faceImg(fid, sz, adv) { var u = faceURL(fid, adv), b = u && bossOf(fid, adv); sz = (sz || 40) <= 32 ? 36 : 52; return u ? '<img class="face" src="' + u + '" width="' + sz + '" height="' + sz + '" style="border-color:' + fCol(b.col) + '" alt="">' : ''; }
   var LINES = {
     plan: { fight: ['다음 달 {t}, 우리가 접수합니다. 문 단단히 잠그세요.', '{t} 사람들 벌써 우리 편입니다. 인사나 하러 갈게요.'], build: ['{t}에 놀이터 하나 놔 드리려고요. 우리 손으로.', '{t} 재개발 설명회, 다음 달에 우리가 엽니다.'], rich: ['{t} 상가 번영회비, 다음 달부터 우리가 받습니다.', '{t}? 돈이면 다 됩니다. 다음 달에 봅시다.'], talk: ['{t} 반상회에서 우리 얘기 많이 나온답니다. 다음 달에 갈게요.', '{t} 단톡방 방장이 바뀔 겁니다. 다음 달에.'] },
     win: { fight: ['{t} 잘 받았습니다. 답례 떡은 없습니다.', '{t}? 생각보다 쉽던데요.'], build: ['{t}는 이제 우리가 가꿉니다.', '{t} 주민센터 현판, 내일 바꿔 답니다.'], rich: ['{t} 임대료 계산서는 우리 앞으로 오겠네요.', '{t}, 계약 끝났습니다.'], talk: ['{t} 주민들이 우리 손을 잡아 주셨습니다.', '{t} 단톡방, 오늘부터 우리 방입니다.'] },
