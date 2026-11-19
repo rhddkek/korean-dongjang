@@ -27,7 +27,7 @@ const ok=(c,m)=>console.log((c?'PASS ':'FAIL ')+m);
  // 신청 안 하면 AI 배정
  const ai=await G(()=>{const g=__game,S=g.S,E=g.E;
    // 다른 세력 하나가 조건(주거 2단계)과 부담금을 채우게 만듦
-   const f=S.f.find(f=>f.ai&&f.alive&&g.E.dongsOf(S,f.id).length>1);const d=g.E.dongsOf(S,f.id).find(i=>i!==f.cap&&!S.gov.sites[i]);S.dev[d*4+2]=3;f.money=500;
+   const f=S.f.find(f=>f.ai&&f.alive&&g.E.dongsOf(S,f.id).length>1);g.E.dongsOf(S,f.id).filter(i=>!S.gov.sites[i]).forEach(d=>{S.dev[d*4+2]=3});f.money=500; // v19부터 AI끼리 싸움이 잦아 한 동만 키우면 그달에 뺏길 수 있음
    S.gov.open={k:'hospital',until:S.month+1};const rv=E.govInfo(S).rivals;const before=Object.keys(S.gov.sites).length;E.endTurn(S);const ks=Object.keys(S.gov.sites);const last=ks.find(i=>S.gov.sites[i].k==='hospital');
    return{rv:rv.length,before,after:ks.length,owner:last!==undefined?S.owner[last]:null,paid:500-f.money,log:S.last.map(l=>l.t).find(t=>/공모 결과/.test(t))}});
  ok(ai.rv>=1&&ai.after===ai.before+1&&ai.owner>0&&ai.paid>=150,'조건 채운 다른 세력 선정(부담금 납부): '+ai.log);
