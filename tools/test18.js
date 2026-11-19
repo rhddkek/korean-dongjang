@@ -15,8 +15,8 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   // 1) 개발 대가: 우리 동 간단 보기에 '짓는 대가'
   const cap = await G(() => __game.S.f[0].cap);
   await at(cap);
-  const side = await G(() => { const t = document.getElementById('sheet').innerText; return (t.match(/대가 · [^\n]+/) || [''])[0]; });
-  ok(/대가 · .*(민심|방어|수입)/.test(side), '우리 동 짓는 대가: ' + side);
+  const side = await G(() => [...document.querySelectorAll('#sheet .qdev em.sd')].map(e => e.textContent).join(' · '));
+  ok(/(민심|방어|수입)/.test(side), '우리 동 짓는 대가(칸 안): ' + side);
   const mood = await G(() => { const g = __game, S = g.S, E = g.E; S.f[0].money = 999; const i = S.f[0].cap; const nb = g.D[i].a.find(j => S.owner[j] !== 0 && ['home', 'town', 'life'].includes(g.D[j].type)); if (nb !== undefined) { S.owner[nb] = 0; S.min[nb] = 90; } g.sync(); return { nb, before: nb !== undefined ? S.min[nb] : null }; });
   await p.tap('#sheet .qdev[data-k="0"]'); await p.waitForTimeout(200);
   const after = await G(n => n === null || n === undefined ? null : __game.S.min[n], mood.nb);

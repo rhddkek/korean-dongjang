@@ -64,7 +64,7 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
     // 전체 개발: 가장 큰 이득·손해 + 동별 목록
     const nd = await G(() => { const g = __game, S = g.S, D = g.D, E = g.E; const cap = S.f[0].cap, q = [cap], seen = { [cap]: 1 }; while (q.length && Object.keys(seen).length < 8) { const x = q.shift(); D[x].a.forEach(j => { if (!seen[j] && Object.keys(seen).length < 8) { seen[j] = 1; q.push(j); } }); } Object.keys(seen).forEach(i => { S.owner[+i] = 0; S.min[+i] = 70; }); S.f[0].money = 3000; S.stat.took = Math.max(S.stat.took, 3); g.select(null); g.sync(); return E.dongsOf(S, 0).length; });
     if (dev === 'phone') { await tap('#cells'); await p.waitForTimeout(300); }
-    await G(() => __game.tab('now')); await p.waitForTimeout(200);
+    await G(() => __game.tab('dev')); await p.waitForTimeout(200);
     const dv = await G(() => { const sh = document.getElementById('sheet'); const top = [...sh.querySelectorAll('.devTop .row')].map(r => r.textContent); const sm = sh.querySelector('.devList summary'); return { top, sum: sm && sm.textContent, rows: sh.querySelectorAll('.devList .row').length }; });
     ok(dv.top.some(t => /가장 큰 이득/.test(t)), dev + ' 전체 개발 가장 큰 이득: ' + dv.top.join(' | '));
     const nn = +((dv.sum || '').match(/대상 (\d+)곳/) || [0, -1])[1];

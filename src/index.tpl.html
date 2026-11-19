@@ -57,7 +57,7 @@ button{cursor:pointer;touch-action:manipulation}
 #dock{flex-wrap:wrap}#newsRow{flex:0 0 100%;display:flex;gap:8px;align-items:center;min-width:0}
 #todo{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:4px;text-align:left;background:#FFF7D6;border:1px solid var(--ink);border-radius:4px;padding:2px 8px 2px 10px;font-size:13px;font-weight:500;min-height:44px;line-height:1.25}
 #todo[hidden]~#lens{margin-left:auto}
-#todo span{flex:1;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}#todo b{font-size:17px;line-height:1}
+#todo span{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;overflow:hidden}#todo span b{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#todo span small{font-size:12px;font-weight:400;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}#todo>i{font-style:normal;font-size:18px;line-height:1}#todo .tg{font-style:normal;font-size:11px;font-weight:600;color:#fff;background:#1B4C78;border-radius:3px;padding:1px 4px;vertical-align:1px}#todo .tg.bad{background:var(--stamp)}
 #todo[hidden]{display:none}
 /* 간단 보기 */
 #sheet.peek{max-height:none;overflow:visible;padding-bottom:10px}
@@ -156,6 +156,9 @@ button.pcard:active{transform:translateY(1px)}button.pcard:hover{border-color:va
 #rpLabel{flex:1;font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #rpBar button{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:4px;font-size:13px;min-height:34px;padding:0 10px;white-space:nowrap}
 #mapBtns{position:absolute;z-index:4;display:flex;gap:6px}
+#quest{position:absolute;z-index:4;display:flex;flex-direction:column;align-items:flex-start;gap:1px;max-width:min(230px,52vw);background:var(--sheet);border:1px solid var(--ink);border-left:4px solid #E2A11F;border-radius:4px;padding:5px 10px 6px;text-align:left;box-shadow:0 2px 8px rgba(23,35,28,.12);min-height:44px}
+#quest small{font-size:11px;color:var(--mute);line-height:1.1}#quest b{font-size:13px;font-weight:600;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}#quest em{font-style:normal;color:var(--good)}
+#quest.done{border-left-color:var(--good);background:#EEF6EF}#quest.pop{animation:qpop .6s}@keyframes qpop{0%{transform:scale(1)}35%{transform:scale(1.12)}100%{transform:scale(1)}}
 #mapBtns button{background:var(--sheet);border:1px solid var(--ink);border-radius:4px;font-size:12px;min-height:34px;padding:0 8px}
 .chip.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 #legend{position:absolute;z-index:4;left:max(12px,env(safe-area-inset-left,0px));display:flex;align-items:center;gap:6px;font-size:12px;background:var(--sheet);border:1px solid var(--line);padding:4px 8px;border-radius:4px}
@@ -199,6 +202,7 @@ button.pcard:active{transform:translateY(1px)}button.pcard:hover{border-color:va
 #evBar{background:var(--paper);border:0;border-top:2px solid var(--ink);box-shadow:inset 4px 0 0 #A4661B;padding:6px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));font-weight:500;font-size:14px;text-align:left;color:var(--ink);width:100%;min-height:36px}
 .linkish{background:none;border:0;padding:0;color:#1B4C78;text-decoration:underline;font-size:inherit}
 .rows .side{color:#8A2A1C;font-size:12px}
+.rows small.mute{color:var(--mute);font-size:12px;font-weight:400}
 .devTop .row span:last-child,.devList .row span:last-child{text-align:right;font-size:13px}
 .devList .row span:first-child{text-align:left}
 #nbView{padding:8px 2px;margin:-8px 0}
@@ -330,12 +334,28 @@ details.diplo .acts{margin-top:2px}
 @media (prefers-reduced-motion:reduce){
   .stampMark{animation:none;opacity:1}
 }
+
+/* ---- 통일: 주 행동(빨강) · 보조(테두리) · 글자 링크, 누르는 영역 44px 이상 ---- */
+.btn{min-height:48px;font-size:15px;font-weight:500}
+.btn.red{font-size:16px}
+.btn small{font-size:12px}
+.acts .btn,.qrow .btn{min-height:48px}
+.gov .btn{min-height:44px;font-size:14px}
+.row.bt .btn{min-height:36px;font-size:14px}
+.chip,.chips.pq .chip{min-height:44px}
+.dc{min-height:40px}
+#news{min-height:40px}
+#menuBtn{padding:6px 12px;min-height:32px}
+.linkish{position:relative}.linkish::after{content:'';position:absolute;left:-4px;right:-4px;top:-12px;bottom:-12px}
+#quest:active,.btn:active,.chip:active,.rowBtn:active,#todo:active{transform:translateY(1px)}
+.tabs .tab{font-size:14px;padding:0 2px;white-space:nowrap}
 </style>
 <div id="app">
   <canvas id="map" aria-label="서울 행정동 지도. 동을 누르면 정보가 열립니다."></canvas>
   <div id="stampLayer"></div>
   <div id="rpBlock" hidden></div>
   <div id="turnBanner" hidden aria-live="polite"></div><div id="turnCal" hidden role="status" aria-live="polite"></div><div id="rpTalk" hidden></div><div id="rpBar" hidden role="status" aria-live="polite"><span id="rpLabel">상대 턴</span><span id="rpDots" aria-hidden="true"></span><button id="rpFast" type="button">빠르게</button><button id="rpSkip" type="button">건너뛰기</button></div>
+  <button id="quest" type="button" hidden></button>
   <div id="mapBtns" hidden><button id="toCap" type="button">본거지</button><button id="toAll" type="button">서울 전체</button></div>
   <div id="legend" hidden><span id="legendName"></span><span class="lr">낮음</span><span class="bar lr"></span><span class="lr">높음</span><span class="lo"><i class="sw own"></i>우리</span><span class="lo"><i class="sw pup"></i>괴뢰국</span><span class="lo"><i class="sw"></i>진출한 구</span></div>
   <header id="hud" hidden>

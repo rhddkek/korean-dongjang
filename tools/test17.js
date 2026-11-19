@@ -11,7 +11,7 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   await p.fill('#q', '소공'); await p.waitForTimeout(80); await p.tap('#results button'); await p.waitForTimeout(150); await p.tap('#begin'); await p.waitForTimeout(400);
   // 할 일 줄
   const todo = await G(() => ({ hid: document.getElementById('todo').hidden, t: document.getElementById('todo').textContent, next: document.getElementById('next').innerText }));
-  ok(!todo.hid && /추천 · .+ (치기 \d+%|설득)/.test(todo.t), '할 일 줄 추천: ' + todo.t);
+  ok(!todo.hid && /(치기 \d+%|설득)/.test(todo.t) && !/추천 ·/.test(todo.t), '할 일 줄 추천: ' + todo.t);
   ok(/결재 2건 남음/.test(todo.next), '다음 달 버튼에 남은 결재: ' + todo.next.replace(/\n/g, ' '));
   // 지도 탭 → 간단 보기: 지도가 절반 넘게 보이고 공격 버튼이 바로 있음
   const pos = await G(() => { const g = __game, S = g.S, D = g.D, c = g.cam(); const j = D[S.f[0].cap].a.find(x => S.owner[x] !== 0); return { j, x: D[j].x * c.s + c.x, y: D[j].y * c.s + c.y }; });
@@ -37,9 +37,10 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   ok(btn && ap1 === ap0 - 1, '간단 보기에서 바로 공격 (결재 ' + ap0 + '→' + ap1 + ')');
   // 우리 동 간단 보기: 개발 칩 한 번
   await G(() => { __game.S.f[0].money = 999; __game.sync(); });
+  await G(() => __game.select(null)); await p.waitForTimeout(200); await G(() => document.getElementById('toCap').click()); await p.waitForTimeout(700);
   const cp = await G(() => { const g = __game, S = g.S, D = g.D, c = g.cam(); const j = S.f[0].cap; return { x: D[j].x * c.s + c.x, y: D[j].y * c.s + c.y }; });
-  await G(() => __game.select(null)); await p.touchscreen.tap(cp.x, cp.y); await p.waitForTimeout(400);
-  const od = await G(() => ({ peek: document.getElementById('sheet').classList.contains('peek'), n: document.querySelectorAll('#sheet .qdev').length }));
+  await p.touchscreen.tap(cp.x, cp.y); await p.waitForTimeout(400);
+  const od = await G(() => ({ peek: document.getElementById('sheet').classList.contains('peek'), n: document.querySelectorAll('#sheet .qdev').length, qr: JSON.stringify(document.getElementById('quest').getBoundingClientRect()), mode: document.querySelector('#sheet h2') && document.querySelector('#sheet h2').textContent }));
   ok(od.peek && od.n === 4, '우리 동 간단 보기: 개발 칩 4개');
   await p.screenshot({ path: OUT + '/u2_own.png' });
   await p.tap('#sheet .qdev[data-k="0"]'); await p.waitForTimeout(300);

@@ -11,7 +11,7 @@ const ok=(c,m)=>console.log((c?'PASS ':'FAIL ')+m);
  await p.goto('http://localhost:8130',{waitUntil:'load'});await p.waitForTimeout(300);await p.fill('#q','소공');await p.waitForTimeout(80);await p.tap('#results button');await p.waitForTimeout(150);await p.tap('#begin');await p.waitForTimeout(400);
  // 설득 화면 안내
  const tg=await G(()=>{const g=__game,S=g.S;const t=g.D.findIndex(d=>d.n==='명동');S.owner[t]=-1;S.f[0].money=500;S.ap=3;g.select(t);return t});await p.waitForTimeout(350);
- let st=await p.textContent('#sheet');ok(/첫 달 수입·동원 50%/.test(st)&&/달 회수/.test(st),'설득 버튼 정착·회수 안내');
+ let st=await p.textContent('#sheet');ok(/정착 후/.test(st)&&/달 회수/.test(st),'설득 버튼 정착·회수 안내');
  await p.tap('#per');await p.waitForTimeout(400);await dismiss();
  const s1=await G(t=>({f:__game.E.settleF(__game.S,t)}),tg);ok(Math.abs(s1.f-0.5)<1e-9,'설득 직후 수입 50%');
  await G(t=>__game.select(t),tg);await p.waitForTimeout(350);st=await p.textContent('#sheet');ok(/정착 중/.test(st)&&/50%/.test(st),'우리 동 화면 정착 표시');await p.screenshot({path:OUT+'/b1_settle.png'});await p.tap('.x');

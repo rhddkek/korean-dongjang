@@ -11,9 +11,9 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   await p.fill('#q', '서교'); await p.waitForTimeout(80); await p.tap('#results button'); await p.waitForTimeout(150); await p.tap('#begin'); await p.waitForTimeout(400);
   for (let k = 0; k < 4; k++) { const c = await p.$('#over:not([hidden]) #cardOk, #over:not([hidden]) button.pcard'); if (!c) break; await c.tap(); await p.waitForTimeout(200); }
   await G(() => { const g = __game, S = g.S, D = g.D; const cap = S.f[0].cap; D[cap].a.slice(0, 6).forEach(j => { S.owner[j] = 0; S.min[j] = 70; }); S.min[D[cap].a[0]] = 30; S.f[0].money = 2000; g.sync(); });
-  await p.tap('#cells'); await p.waitForTimeout(300);
+  await p.tap('#cells'); await p.waitForTimeout(300); await G(() => __game.tab('dev')); await p.waitForTimeout(150);
   const t0 = await G(() => document.getElementById('sheet').innerText);
-  ok(/전체 개발 · 우리 동 7곳/.test(t0) && /추천대로 \d+곳 짓기/.test(t0), '현황 탭에 전체 개발 · 추천 버튼');
+  ok(/전체 개발 · 우리 동 7곳/.test(t0) && /추천대로 \d+곳 짓기/.test(t0), '살림 탭에 전체 개발 · 추천 버튼');
   await p.screenshot({ path: OUT + '/r1_realm_dev.png' });
   const before = await G(() => ({ dev: __game.S.dev.reduce((a, b) => a + b, 0), m: __game.S.f[0].money, ap: __game.S.ap }));
   await p.tap('#realmDev'); await p.waitForTimeout(300);

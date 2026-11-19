@@ -22,14 +22,14 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   await G(t => __game.select(t, true), t); await p.waitForTimeout(250);
   const q0 = await G(() => ({ chips: document.querySelectorAll('#sheet .qp .chip[data-n]').length, on: (document.querySelector('#sheet .qp .chip.on') || {}).textContent, pct: document.getElementById('pctV').textContent, txt: document.getElementById('sheet').innerText }));
   ok(q0.chips === 3 && /80/.test(q0.on || ''), '간단 보기 승률 버튼 3개, 80% 선택됨 (' + q0.on + ', ' + q0.pct + ')');
-  ok(/설득하면 예산 [\d,]+억 → [\d,]+억/.test(q0.txt), '설득 전후 예산 표시');
+  ok(/남는 돈 [\d,]+억/.test(q0.txt), '설득 뒤 남는 돈 표시');
   await p.tap('#sheet .qp .chip[data-n]:nth-child(3)'); await p.waitForTimeout(200);
   const q1 = await G(() => ({ on: (document.querySelector('#sheet .qp .chip.on') || {}).textContent, pct: +document.getElementById('pctV').textContent.replace('%', ''), peek: document.getElementById('sheet').classList.contains('peek') }));
   ok(/95/.test(q1.on || '') && q1.pct >= 90 && q1.peek, '95% 누르면 승률 ' + q1.pct + '%, 간단 보기 유지');
   await p.screenshot({ path: OUT + '/w1_peek.png' });
   await p.tap('#qMore'); await p.waitForTimeout(200);
   const full = await G(() => document.getElementById('sheet').innerText);
-  ok(/설득하면 예산/.test(full), '자세히에도 설득 전후 예산');
+  ok(/남는 돈/.test(full), '자세히에도 설득 뒤 남는 돈');
   await p.tap('.x');
 
   // 3) 침공 예고 화살표 (그림) + 꼬리표

@@ -68,7 +68,7 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   // 충성 경고: 추천 줄 + 지도 표시
   await G(id => { __game.S.f[id].puppet.loyal = 24; __game.sync(); }, pid); await p.waitForTimeout(250);
   const td = await G(() => document.getElementById('todo').textContent);
-  ok(/경고 · 시험구 충성 24/.test(td), '추천 줄 충성 경고: ' + td);
+  ok(/경고 시험구 충성 24/.test(td), '추천 줄 충성 경고: ' + td);
   await p.screenshot({ path: OUT + '/u5_loyal.png' });
   await p.tap('#todo'); await p.waitForTimeout(350);
   ok(/괴뢰국/.test(await G(() => document.getElementById('sheet').innerText)), '누르면 그 괴뢰국 화면');

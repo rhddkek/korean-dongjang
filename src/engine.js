@@ -906,7 +906,7 @@ var Engine = (function () {
     }
     if (!won && !fail) return { err: '보낼 인원이 모자랍니다.' };
     s.ap -= apCost; s.stat.guop++;
-    pushLog(s, label + ' 작전: ' + won + '개 ' + C.UNIT + ' 접수' + (fail ? ', ' + fail + '개 실패' : '') + '. ' + home + '명이 집에 갔고, ' + back + '명은 다음 달 복귀합니다.', won ? 'good' : 'bad');
+    pushLog(s, label + ' 작전 · ' + won + '곳 접수' + (fail ? ' · ' + fail + '곳 실패' : '') + ' · ' + home + '명 귀가', won ? 'good' : 'bad');
     collapsed.forEach(function (c) { pushLog(s, collapseText(c), 'good'); });
     if (fail >= 2 && s.f[0].troops < home) { s.weakAt = s.month; }
     afterChange(s);

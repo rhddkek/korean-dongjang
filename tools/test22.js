@@ -52,9 +52,10 @@ const ok = (c, m) => console.log((c ? 'PASS ' : 'FAIL ') + m);
   for (let m = 0; m < 4; m++) { const o0 = await G(() => __game.S.owner.slice()); await p.tap('#next'); await p.waitForTimeout(700); await dismiss(); const o1 = await G(() => __game.S.owner.slice()); const pid = await G(() => __game.S.f.length - 1); for (let i = 0; i < o0.length; i++) if (o0[i] === 0 && o1[i] === pid) hit++; }
   ok(hit === 0, '4달 동안 괴뢰국이 우리 땅을 친 횟수 ' + hit);
   // 세력 화면: 상납 줄, 괴뢰국 목록, 지역별 점령
-  await p.tap('#cells'); await p.waitForTimeout(250);
+  await p.tap('#cells'); await p.waitForTimeout(250); await G(() => __game.tab('dev')); await p.waitForTimeout(150);
   const now = await G(() => document.getElementById('sheet').innerText);
-  ok(/괴뢰국 상납/.test(now), '월 수지에 괴뢰국 상납');
+  ok(/상납/.test(now), '월 수지에 괴뢰국 상납');
+  await G(() => __game.tab('now')); await p.waitForTimeout(100);
   await G(() => __game.tab('fac')); await p.waitForTimeout(150);
   const fac = await G(() => document.getElementById('sheet').innerText);
   ok(/괴뢰국 · 1\/3/.test(fac) && /범어만촌 · 충성/.test(fac), '세력 탭 괴뢰국 목록');
