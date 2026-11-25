@@ -100,7 +100,8 @@
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   // ---- PixelLab 도트: 24×24 아이콘 줄 하나 + 32×32 얼굴 판 (build.py가 data URL로 채움) ----
   var ICON_SRC = /*ICONS*/'', FACE_SRC = /*FACES*/'';
-  var ICK = ['coin', 'people', 'doc', 'flag', 'bag', 'bus', 'house', 'badge', 'handshake', 'envelope', 'split', 'megaphone', 'arrow', 'fist', '번영회', '부녀회', '상인회', '조기축구회', '통장협의회', '노인회', '청년회', '산악회', '입주자대표회의', '배드민턴클럽', '학부모회', '방범대', '반상회', '테니스동호회', '자율방재단'];
+  var ICK = ['coin', 'people', 'doc', 'flag', 'bag', 'bus', 'house', 'badge', 'handshake', 'envelope', 'split', 'megaphone', 'arrow', 'fist', '번영회', '부녀회', '상인회', '조기축구회', '통장협의회', '노인회', '청년회', '산악회', '입주자대표회의', '배드민턴클럽', '학부모회', '방범대', '반상회', '테니스동호회', '자율방재단', 'mkt', 'ind', 'tour', 'hub', 'rail'];
+  function lmIc(o) { return o.k !== 'hub' ? o.k : /공항/.test(o.n) ? 'hub' : /터미널/.test(o.n) ? 'bus' : 'rail'; }
   var DEVI = ['bag', 'bus', 'house', 'badge'], OPI = { feud: 'handshake', bribe: 'envelope', split: 'split', smear: 'megaphone' };
   function ic(k, cls) { var i = ICK.indexOf(k); return i < 0 || !ICON_SRC ? '' : '<i class="ic' + (cls ? ' ' + cls : '') + '" style="background-position:-' + i * 24 + 'px 0" aria-hidden="true"></i>'; }
   function emb(fid) { var f = S && S.f[fid], i = f ? ICK.indexOf(f.grp) : -1; return i < 0 || !ICON_SRC ? '' : '<i class="ic emb" style="background-position:-' + i * 24 + 'px 0;--fc:' + fCol(fid) + '" aria-hidden="true"></i>'; }
@@ -384,7 +385,39 @@
       }
     }
     drawLabels(c, cur);
+    drawLandmarks(c);
     if (RPS) drawReplay(c); else drawMarks(c);
+  }
+  // 랜드마크: 동 위에 종이색 패 + 도트 아이콘, 테두리는 주인 세력 색. 동이 화면에서 작으면 작은 마름모만
+  var LMD = null;
+  function lmGroups() {
+    if (LMD) return LMD;
+    var by = {}; LMD = [];
+    E.landmarks().forEach(function (o) { if (!by[o.i]) { by[o.i] = { i: o.i, list: [] }; LMD.push(by[o.i]); } by[o.i].list.push(o); });
+    return LMD;
+  }
+  function drawLandmarks(c) {
+    if (!S || lens || RPS || !ICON_IMG || !ICON_IMG.complete || !ICON_IMG.naturalWidth) return;
+    var gs = lmGroups(); if (!gs.length) return;
+    c.save(); c.setTransform(DPR, 0, 0, DPR, 0, 0); c.imageSmoothingEnabled = false;
+    gs.forEach(function (g) {
+      var d = D[g.i], x = d.x * cam.s + cam.x, y = d.y * cam.s + cam.y, w = Math.min(d.b[2] - d.b[0], d.b[3] - d.b[1]) * cam.s;
+      if (x < -40 || y < -40 || x > W + 40 || y > H + 40) return;
+      var o = S.owner[g.i], col = fogged(g.i) ? '#8A968C' : o >= 0 ? fCol(o) : '#8A968C';
+      if (w < 30) {
+        c.fillStyle = '#FDFDF9'; c.strokeStyle = col; c.lineWidth = 2;
+        c.beginPath(); c.moveTo(x, y - 17); c.lineTo(x + 6, y - 11); c.lineTo(x, y - 5); c.lineTo(x - 6, y - 11); c.closePath(); c.fill(); c.stroke();
+        return;
+      }
+      var n = g.list.length, yy = Math.round(y - 31), x0 = Math.round(x - (n - 1) * 15);
+      g.list.forEach(function (lm, k) {
+        var cx = x0 + k * 30;
+        c.fillStyle = '#FDFDF9'; c.strokeStyle = col; c.lineWidth = 2.5;
+        c.beginPath(); if (c.roundRect) c.roundRect(cx - 14, yy - 14, 28, 28, 6); else c.rect(cx - 14, yy - 14, 28, 28); c.fill(); c.stroke();
+        c.drawImage(ICON_IMG, ICK.indexOf(lmIc(lm)) * 24, 0, 24, 24, cx - 12, yy - 12, 24, 24);
+      });
+    });
+    c.restore();
   }
   function marksNow() {
     var out = [];
@@ -819,8 +852,8 @@
     var A = E.ABIL[E.abilityOf(type)];
     return '<p class="type abil"><b>대표 능력 · ' + A.n + '</b> ' + A.t + (long ? '<br><span>' + A.how + '</span>' : '') + '</p>';
   }
-  var METRO_SRC = '<p class="src">주민 수: 행정안전부 주민등록 인구통계 2026년 7월 (행정동 단위, <a href="https://github.com/yadoran-2025/korea-population-classroom-kit" target="_blank" rel="noopener">정리본</a>).<br>상가 수: 소상공인시장진흥공단 상가(상권)정보 2026년 9월 (<a href="https://github.com/team-datapopcorn/sanggwon-dashboard" target="_blank" rel="noopener">약 2km 격자 집계본</a>을 동 면적·인구에 맞춰 나눔, 상가가 가장 많은 동들은 정확한 값).<br>직장인 수·집객시설은 서울 실제값과 상가 수의 관계로 추정한 게임용 값입니다.' + (CITY_ID === 'incheon' ? '<br>지하철역 위치: OpenStreetMap 기여자(ODbL). 옹진군 섬 지역은 지도에서 뺐습니다.' : '<br>지하철역: 위키백과 역 목록의 역 이름과 소재 구를 보고 행정동에 배정해 일부 다를 수 있습니다.') + (CITY_ID === 'busan' ? '<br>재정자립도: <a href="https://www.busan.com/view/busan/view.php?code=2026012218193967246" target="_blank" rel="noopener">부산일보 보도</a> (중구는 추정).' : '<br>재정자립도: 상가·직장인 밀도로 만든 게임용 추정치.') + (CITY_ID === 'gwangju' ? '<br>광주는 통합특별시 출범 전 광주광역시 5개 구만 지도에 담았습니다.' : '') + '<br>행정동 경계: 통계청·행정안전부 자료를 정리한 admdongkor(MIT), 2026년 10월 기준.</p><p class="src">경제·인프라·생활 점수와 동네 유형은 통계를 바탕으로 계산한 게임용 값으로, 실제 순위가 아니며 동네의 우열을 뜻하지 않습니다. 등장 단체와 사건은 모두 지어낸 것입니다.</p>';
-  var MODE_SRC = '<p class="src">' + (NATION ? '한 칸은 서울·광역시의 자치구·군, 도의 시·군입니다(시 아래 일반구는 하나로 합침).<br>' : '') + '주민 수: 행정안전부 주민등록 인구통계 2026년 7월 (행정동·읍면 단위, <a href="https://github.com/yadoran-2025/korea-population-classroom-kit" target="_blank" rel="noopener">정리본</a>).<br>상가 수: 소상공인시장진흥공단 상가(상권)정보 2026년 9월 (<a href="https://github.com/team-datapopcorn/sanggwon-dashboard" target="_blank" rel="noopener">약 2km 격자 집계본</a>을 읍면동 면적·인구에 맞춰 나눔).<br>직장인 수·집객시설은 ' + (NATION ? '서울은 서울 열린데이터광장 실제값, 그 밖은 ' : '') + '서울 실제값과 상가 수의 관계로 옮긴 게임용 추정치입니다.<br>' + (NATION ? 'KTX·SRT 주요 정차역을 역이 있는 시군구에 직접 배정했습니다. KTX 기습은 역이 있는 칸끼리 120km 안에서 됩니다.' : '역: 수도권 전철(경기·충남 천안아산·강원 춘천 구간 포함)은 OpenStreetMap 기여자(ODbL) 좌표, 광역시 도시철도는 역 목록 기준 배정, 김해·양산·경산 경전철·도시철도는 역 이름 기준으로 대략 배정했습니다. 일반 철도역은 넣지 않았습니다.') + '<br>재정자립도: 상가·직장인 밀도로 만든 게임용 추정치' + (/부산/.test(DATA.full) ? '(부산 구는 보도 수치)' : '') + '.<br>' + (/울릉/.test(DATA.full) ? '울릉군은 지도가 너무 넓어져 뺐습니다. ' : '') + (/추자/.test(DATA.full) ? '추자면은 지도가 너무 넓어져 뺐습니다. ' : '') + '바다로 떨어진 섬은 가장 가까운 뭍과 다리로 이어진 것으로 칩니다.<br>행정동 경계: 통계청·행정안전부 자료를 정리한 admdongkor(MIT), 2026년 10월 기준.</p><p class="src">경제·인프라·생활 점수와 동네 유형은 통계를 바탕으로 계산한 게임용 값으로, 실제 순위가 아니며 지역의 우열을 뜻하지 않습니다. 직함과 등장 단체, 사건은 모두 게임용으로 지어낸 것입니다.</p>';
+  var METRO_SRC = '<p class="src">주민 수: 행정안전부 주민등록 인구통계 2026년 7월 (행정동 단위, <a href="https://github.com/yadoran-2025/korea-population-classroom-kit" target="_blank" rel="noopener">정리본</a>).<br>상가 수: 소상공인시장진흥공단 상가(상권)정보 2026년 9월 (<a href="https://github.com/team-datapopcorn/sanggwon-dashboard" target="_blank" rel="noopener">약 2km 격자 집계본</a>을 동 면적·인구에 맞춰 나눔, 상가가 가장 많은 동들은 정확한 값).<br>직장인 수·집객시설은 서울 실제값과 상가 수의 관계로 추정한 게임용 값입니다.' + (CITY_ID === 'incheon' ? '<br>지하철역 위치: OpenStreetMap 기여자(ODbL). 옹진군 섬 지역은 지도에서 뺐습니다.' : '<br>지하철역: 위키백과 역 목록의 역 이름과 소재 구를 보고 행정동에 배정해 일부 다를 수 있습니다.') + (CITY_ID === 'busan' ? '<br>재정자립도: <a href="https://www.busan.com/view/busan/view.php?code=2026012218193967246" target="_blank" rel="noopener">부산일보 보도</a> (중구는 추정).' : '<br>재정자립도: 상가·직장인 밀도로 만든 게임용 추정치.') + (CITY_ID === 'gwangju' ? '<br>광주는 통합특별시 출범 전 광주광역시 5개 구만 지도에 담았습니다.' : '') + '<br>랜드마크: 시장·산업단지·명소·교통 거점의 대표 지점 좌표를 행정동 경계에 찍어 소재 동을 정했습니다. 고른 곳과 효과는 게임용입니다.<br>행정동 경계: 통계청·행정안전부 자료를 정리한 admdongkor(MIT), 2026년 10월 기준.</p><p class="src">경제·인프라·생활 점수와 동네 유형은 통계를 바탕으로 계산한 게임용 값으로, 실제 순위가 아니며 동네의 우열을 뜻하지 않습니다. 등장 단체와 사건은 모두 지어낸 것입니다.</p>';
+  var MODE_SRC = '<p class="src">' + (NATION ? '한 칸은 서울·광역시의 자치구·군, 도의 시·군입니다(시 아래 일반구는 하나로 합침).<br>' : '') + '주민 수: 행정안전부 주민등록 인구통계 2026년 7월 (행정동·읍면 단위, <a href="https://github.com/yadoran-2025/korea-population-classroom-kit" target="_blank" rel="noopener">정리본</a>).<br>상가 수: 소상공인시장진흥공단 상가(상권)정보 2026년 9월 (<a href="https://github.com/team-datapopcorn/sanggwon-dashboard" target="_blank" rel="noopener">약 2km 격자 집계본</a>을 읍면동 면적·인구에 맞춰 나눔).<br>직장인 수·집객시설은 ' + (NATION ? '서울은 서울 열린데이터광장 실제값, 그 밖은 ' : '') + '서울 실제값과 상가 수의 관계로 옮긴 게임용 추정치입니다.<br>' + (NATION ? 'KTX·SRT 주요 정차역을 역이 있는 시군구에 직접 배정했습니다. KTX 기습은 역이 있는 칸끼리 120km 안에서 됩니다.' : '역: 수도권 전철(경기·충남 천안아산·강원 춘천 구간 포함)은 OpenStreetMap 기여자(ODbL) 좌표, 광역시 도시철도는 역 목록 기준 배정, 김해·양산·경산 경전철·도시철도는 역 이름 기준으로 대략 배정했습니다. 일반 철도역은 넣지 않았습니다.') + '<br>재정자립도: 상가·직장인 밀도로 만든 게임용 추정치' + (/부산/.test(DATA.full) ? '(부산 구는 보도 수치)' : '') + '.<br>' + (/울릉/.test(DATA.full) ? '울릉군은 지도가 너무 넓어져 뺐습니다. ' : '') + (/추자/.test(DATA.full) ? '추자면은 지도가 너무 넓어져 뺐습니다. ' : '') + '바다로 떨어진 섬은 가장 가까운 뭍과 다리로 이어진 것으로 칩니다.<br>랜드마크: 시장·산업단지·명소·교통 거점의 대표 지점 좌표를 행정동 경계에 찍어 소재 동을 정했습니다. 고른 곳과 효과는 게임용입니다.<br>행정동 경계: 통계청·행정안전부 자료를 정리한 admdongkor(MIT), 2026년 10월 기준.</p><p class="src">경제·인프라·생활 점수와 동네 유형은 통계를 바탕으로 계산한 게임용 값으로, 실제 순위가 아니며 지역의 우열을 뜻하지 않습니다. 직함과 등장 단체, 사건은 모두 게임용으로 지어낸 것입니다.</p>';
   function factsHTML(d) {
     if (!SEOUL) return '<p class="facts num">주민 <b>' + d.pop.toLocaleString('ko-KR') + '명</b> · 직장인 <b>약 ' + d.work.toLocaleString('ko-KR') + '명</b> · 상가 <b>약 ' + (d.st || 0).toLocaleString('ko-KR') + '곳</b> · 지하철역 <b>' + d.sub + '개</b> · 약국 <b>약 ' + d.ph + '곳</b> · 면적 <b>' + d.km + '㎢</b></p>';
     return '<p class="facts num">주민 <b>' + d.pop.toLocaleString('ko-KR') + '명</b> · 직장인 <b>' + (d.est ? '약 ' : '') + d.work.toLocaleString('ko-KR') + '명</b> · 지하철역 <b>' + d.sub + '개</b> · 버스 정류장 <b>' + d.bus + '개</b> · 병원·약국 <b>' + (d.hosp + d.ph) + '곳</b> · 학교 <b>' + d.sch + '곳</b> · 면적 <b>' + d.km + '㎢</b></p>';
@@ -923,6 +956,12 @@
         if (o === 0 || reach[j] || (o > 0 && (pact[o] > S.month || isPupO(o)))) return;
         reach[j] = 2;
       });
+    });
+    var hubs = E.hubs(), myHub = hubs.some(function (h) { return S.owner[h] === 0; });
+    if (myHub) hubs.forEach(function (j) {
+      var o = S.owner[j];
+      if (o === 0 || reach[j] || (o > 0 && (S.f[o].cap === j || pact[o] > S.month || isPupO(o)))) return;
+      reach[j] = 2;
     });
     if (S.stat.took === 0) {
       var bestN = 1e9;
@@ -1169,10 +1208,10 @@
       var pv = E.preview(S, j, n); if (!pv.ok) return;
       var v = (D[j].pop + (D[j].work || 0) * 0.5) * (D[j].g === goalG ? 1.4 : 1) + (S.rivalPlan && S.rivalPlan.src === j ? 1e7 : 0);
       if (!best || v > best.v) best = { t: j, v: v, n: n, pct: pv.pct };
-      if (o === -1 && pv.route && pv.route.via !== 'subway') { var c = E.persuadeCost(S, j); var pv2 = D[j].pop * (D[j].g === goalG ? 1.4 : 1); if (c <= me.money && (!bestP || pv2 > bestP.v)) bestP = { t: j, v: pv2, c: c }; }
+      if (o === -1 && pv.route && !farVia(pv.route)) { var c = E.persuadeCost(S, j); var pv2 = D[j].pop * (D[j].g === goalG ? 1.4 : 1); if (c <= me.money && (!bestP || pv2 > bestP.v)) bestP = { t: j, v: pv2, c: c }; }
     }); });
     if (!best && !bestP) {
-      Object.keys(reach || {}).some(function (k) { var j = +k; if (S.owner[j] === 0 || fogged(j) || S.owner[j] > 0) return false; var pv = E.preview(S, j, 1); if (!pv.route || pv.route.via === 'subway') return false; var c = E.persuadeCost(S, j); if (c <= me.money) { bestP = { t: j, v: D[j].pop, c: c }; return true; } return false; });
+      Object.keys(reach || {}).some(function (k) { var j = +k; if (S.owner[j] === 0 || fogged(j) || S.owner[j] > 0) return false; var pv = E.preview(S, j, 1); if (!pv.route || farVia(pv.route)) return false; var c = E.persuadeCost(S, j); if (c <= me.money) { bestP = { t: j, v: D[j].pop, c: c }; return true; } return false; });
     }
     var back = null;
     Object.keys(S.combo || {}).some(function (k) { return comboMiss(k).some(function (j) {
@@ -1319,8 +1358,10 @@
   function headHTML(d, sub) {
     return '<div class="head"><div><h2>' + esc(d.n) + '</h2><p>' + sub + '</p></div><button class="x" type="button" aria-label="닫기">×</button></div>';
   }
+  function farVia(r) { return !!r && (r.via === 'subway' || r.via === 'hub'); }
   function viaText(r) {
     if (!r) return '';
+    if (r.via === 'hub') { var hs = (D[r.src].lm || []).filter(function (o) { return o.k === 'hub'; })[0], ht = (D[sel] && D[sel].lm || []).filter(function (o) { return o.k === 'hub'; })[0]; return (hs ? hs.n : D[r.src].n) + ' → ' + (ht ? ht.n : '') + ' 직행 · 전력 −' + Math.round(-r.mult * 100) + '%'; }
     var src = D[r.src].n, pc = Math.round(r.mult * 100), tail = pc ? ' · 전력 ' + (pc > 0 ? '+' : '−') + Math.abs(pc) + '%' : '';
     if (r.via === 'land') return src + '에서 바로 진입' + tail;
     if (r.via === 'bridgeOk') return src + '에서 ' + WATER + ' 건너기' + tail;
@@ -1363,7 +1404,7 @@
   function enemySheet(sh) {
     var d = D[sel], o = S.owner[sel], me = S.f[0];
     if (fogged(sel)) {
-      sh.innerHTML = headHTML(d, GU[d.g].n + ' · 안개 속') + '<p class="prose">아직 소식이 들어오지 않은 동네입니다. 누가 쥐고 있는지 모릅니다. ' + GU[d.g].n + '와 맞닿은 동을 차지하면 구 전체가 보입니다.</p>' + typeLine(d) + statsHTML(sel);
+      sh.innerHTML = headHTML(d, GU[d.g].n + ' · 안개 속') + lmBadge(sel) + '<p class="prose">아직 소식이 들어오지 않은 동네입니다. 누가 쥐고 있는지 모릅니다. ' + GU[d.g].n + '와 맞닿은 동을 차지하면 구 전체가 보입니다.</p>' + typeLine(d) + statsHTML(sel);
       return;
     }
     var sub = GU[d.g].n + ' · ';
@@ -1372,7 +1413,7 @@
     var max = Math.floor(me.troops);
     sendN = Math.max(max > 0 ? 1 : 0, Math.min(max, sendN));
     var p = E.preview(S, sel, sendN), pacted = o > 0 && me.pact && me.pact[o] > S.month;
-    var per = o === -1 && p.route && p.route.via !== 'subway', c = per ? E.persuadeCost(S, sel) : 0;
+    var per = o === -1 && p.route && !farVia(p.route), c = per ? E.persuadeCost(S, sel) : 0;
     if (peek) {
       // 간단 보기: 판단에 필요한 한 줄 + 바로 누를 버튼. 나머지는 '자세히'
       var q = headHTML(d, sub) + '<div class="quick">';
@@ -1408,7 +1449,7 @@
       bindOps(sh);
       return;
     }
-    var html = headHTML(d, sub) + (o > 0 ? bossHTML(o, kindFor(o)) + (S.f[o].adv ? bossHTML(o, 'adv', '', true) : '') : '') + typeLine(d) + govBadge(sel) + comboHTML(sel);
+    var html = headHTML(d, sub) + (o > 0 ? bossHTML(o, kindFor(o)) + (S.f[o].adv ? bossHTML(o, 'adv', '', true) : '') : '') + typeLine(d) + lmBadge(sel) + govBadge(sel) + comboHTML(sel);
     if (!p.route) {
       html += '<p class="why" style="margin-top:10px">' + esc(p.reason) + ' 근처 동을 먼저 차지하세요.' + (o > 0 && S.f[o].cap === sel ? ' 본거지는 지하철로 칠 수 없습니다.' : ' 역이 있는 우리 동에서 4km 안이면 지하철로 칠 수 있습니다.') + '</p>';
     } else if (pacted) {
@@ -1633,7 +1674,7 @@
       return;
     }
     var zf = E.zoneOf(S, sel);
-    var html = headHTML(d, GU[d.g].n + ' · 우리 동' + (capt ? ' · 본거지' : '') + (zf ? ' · ' + esc(zf.nm) : '') + tookSub(d)) + typeLine(d) + govBadge(sel) + comboHTML(sel);
+    var html = headHTML(d, GU[d.g].n + ' · 우리 동' + (capt ? ' · 본거지' : '') + (zf ? ' · ' + esc(zf.nm) : '') + tookSub(d)) + typeLine(d) + lmBadge(sel) + govBadge(sel) + comboHTML(sel);
     var one = function (v) { return (Math.round(v * 10) / 10).toLocaleString('ko-KR'); };
     html += '<div class="mini num"><div><small>월수입</small><b>+' + money(nowTax) + '</b></div><div><small>동원</small><b>+' + people(nowDr) + '</b></div><div><small>방어</small><b>' + people(nowDef) + '</b></div><div><small>민심</small><b>' + Math.round(S.min[sel]) + '</b></div></div>';
     if (gtx) html += '<p class="why num">월수입 ' + money(nowTax) + ' = 기본 ' + money(base) + (gtx > 0 ? ' + 정부 사업 ' + money(gtx) : ' − 정부 사업 부담 ' + money(-gtx)) + '</p>';
@@ -1950,6 +1991,21 @@
     sh.innerHTML = tx(html);
     Array.prototype.forEach.call(sh.querySelectorAll('.gv'), function (b) { b.addEventListener('click', guard(function () { var r = E.govApply(S, +b.dataset.i); if (r.err) { errMsg = r.err; renderSheet(); return; } errMsg = ''; sfx('coin'); setNews(S.log[0].t); stampAt(+b.dataset.i, true, '선정'); sheetMode = 'none'; save(); sync(); })); });
   }
+  function lmHTML() {
+    var L = E.landmarks(); if (!L.length) return '';
+    var mine = L.filter(function (o) { return S.owner[o.i] === 0; }).length, disc = E.lmDisc(S);
+    var rows = L.slice().sort(function (a, b) { var oa = S.owner[a.i] === 0 ? 0 : 1, ob = S.owner[b.i] === 0 ? 0 : 1; return oa - ob || b.s - a.s; });
+    return sec('랜드마크 · 우리 ' + mine + '/' + L.length, '시장은 수입, 산업은 인원, 명소는 설득·공작비 할인(최대 24%), 교통 거점은 다른 거점으로 바로 출동. 모두 수비 +15%.' + (disc ? '<br>지금 할인 −' + Math.round(disc * 100) + '%' : '')) +
+      '<div class="rows num">' + rows.map(function (o) {
+        var w = S.owner[o.i], fog = fogged(o.i);
+        var who = w === 0 ? '<b>우리</b>' : fog ? '안개 속' : w > 0 ? esc(S.f[w].name) : '독립';
+        return '<button class="row rowBtn lmrow" type="button" data-go1="' + o.i + '"><span class="opt">' + ic(lmIc(o)) + '<span><b>' + esc(o.n) + '</b> · ' + esc(D[o.i].n) + '<br><small>' + who + ' · ' + esc(E.lmFx(o)) + '</small></span></span><span>›</span></button>';
+      }).join('') + '</div>';
+  }
+  function lmBadge(i) {
+    var L = D[i].lm; if (!L || !L.length) return '';
+    return L.map(function (o) { return '<div class="lmk">' + ic(lmIc(o)) + '<span><b>' + esc(o.n) + '</b> · ' + E.LM_K[o.k].n + '<br><small>' + esc(E.lmFx(o)) + ' · 수비 +15%</small></span></div>'; }).join('');
+  }
   function govBadge(i) {
     var g = E.govSite(S, i); if (!g) return '';
     var G = E.GOV[g.k], building = S.month < g.done;
@@ -2086,7 +2142,7 @@
       var ms = c && !on ? comboMiss(k) : [];
       return '<div class="row' + (ms.length ? ' bt' : '') + '"><span><b>' + C0.n + '</b><br><small>' + (ms.length ? '<b class="bad">멈춤</b> · ' + esc(ms.map(function (j) { return D[j].n; }).join('·')) + ' 되찾으면 다시 작동' : c ? esc(c.d.map(function (j) { return D[j].n; }).join('·')) : C0.t) + '</small></span>' + (ms.length ? '<button class="btn" type="button" data-cgo="' + ms[0] + '">' + esc(D[ms[0]].n) + ' 보기</button>' : '<span class="nw">' + (c ? '작동 중' : '아직') + '</span>') + '</div>';
     }).join('') + '</div>';
-    var tO = regionHTML();
+    var tO = lmHTML() + regionHTML();
     // ---- 세력 ----
     var fl = E.factionList(S), nbF = {}, big = null;
     E.dongsOf(S, 0).forEach(function (i) { D[i].a.forEach(function (j) { var o = S.owner[j]; if (o > 0 && !isPupO(o)) nbF[o] = 1; }); });
@@ -2102,7 +2158,7 @@
     if (pl0.length || S.rank >= 1) tF = sec('괴뢰국 · ' + pl0.length + '/' + E.pupMax(S), '구역 화면에서 구역을 괴뢰국으로 독립시킬 수 있습니다. 한도: ' + R1N + ' 1 · ' + RANK2 + ' 3 · ' + MAYOR + ' 5.<br>괴뢰국 동을 누르면 받아오기·다른 괴뢰국으로 옮기기, 우리 동을 누르면 괴뢰국에 넘기기.') + (pl0.length ? '<div class="rows num">' + pl0.map(function (f) { return '<button class="row rowBtn" type="button" data-pg="' + f.cap + '"><span><span class="dot" style="background:' + pupCol() + '"></span>' + esc(f.name) + ' · 충성 ' + Math.round(f.puppet.loyal) + (f.puppet.loyal <= 30 ? ' <b class="bad">위험</b>' : '') + '</span><span>' + E.dongsOf(S, f.id).length + '개 · 월 +' + money(E.tribOf(S, f)) + ' ›</span></button><div class="chips pq" data-p="' + f.id + '">' + E.PUP_RATES.map(function (r) { return '<button class="chip num' + (f.puppet.rate === r ? ' on' : '') + '" type="button" data-r="' + r + '" aria-label="상납 ' + Math.round(r * 100) + '%">' + Math.round(r * 100) + '%</button>'; }).join('') + '<i></i>' + STANCE.map(function (x) { return '<button class="chip' + (f.puppet.stance === x[0] ? ' on' : '') + '" type="button" data-s="' + x[0] + '">' + x[1] + '</button>'; }).join('') + '</div>'; }).join('') + '</div>' : '<p class="why">아직 없음</p>') + tF;
     var TABS = [['now', '현황', tN], ['dev', '살림', tD], ['pol', '정책', tP], ['zone', '구역', tZ], ['occ', '점령', tO], ['fac', '세력', tF]];
     // 처음엔 탭을 줄이고 필요해질 때 엶: 정책(첫 카드 무렵), 점령(동 6곳부터), 세력(다른 세력과 맞닿으면)
-    var tabOn = { now: 1, dev: 1, zone: 1, pol: (S.cards || []).length > 0 || S.month >= 6 || S.rank >= 1, occ: E.dongsOf(S, 0).length >= 6, fac: !!S.seenFoe || S.month >= 9 };
+    var tabOn = { now: 1, dev: 1, zone: 1, pol: (S.cards || []).length > 0 || S.month >= 6 || S.rank >= 1, occ: E.dongsOf(S, 0).length >= 6 || E.lmOf(S, 0).length > 0, fac: !!S.seenFoe || S.month >= 9 };
     TABS = TABS.filter(function (x) { return tabOn[x[0]]; });
     if (!tabOn[realmTab]) realmTab = 'now';
     if (!TABS.some(function (t) { return t[0] === realmTab; })) realmTab = 'now';
@@ -2174,7 +2230,7 @@
     html += '<div class="sec">저장</div><p class="why">이 기기 브라우저에 자동 저장 · 기기를 바꾸거나 기록을 지우기 전에 저장 코드 복사</p><div class="two" style="margin-top:6px"><button class="btn" id="expBtn" type="button">저장 코드 복사</button><button class="btn" id="impBtn" type="button">코드 불러오기</button></div><textarea id="expText" readonly hidden></textarea>';
     html += '<div class="acts"><button class="btn" id="newGame" type="button">' + (confirmNew ? '정말 처음부터 시작 (지금 판은 사라집니다)' : '새 게임') + '</button></div>';
     if (!SEOUL) html += '<div class="sec">자료 출처</div>' + (KIND === 'metro' ? METRO_SRC : MODE_SRC);
-    else html += '<div class="sec">자료 출처</div><p class="src">서울특별시 서울 열린데이터광장: <a href="https://data.seoul.go.kr/dataList/OA-22183/S/1/datasetView.do" target="_blank" rel="noopener">상권분석서비스(상주인구-행정동)</a>, <a href="https://data.seoul.go.kr/dataList/OA-22184/S/1/datasetView.do" target="_blank" rel="noopener">상권분석서비스(직장인구-행정동)</a>, 상권분석서비스(집객시설-행정동). 2023~2024년 기준이라 지금과 다를 수 있습니다. 직장인 수가 빠진 26개 동과 시설 수가 빠진 관악구 신사동은 같은 구의 값으로 추정했습니다.<br>재정자립도: <a href="https://m.go.seoul.co.kr/news/2024/07/16/20240716500023" target="_blank" rel="noopener">서울시의회 자료 보도(서울신문)</a>, 2023년 기준.<br>생활 점수의 소득 항목은 237개 동만 확보해 나머지는 같은 구의 중간값을 썼습니다.<br>행정동 경계: 통계청·행정안전부 자료를 정리한 admdongkor(MIT), 2026년 10월 기준.</p><p class="src">경제·인프라·생활 점수와 동네 유형은 통계를 바탕으로 계산한 게임용 값으로, 실제 매출이나 소득 순위가 아니며 동네의 우열을 뜻하지 않습니다. 등장 단체와 사건은 모두 지어낸 것입니다.</p>';
+    else html += '<div class="sec">자료 출처</div><p class="src">서울특별시 서울 열린데이터광장: <a href="https://data.seoul.go.kr/dataList/OA-22183/S/1/datasetView.do" target="_blank" rel="noopener">상권분석서비스(상주인구-행정동)</a>, <a href="https://data.seoul.go.kr/dataList/OA-22184/S/1/datasetView.do" target="_blank" rel="noopener">상권분석서비스(직장인구-행정동)</a>, 상권분석서비스(집객시설-행정동). 2023~2024년 기준이라 지금과 다를 수 있습니다. 직장인 수가 빠진 26개 동과 시설 수가 빠진 관악구 신사동은 같은 구의 값으로 추정했습니다.<br>재정자립도: <a href="https://m.go.seoul.co.kr/news/2024/07/16/20240716500023" target="_blank" rel="noopener">서울시의회 자료 보도(서울신문)</a>, 2023년 기준.<br>생활 점수의 소득 항목은 237개 동만 확보해 나머지는 같은 구의 중간값을 썼습니다.<br>랜드마크: 시장·산업단지·명소·교통 거점의 대표 지점 좌표를 행정동 경계에 찍어 소재 동을 정했습니다. 고른 곳과 효과는 게임용입니다.<br>행정동 경계: 통계청·행정안전부 자료를 정리한 admdongkor(MIT), 2026년 10월 기준.</p><p class="src">경제·인프라·생활 점수와 동네 유형은 통계를 바탕으로 계산한 게임용 값으로, 실제 매출이나 소득 순위가 아니며 동네의 우열을 뜻하지 않습니다. 등장 단체와 사건은 모두 지어낸 것입니다.</p>';
     var rulesHtml = '';
     html = html.replace(/<div class="sec">게임 방법<\/div><ul class="prose">([\s\S]*?)<\/ul>/, function (m, body) { rulesHtml = '<details class="more rule"><summary>자세한 규칙</summary>' + rulesFold(body).replace(' open>', '>') + '</details>'; return ''; });
     html = html.replace('<div class="sec">자료 출처</div>', rulesHtml + '<details class="more rule"><summary>자료 출처</summary>') + '</details>';
@@ -2318,7 +2374,7 @@
     var me = S.f[0], cap = me.cap, out = [];
     try {
       var a = E.economy(S, 0), mine = E.dongsOf(S, 0), dA = cap != null ? E.defense(S, cap).total : 0;
-      var per = []; mine.forEach(function (i) { D[i].a.forEach(function (j) { if (S.owner[j] === -1 && per.indexOf(j) < 0) { var pv = E.preview(S, j, 1); if (pv.route && pv.route.via !== 'subway') per.push(j); } }); });
+      var per = []; mine.forEach(function (i) { D[i].a.forEach(function (j) { if (S.owner[j] === -1 && per.indexOf(j) < 0) { var pv = E.preview(S, j, 1); if (pv.route && !farVia(pv.route)) per.push(j); } }); });
       var cA = per.length ? Math.min.apply(null, per.map(function (j) { return E.persuadeCost(S, j); })) : 0;
       var devA = cap != null ? Math.min.apply(null, [0, 1, 2, 3].map(function (t) { var v = E.devCost(S, cap, t); return v === null ? 1e9 : v; })) : 1e9;
       var apA = E.maxAP(S);

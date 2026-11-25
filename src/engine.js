@@ -177,7 +177,7 @@ var Engine = (function () {
     TYPES.river.t = c.water === '바다' ? '다리 하나면 섬과 뭍이 이어집니다' : '다리만 건너면 강 건너';
     FAC[1][1] = waterShuttle(c.water);
   }
-  var D = null, SUBWAY = null, SUBWAY6 = null, SUBWAY7 = null, TOTALPOP = 0, GUDONGS = null, GUREG = null;
+  var LM = [], HUBS = [], D = null, SUBWAY = null, SUBWAY6 = null, SUBWAY7 = null, TOTALPOP = 0, GUDONGS = null, GUREG = null;
 
   // 실제 규모 반영: 지도 전체 합계는 그대로 두고, 동마다 몫을 실제 인구·경제 규모의 C.REAL 제곱에 비례해 나눔
   //   동원 ← 주민 수, 수입 ← 직장인 + 주민 0.35 (+인프라·생활 약간), 방어 ← 주간 인구(주민 + 직장인 절반) + 넓이 약간
@@ -211,6 +211,7 @@ var Engine = (function () {
       d.type = d.ty || (d.work >= 30000 || (d.work > d.pop * 2 && d.work >= 8000) ? 'office' : d.sub >= 3 ? 'station' : (d.P >= 82 && d.work < d.pop * 0.5) ? 'town' : d.fac >= 230 ? 'busy' : d.r.length > 0 ? 'river' : d.km >= 3.5 ? 'wide' : d.L >= 55 ? 'life' : 'home');
     });
     realScale(data.d);
+    setLandmarks(data);
     // 지하철 기습: 역이 있는 동끼리 4km 이내 (전국 모드는 KTX 역끼리 더 멀리)
     var R0 = C.RAID_KM * 100, R7 = R0 * 1.375, R6 = R0 * 1.5;
     SUBWAY = data.d.map(function () { return []; }); SUBWAY6 = data.d.map(function () { return []; }); SUBWAY7 = data.d.map(function () { return []; });
@@ -224,6 +225,51 @@ var Engine = (function () {
         if (q <= R7 * R7) SUBWAY7[i].push(j);
         if (q <= R6 * R6) SUBWAY6[i].push(j);
       });
+    });
+  }
+
+  // ---- 랜드마크: 실제 시장·산단·명소·교통 거점이 있는 동 (tools/build_landmarks.py)
+  //   효과는 지도마다 '보통 동' 수입·인원(중앙값)에 비례 → 서울이든 전국이든 같은 무게
+  var LM_K = {
+    mkt: { n: '시장', tax: 0.8, draft: 0 },
+    ind: { n: '산업', tax: 0.2, draft: 1.0 },
+    tour: { n: '명소', tax: 0.4, draft: 0 },
+    hub: { n: '교통', tax: 0.3, draft: 0 }
+  };
+  var LM_DEF = 1.15, LM_DISC = 0.08, LM_DISC_MAX = 0.24, LM_HUB = -0.1;
+  function median(a) { a = a.slice().sort(function (x, y) { return x - y; }); return a.length ? a[a.length >> 1] : 0; }
+  function setLandmarks(data) {
+    var mt = median(data.d.map(function (d) { return d.tax; })), md = median(data.d.map(function (d) { return d.draft; }));
+    data.d.forEach(function (d) { d.lm = []; d._lmTax = 0; d._lmDraft = 0; d._hub = false; });
+    LM = (data.lm || []).filter(function (o) { return data.d[o.i] && LM_K[o.k]; });
+    HUBS = [];
+    LM.forEach(function (o, k) {
+      var d = data.d[o.i], x = LM_K[o.k], m = o.s === 2 ? 1.5 : 1;
+      o.id = k; o.tax = Math.round(mt * x.tax * m); o.draft = Math.round(md * x.draft * m);
+      d.lm.push(o); d._lmTax += o.tax; d._lmDraft += o.draft;
+      if (o.k === 'hub') { d._hub = true; if (HUBS.indexOf(o.i) < 0) HUBS.push(o.i); }
+    });
+  }
+  function lmFx(o) {
+    var a = [];
+    if (o.tax) a.push('월수입 +' + o.tax + '억');
+    if (o.draft) a.push('인원 +' + o.draft + '명/월');
+    if (o.k === 'tour') a.push('설득·공작비 −' + Math.round(LM_DISC * 100) + '%');
+    if (o.k === 'hub') a.push('다른 교통 거점으로 바로 출동');
+    return a.join(' · ');
+  }
+  function lmOf(s, fid, k) { return LM.filter(function (o) { return s.owner[o.i] === fid && (!k || o.k === k); }); }
+  function lmDisc(s) { return Math.min(LM_DISC_MAX, lmOf(s, 0, 'tour').length * LM_DISC); }
+  // 랜드마크 주인이 바뀌면 소식 한 줄 (우리가 얻거나 잃을 때)
+  function lmWatch(s) {
+    if (!LM.length || !s.owner) return;
+    if (!s.lmO || s.lmO.length !== LM.length) { s.lmO = LM.map(function (o) { return s.owner[o.i]; }); return; }
+    LM.forEach(function (o, k) {
+      var w = s.owner[o.i], p = s.lmO[k];
+      if (w === p) return;
+      if (w === 0) pushLog(s, J(o.n, '을', '를') + ' 손에 넣었습니다 · ' + LM_K[o.k].n + ': ' + lmFx(o), 'good', o.i);
+      else if (p === 0) pushLog(s, J(o.n, '을', '를') + ' 잃었습니다' + (w > 0 ? ' · ' + s.f[w].name + ' 차지' : ''), 'bad', o.i);
+      s.lmO[k] = w;
     });
   }
 
@@ -291,7 +337,9 @@ var Engine = (function () {
     });
     s.ap = maxAP(s);
     s.hist = { o0: s.owner.slice(), m0: 0, d: [] }; s.hp = s.owner.slice();
-    pushLog(s, J(headOf(data.d[start].n), '에', '에') + ' 취임했습니다. 옆 동네가 눈에 들어옵니다.');
+    s.lmO = LM.map(function (o) { return s.owner[o.i]; });
+    var myLm = D.d[start].lm || [];
+    pushLog(s, J(headOf(data.d[start].n), '에', '에') + ' 취임했습니다. 옆 동네가 눈에 들어옵니다.' + (myLm.length ? ' 우리 동에 ' + J(myLm.map(function (o) { return o.n; }).join('·'), '이', '가') + ' 있습니다.' : ''));
     return s;
   }
   function abilityOf(type) { return ABIL[type] ? type : 'other'; }
@@ -447,6 +495,7 @@ var Engine = (function () {
     if (fullMap && fullMap[d.g]) v *= 1 + D.gu[d.g].f / 100;
     if (f === 0 && hasCard(s, 'market') && (d.type === 'office' || d.type === 'busy' || hasRole(i, '상권'))) v *= 1.25;
     v *= sideTaxF(s, i);
+    if (d._lmTax && f >= 0) v += d._lmTax;   // 랜드마크 몫은 민심·배율과 무관한 고정액
     if (f === 0 && s.zones && s.zones.length && zoneOf(s, i)) v *= 1.05;
     return v;
   }
@@ -457,6 +506,7 @@ var Engine = (function () {
     if (f >= 0 && s.f[f].cap === i) v *= 1.2;
     v *= settleF(s, i);
     var gs = govDone(s, i); if (gs && gs.k === 'hospital') v *= 1.15;
+    if (d._lmDraft && f >= 0) v += d._lmDraft;
     if (f === 0 && comboOn(s, 'jj', i)) v *= 1.2;
     if (f === 0 && hasCard(s, 'mom') && (d.type === 'home' || d.type === 'town' || hasRole(i, '주거'))) v *= 1.25;
     return v;
@@ -529,7 +579,7 @@ var Engine = (function () {
   }
   function defense(s, i) {
     var d = D.d[i], o = s.owner[i];
-    var base = d.base * (TYPES[d.type].def || 1) * (1 + 0.35 * lv(s, i, 3)) * (0.6 + 0.4 * s.min[i] / 100) * (1 + 0.15 * Math.min(2, nbLv(s, i, 3, 3))) * (1 - 0.05 * lv(s, i, 1));
+    var base = (d.lm.length ? LM_DEF : 1) * d.base * (TYPES[d.type].def || 1) * (1 + 0.35 * lv(s, i, 3)) * (0.6 + 0.4 * s.min[i] / 100) * (1 + 0.15 * Math.min(2, nbLv(s, i, 3, 3))) * (1 - 0.05 * lv(s, i, 1));
     var share = 0;
     if (o >= 0) {
       var isCap = s.f[o].cap === i;
@@ -563,6 +613,7 @@ var Engine = (function () {
     var exp = fid === 0 && s.express === s.month, net = fid === 0 && (s.exprProj || hasCard(s, 'express')) ? SUBWAY7 : SUBWAY;
     var xc = fid === 0 && hasCard(s, 'express') ? 0.15 : 0;
     if (d.sub > 0 && !(tOwner >= 0 && s.f[tOwner].cap === t)) net[t].forEach(function (j) { if (s.owner[j] === fid) { var tr = fid === 0 && comboOn(s, 'tr', j); consider(j, 'subway', (TYPES[D.d[j].type].subway || tr ? 0 : -0.2) + (exp ? 0.15 : 0) + (tr ? 0.1 : 0) + xc); } });
+    if (d._hub && !(tOwner >= 0 && s.f[tOwner].cap === t)) HUBS.forEach(function (j) { if (j !== t && s.owner[j] === fid && d.a.indexOf(j) < 0) consider(j, 'hub', LM_HUB); });
     if (best && fid === 0 && hasCard(s, 'elite')) best = { src: best.src, via: best.via, mult: best.mult + 0.12 };
     return best;
   }
@@ -808,12 +859,12 @@ var Engine = (function () {
     s.f[0].troops += n;
     return { ok: true, n: n };
   }
-  function persuadeCost(s, i) { return Math.round(D.d[i].base * 0.65 * (1 + 0.35 * lv(s, i, 3)) * (hasCard(s, 'talk') ? 0.7 : 1) * (downOn(s) ? 0.7 : 1) * (s.cheap && s.cheap[i] > s.month ? 0.6 : 1)); }
+  function persuadeCost(s, i) { return Math.round(D.d[i].base * 0.65 * (1 + 0.35 * lv(s, i, 3)) * (hasCard(s, 'talk') ? 0.7 : 1) * (downOn(s) ? 0.7 : 1) * (s.cheap && s.cheap[i] > s.month ? 0.6 : 1) * (1 - lmDisc(s))); }
   function downOn(s) { return !!(s.down && s.down.until >= s.month); }
   function persuade(s, i) {
     if (s.owner[i] !== -1) return { err: '독립 동만 설득할 수 있습니다.' };
     var r = route(s, 0, i);
-    if (!r || r.via === 'subway') return { err: '우리 땅과 붙어 있어야 합니다.' };
+    if (!r || r.via === 'subway' || r.via === 'hub') return { err: '우리 땅과 붙어 있어야 합니다.' };
     if (s.ap <= 0) return { err: '이번 달 결재를 다 썼습니다.' };
     var c = persuadeCost(s, i);
     if (s.f[0].money < c) return { err: '예산이 ' + Math.ceil(c - s.f[0].money) + '억 모자랍니다.' };
@@ -852,6 +903,7 @@ var Engine = (function () {
     else if (k === 'bribe') { r.cost = Math.round(persuadeCost(s, t) * 1.5 * (tr.bribe || 1)); if (tr.tight) r.why = '결속형이라 포섭이 안 통합니다.'; else if (f.cap === t) r.why = '본거지는 포섭할 수 없습니다.'; else if (nF < 3) r.why = '동이 3곳 이상인 세력만 됩니다.'; }
     else if (k === 'split') { r.cost = Math.round(60 + nF * 8); if (tr.tight) r.why = '결속형이라 내분이 안 일어납니다.'; else if (nF < 5) r.why = '동이 5곳 이상인 세력만 됩니다.'; else if ((f.tightUntil || 0) > s.month) r.why = '경계 중 · ' + (f.tightUntil - s.month) + '달 뒤 가능'; else r.free = splitPart(s, o).length; }
     else if (k === 'smear') { var g = D.d[t].g; r.g = g; r.gn = D.gu[g].n; r.cnt = GUDONGS[g].filter(function (i) { var w = s.owner[i]; return w > 0 && !isPup(s, w) && s.f[w].cap !== i; }).length; r.cost = Math.round(30 + r.cnt * 4); if (!r.cnt) r.why = '이 구에 흔들 세력 동이 없습니다.'; else if ((s.smearAt && s.smearAt[g] || -99) + 4 > s.month) r.why = '이 구는 ' + (s.smearAt[g] + 4 - s.month) + '달 뒤 다시'; }
+    if (k !== 'bribe' && r.cost) r.cost = Math.round(r.cost * (1 - lmDisc(s)));
     if (!r.why && s.ap < x.ap) r.why = '결재가 ' + x.ap + '건 필요합니다.';
     if (!r.why && s.f[0].money < r.cost) r.why = '예산이 ' + Math.ceil(r.cost - s.f[0].money) + '억 모자랍니다.';
     r.ok = !r.why;
@@ -992,7 +1044,7 @@ var Engine = (function () {
       if (o === 0 || (o > 0 && pact[o] > s.month) || isPup(s, o)) return;
       if (indepOnly && o !== -1) return;
       var r = route(s, 0, i);
-      if (!r || (indepOnly && r.via === 'subway')) return;
+      if (!r || (indepOnly && (r.via === 'subway' || r.via === 'hub'))) return;
       out.push({ i: i, need: needFor(s, i, 0.8), cost: persuadeCost(s, i) });
     });
     return out;
@@ -1999,7 +2051,7 @@ var Engine = (function () {
     return [2, 3, 5, 5][Math.max(s.rank, rankNow(s))] + Math.min(10, Math.floor(n / 15)) + (hasCard(s, 'paper') ? 1 : 0);
   }
   function afterChange(s) {
-    if (s.owner && s.f && s.f[0]) { checkCombos(s); zonesClean(s); }
+    if (s.owner && s.f && s.f[0]) { checkCombos(s); zonesClean(s); lmWatch(s); }
     var r = rankNow(s);
     if (r > s.rank) {
       s.rank = r;
@@ -2146,6 +2198,7 @@ var Engine = (function () {
           if (hunt && o === 0) val *= 2.5;
           if (D.d[t2].g === D.d[f.cap].g) val *= 1.5;
           if (o >= 0 && s.f[o].cap === t2) val *= 1.8;
+          if (D.d[t2].lm.length) val *= 1.4;   // 랜드마크는 AI도 노림
           if (P && P.target > 0 && o === P.target) val *= 4;
           if (war > 0 && o === war) val *= 5;
           if (retal && t2 === retal.t) val *= 6;
@@ -2315,7 +2368,7 @@ var Engine = (function () {
     devEffect: devEffect, spPreview: spPreview, COMBO: COMBO, roleOf: function (i) { return roleOf(D.d[i]); }, comboOn: comboOn, comboPreview: comboPreview, settleF: settleF, settleLeft: settleLeft, planInfo: planInfo, facReport: facReport, govTaxOf: govTaxOf, govNext: govNext, winChance: winChance, offerInfo: offerInfo, acceptOffer: acceptOffer, declineOffer: declineOffer, eventView: eventView, GOV: GOV, govInfo: govInfo, govApply: govApply, govPact: govPact, govSite: govSite, govDone: govDone, govEligible: govEligible, FAC: FAC, FAC_SP: FAC_SP, facName: facName, raidTargets: raidTargets, collapseText: collapseText, ABIL: ABIL, PROJECTS: PROJECTS, abilityOf: abilityOf, avgMood: avgMood,
     scoutInfo: scoutInfo, scout: scout, voteInfo: voteInfo, vote: vote, expressInfo: expressInfo, express: express, rallyInfo: rallyInfo, rally: rally,
     unityInfo: unityInfo, unity: unity, exprProjInfo: exprProjInfo, exprProj: exprProj, chooseEvent: chooseEvent, nemesis: nemesis, migrate: migrate, EVENTS: EVENTS,
-    guDongs: function () { return GUDONGS; }, subwayOf: function (i, s) { return s && s.express === s.month ? SUBWAY6[i] : s && s.exprProj ? SUBWAY7[i] : SUBWAY[i]; }
+    guDongs: function () { return GUDONGS; }, landmarks: function () { return LM; }, hubs: function () { return HUBS; }, lmFx: lmFx, lmOf: lmOf, lmDisc: lmDisc, LM_K: LM_K, subwayOf: function (i, s) { return s && s.express === s.month ? SUBWAY6[i] : s && s.exprProj ? SUBWAY7[i] : SUBWAY[i]; }
   };
 })();
 if (typeof module !== 'undefined') module.exports = Engine;
