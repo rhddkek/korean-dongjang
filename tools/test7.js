@@ -31,7 +31,7 @@ const ok=(c,m)=>console.log((c?'PASS ':'FAIL ')+m);
    S.gov.open={k:'hospital',until:S.month+1};const rv=E.govInfo(S).rivals;const before=Object.keys(S.gov.sites).length;E.endTurn(S);const ks=Object.keys(S.gov.sites);const last=ks.find(i=>S.gov.sites[i].k==='hospital');
    return{rv:rv.length,before,after:ks.length,owner:last!==undefined?S.owner[last]:null,paid:500-f.money,log:S.last.map(l=>l.t).find(t=>/공모 결과/.test(t))}});
  ok(ai.rv>=1&&ai.after===ai.before+1&&ai.owner>0&&ai.paid>=150,'조건 채운 다른 세력 선정(부담금 납부): '+ai.log);
- const nob=await G(()=>{const g=__game,S=g.S,E=g.E;S.f.forEach(f=>{if(f.ai)f.money=0});S.gov.open={k:'agency',until:S.month+1};const before=Object.keys(S.gov.sites).length;E.endTurn(S);return{same:Object.keys(S.gov.sites).length===before,log:S.last.map(l=>l.t).find(t=>/공모 결과/.test(t))}});
+ const nob=await G(()=>{const g=__game,S=g.S,E=g.E;S.f.forEach(f=>{if(f.ai)f.money=-2000});S.gov.open={k:'agency',until:S.month+1};const before=Object.keys(S.gov.sites).length;E.endTurn(S);return{same:Object.keys(S.gov.sites).length===before,log:S.last.map(l=>l.t).find(t=>/공모 결과/.test(t))}});
  ok(nob.same&&/유찰/.test(nob.log||''),'신청 없으면 유찰: '+nob.log);
  // 저장 호환
  await G(()=>{const c=JSON.parse(localStorage.getItem('dongjang-save-v1'));delete c.gov;localStorage.setItem('dongjang-save-v1',JSON.stringify(c))});await p.reload({waitUntil:'load'});await p.waitForTimeout(300);await p.tap('#resume');await p.waitForTimeout(250);ok(await G(()=>!!__game.S.gov),'구버전 저장 호환');
